@@ -1,0 +1,17 @@
+services:
+  backend:
+    build:
+      context: .
+      target: development
+    container_name: chiliiz-backend
+    user: node
+    working_dir: /home/node
+    restart: unless-stopped
+    entrypoint: sh
+    command: -c 'pnpm i && pnpm run dev'
+    tty: true
+    stdin_open: true
+    ports:
+      - $PORT:$PORT
+    volumes:
+      - .:/home/node

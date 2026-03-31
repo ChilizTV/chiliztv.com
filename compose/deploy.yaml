@@ -1,0 +1,37 @@
+services:
+  proxy:
+    container_name: proxy
+    restart: unless-stopped
+    image: traefik:v3
+    command:
+      - "--api.insecure=false"
+      - "--providers.docker=true"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      - "--entrypoints.websecure.http.tls.certresolver=letsencrypt"
+      - "--certificatesresolvers.letsencrypt.acme.email=contact@chilitztv.com"
+      - "--certificatesresolvers.letsencrypt.acme.storage=/var/opt/letsencrypt/acme.json"
+      - "--certificatesresolvers.letsencrypt.acme.httpchallenge.entrypoint=web"
+    ports:
+      - 80:80
+      - 443:443
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+
+  frontend:
+    container_name: frontend
+    restart: unless-stopped
+    image: chiliztv.com/frontend:0.1.0
+    labels:
+      traefik.enable: true
+      traefik.http.routers.frontend.rule: Host(`app.chiliztv.com`)
+      traefik.http.routers.frontend.entrypoints: websecure
+
+  backend:
+    container_name: backend
+    restart: unless-stopped
+    image: chiliztv.com/backend:0.1.0
+    labels:
+      traefik.enable: true
+      traefik.http.routers.frontend.rule: Host(`backend.chiliztv.com`)
+      traefik.http.routers.frontend.entrypoints: websecure

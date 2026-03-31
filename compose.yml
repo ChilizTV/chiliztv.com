@@ -1,0 +1,12 @@
+services:
+  node:
+    build:
+      context: .
+      target: development
+    tty: true
+    stdin_open: true
+    ports:
+      - 3000:3000
+      - 3001:3001
+    volumes:
+      - .:/home/node

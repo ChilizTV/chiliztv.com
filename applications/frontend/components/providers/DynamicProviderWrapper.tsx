@@ -1,0 +1,105 @@
+"use client";
+
+import {
+    DynamicContextProvider,
+    SortWallets,
+} from "@dynamic-labs/sdk-react-core";
+import { EthereumWalletConnectors } from "@dynamic-labs/ethereum";
+import { DynamicWagmiConnector } from '@dynamic-labs/wagmi-connector';
+import * as React from "react";
+import { useRouter } from "next/navigation";
+import { WagmiProviderWrapper } from "./WagmiProviderWrapper";
+
+
+export default function DynamicSolanaWalletProvider({ children }: Readonly<{ children: React.ReactNode }>) {
+    const router = useRouter();
+
+    // Configuration conditionnelle pour le développement
+    const isDevelopment = process.env.NODE_ENV === 'development' || process.env.NEXT_PUBLIC_STAGING === "true";
+    const disableOnramps = process.env.NEXT_PUBLIC_DISABLE_ONRAMPS === "true" || isDevelopment;
+    
+    // Récupérer l'environment ID avec une valeur par défaut pour éviter undefined
+    const environmentId = process.env.NEXT_PUBLIC_STAGING === "true" 
+        ? (process.env.NEXT_PUBLIC_STAGING_DYNAMIC_ENVIRONMENT_ID || process.env.NEXT_PUBLIC_DYNAMIC_ENVIRONMENT_ID || "")
+        : (process.env.NEXT_PUBLIC_DYNAMIC_ENVIRONMENT_ID || "");
+
+    // Vérifier que l'environment ID est défini
+    if (!environmentId) {
+        console.warn('⚠️ NEXT_PUBLIC_DYNAMIC_ENVIRONMENT_ID n\'est pas défini dans les variables d\'environnement');
+    }
+    
+    const dynamicSettings = {
+        environmentId: environmentId,
+        walletConnectors: [EthereumWalletConnectors],
+        walletsFilter: SortWallets(['socios', 'metamask', 'coinbase', 'walletconnect', 'phantom']),
+        appName: 'ChilizTV',
+        appLogoUrl: '/Logo_FINAL.svg',
+
+        initialAuthenticationMode: 'connect-and-sign' as const,
+        overrides: {
+            evmNetworks: [
+                {
+                    chainId: 88882,
+                    networkId: 88882,
+                    chainName: 'Chiliz Spicy Testnet',
+                    name: 'Chiliz Spicy Testnet',
+                    rpcUrls: ['https://spicy-rpc.chiliz.com'],
+                    blockExplorerUrls: ['https://testnet.chiliscan.com'],
+                    nativeCurrency: {
+                        name: 'CHZ',
+                        symbol: 'CHZ',
+                        decimals: 18,
+                    },
+                    iconUrls: ['/Logo_FINAL.svg'],
+                    isTestnet: true,
+                },
+                {
+                    chainId: 84532,
+                    networkId: 84532,
+                    chainName: 'Base Sepolia',
+                    name: 'Base Sepolia',
+                    rpcUrls: ['https://sepolia.base.org'],
+                    blockExplorerUrls: ['https://sepolia.basescan.org'],
+                    nativeCurrency: {
+                        name: 'ETH',
+                        symbol: 'ETH',
+                        decimals: 18,
+                    },
+                    iconUrls: [],
+                    isTestnet: true,
+                }
+            ],
+        },
+        settings: {
+            appEnvironment: 'production' as const,
+        },
+        // Désactiver les fonctionnalités problématiques en développement
+        ...(disableOnramps && {
+            disableOnramps: true,
+        }),
+        ...(isDevelopment && {
+            disableAnalytics: true,
+            debugMode: true,
+        }),
+        events: {
+            onLogout: () => {
+                router.push("/");
+            },
+            onAuthSuccess: () => {
+                router.push("/verifying");
+            }
+        }
+    };
+
+    return (
+        <WagmiProviderWrapper>
+            <DynamicContextProvider
+            settings={dynamicSettings}
+            >
+                <DynamicWagmiConnector>
+                    {children}
+                </DynamicWagmiConnector>
+            </DynamicContextProvider>
+        </WagmiProviderWrapper>
+    );
+} 

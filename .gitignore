@@ -1,0 +1,9 @@
+**/node_modules
+**/dist
+**/.npmrc
+**/.npm
+**/.local
+**/.env
+**/.env.*
+!**/.env.example
+**/.node_repl_history

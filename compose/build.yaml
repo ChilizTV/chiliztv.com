@@ -1,0 +1,12 @@
+services:
+  frontend:
+    image: chiliztv.com/frontend:0.1.0
+    build:
+      context: .
+      target: frontend
+
+  backend:
+    image: chiliztv.com/backend:0.1.0
+    build:
+      context: .
+      target: backend

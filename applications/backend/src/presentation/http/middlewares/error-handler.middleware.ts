@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { DomainError } from '../../../domain/shared/errors/DomainError';
+import { DomainError } from '@chiliztv/domain/shared/errors/DomainError';
 import { ZodError } from 'zod';
 import { logger } from '../../../infrastructure/logging/logger';
 

@@ -1,8 +1,8 @@
 import { injectable, inject } from 'tsyringe';
-import { WaitlistEntry } from '../../../domain/waitlist/entities/WaitlistEntry';
-import { IWaitlistRepository } from '../../../domain/waitlist/repositories/IWaitlistRepository';
-import { JoinWaitlistDto } from '../dto/JoinWaitlistDto';
-import { ConflictError } from '../../../domain/shared/errors/ConflictError';
+import { WaitlistEntry } from '@chiliztv/domain/waitlist/entities/WaitlistEntry';
+import { IWaitlistRepository } from '@chiliztv/domain/waitlist/repositories/IWaitlistRepository';
+import { JoinWaitlistDto } from '@chiliztv/shared/dto/waitlist/JoinWaitlistDto';
+import { ConflictError } from '@chiliztv/domain/shared/errors/ConflictError';
 
 @injectable()
 export class JoinWaitlistUseCase {

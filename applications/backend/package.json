@@ -32,6 +32,8 @@
     "typescript": "^5.4.5"
   },
   "dependencies": {
+    "@chiliztv/domain": "workspace:*",
+    "@chiliztv/shared": "workspace:*",
     "@supabase/supabase-js": "^2.52.0",
     "@types/multer": "^2.1.0",
     "axios": "^1.6.0",
@@ -43,11 +45,8 @@
     "helmet": "^8.1.0",
     "jsonwebtoken": "^9.0.3",
     "multer": "^2.1.1",
-    "mysql2": "^3.11.3",
     "node-cron": "^3.0.3",
     "reflect-metadata": "^0.2.2",
-    "sequelize": "latest",
-    "sequelize-typescript": "^2.1.6",
     "tsyringe": "^4.10.0",
     "uuid": "^13.0.0",
     "viem": "^2.31.7",

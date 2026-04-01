@@ -1,0 +1,16 @@
+{
+  "name": "@chiliztv/domain",
+  "version": "1.0.0",
+  "description": "ChilizTV domain layer — zero external dependencies",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "@types/node": "^20.19.33",
+    "typescript": "^5.4.5"
+  }
+}

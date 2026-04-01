@@ -1,8 +1,8 @@
 import { injectable, inject } from 'tsyringe';
 import * as readline from 'readline';
-import { IMatchRepository } from '../../../domain/matches/repositories/IMatchRepository';
+import { IMatchRepository } from '@chiliztv/domain/matches/repositories/IMatchRepository';
 import { BettingContractDeploymentAdapter } from '../../../infrastructure/blockchain/adapters/BettingContractDeploymentAdapter';
-import { Match } from '../../../domain/matches/entities/Match';
+import { Match } from '@chiliztv/domain/matches/entities/Match';
 import { logger } from '../../../infrastructure/logging/logger';
 
 /**

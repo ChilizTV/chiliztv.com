@@ -1,13 +1,13 @@
 import 'reflect-metadata';
 import { container } from 'tsyringe';
-import { IPredictionRepository } from '../../domain/predictions/repositories/IPredictionRepository';
+import { IPredictionRepository } from '@chiliztv/domain/predictions/repositories/IPredictionRepository';
 import { SupabasePredictionRepository } from '../persistence/repositories/SupabasePredictionRepository';
 import { CreatePredictionUseCase } from '../../application/predictions/use-cases/CreatePredictionUseCase';
 import { GetUserPredictionsUseCase } from '../../application/predictions/use-cases/GetUserPredictionsUseCase';
 import { GetUserStatsUseCase } from '../../application/predictions/use-cases/GetUserStatsUseCase';
 import { SettlePredictionsUseCase } from '../../application/predictions/use-cases/SettlePredictionsUseCase';
 import { PredictionController } from '../../presentation/http/controllers/prediction.controller';
-import { IMatchRepository } from '../../domain/matches/repositories/IMatchRepository';
+import { IMatchRepository } from '@chiliztv/domain/matches/repositories/IMatchRepository';
 import { SupabaseMatchRepository } from '../persistence/repositories/SupabaseMatchRepository';
 import { GetAllMatchesUseCase } from '../../application/matches/use-cases/GetAllMatchesUseCase';
 import { GetLiveMatchesUseCase } from '../../application/matches/use-cases/GetLiveMatchesUseCase';
@@ -17,7 +17,7 @@ import { GetMatchesByLeagueUseCase } from '../../application/matches/use-cases/G
 import { GetMatchStatsUseCase } from '../../application/matches/use-cases/GetMatchStatsUseCase';
 import { GetBrowseMatchesUseCase } from '../../application/matches/use-cases/GetBrowseMatchesUseCase';
 import { MatchController } from '../../presentation/http/controllers/match.controller';
-import { IChatRepository } from '../../domain/chat/repositories/IChatRepository';
+import { IChatRepository } from '@chiliztv/domain/chat/repositories/IChatRepository';
 import { SupabaseChatRepository } from '../persistence/repositories/SupabaseChatRepository';
 import { JoinRoomUseCase } from '../../application/chat/use-cases/JoinRoomUseCase';
 import { LeaveRoomUseCase } from '../../application/chat/use-cases/LeaveRoomUseCase';
@@ -27,14 +27,14 @@ import { GetRoomMessagesUseCase } from '../../application/chat/use-cases/GetRoom
 import { GetConnectedUsersUseCase } from '../../application/chat/use-cases/GetConnectedUsersUseCase';
 import { GetChatStatsUseCase } from '../../application/chat/use-cases/GetChatStatsUseCase';
 import { ChatController } from '../../presentation/http/controllers/chat.controller';
-import { IWaitlistRepository } from '../../domain/waitlist/repositories/IWaitlistRepository';
+import { IWaitlistRepository } from '@chiliztv/domain/waitlist/repositories/IWaitlistRepository';
 import { SupabaseWaitlistRepository } from '../persistence/repositories/SupabaseWaitlistRepository';
 import { JoinWaitlistUseCase } from '../../application/waitlist/use-cases/JoinWaitlistUseCase';
 import { CheckAccessUseCase } from '../../application/waitlist/use-cases/CheckAccessUseCase';
 import { GetWaitlistStatsUseCase } from '../../application/waitlist/use-cases/GetWaitlistStatsUseCase';
 import { WaitlistController } from '../../presentation/http/controllers/waitlist.controller';
 import { AuthController } from '../../presentation/http/controllers/auth.controller';
-import { IStreamRepository } from '../../domain/streams/repositories/IStreamRepository';
+import { IStreamRepository } from '@chiliztv/domain/streams/repositories/IStreamRepository';
 import { SupabaseStreamRepository } from '../persistence/repositories/SupabaseStreamRepository';
 import { CreateStreamUseCase } from '../../application/streams/use-cases/CreateStreamUseCase';
 import { GetActiveStreamsUseCase } from '../../application/streams/use-cases/GetActiveStreamsUseCase';
@@ -43,7 +43,7 @@ import { EndStreamUseCase } from '../../application/streams/use-cases/EndStreamU
 import { UpdateViewerCountUseCase } from '../../application/streams/use-cases/UpdateViewerCountUseCase';
 import { CleanupOldStreamsUseCase } from '../../application/streams/use-cases/CleanupOldStreamsUseCase';
 import { StreamController } from '../../presentation/http/controllers/stream.controller';
-import { IStreamWalletRepository } from '../../domain/stream-wallet/repositories/IStreamWalletRepository';
+import { IStreamWalletRepository } from '@chiliztv/domain/stream-wallet/repositories/IStreamWalletRepository';
 import { SupabaseStreamWalletRepository } from '../persistence/repositories/SupabaseStreamWalletRepository';
 import { GetStreamerDonationsUseCase } from '../../application/stream-wallet/use-cases/GetStreamerDonationsUseCase';
 import { GetStreamerSubscriptionsUseCase } from '../../application/stream-wallet/use-cases/GetStreamerSubscriptionsUseCase';
@@ -75,11 +75,11 @@ import { StreamLifecycleService } from '../services/StreamLifecycleService';
 import { BlockchainEventListener } from '../blockchain/BlockchainEventListener';
 import { StreamWalletIndexer } from '../blockchain/indexers/StreamWalletIndexer';
 import { BettingEventIndexer } from '../blockchain/indexers/BettingEventIndexer';
-import { IFanTokenRepository } from '../../domain/fan-tokens/repositories/IFanTokenRepository';
+import { IFanTokenRepository } from '@chiliztv/domain/fan-tokens/repositories/IFanTokenRepository';
 import { FanTokenAdapter } from '../blockchain/adapters/FanTokenAdapter';
 import { GetUserFanTokenBalancesUseCase } from '../../application/fan-tokens/use-cases/GetUserFanTokenBalancesUseCase';
 import { FanTokensController } from '../../presentation/http/controllers/fan-tokens.controller';
-import { IFollowRepository } from '../../domain/follows/repositories/IFollowRepository';
+import { IFollowRepository } from '@chiliztv/domain/follows/repositories/IFollowRepository';
 import { SupabaseFollowRepository } from '../persistence/repositories/SupabaseFollowRepository';
 import { FollowStreamerUseCase } from '../../application/follows/use-cases/FollowStreamerUseCase';
 import { UnfollowStreamerUseCase } from '../../application/follows/use-cases/UnfollowStreamerUseCase';
@@ -87,6 +87,8 @@ import { GetIsFollowingUseCase } from '../../application/follows/use-cases/GetIs
 import { GetFollowerCountUseCase } from '../../application/follows/use-cases/GetFollowerCountUseCase';
 import { GetFollowedStreamersUseCase } from '../../application/follows/use-cases/GetFollowedStreamersUseCase';
 import { FollowController } from '../../presentation/http/controllers/follow.controller';
+import { ISubscriptionChecker } from '@chiliztv/domain/shared/ports/ISubscriptionChecker';
+import { SubscriptionChecker } from '../services/SubscriptionChecker';
 
 export function setupDependencyInjection(): void {
   // Infrastructure - Repositories
@@ -113,6 +115,9 @@ export function setupDependencyInjection(): void {
   });
   container.register<IFollowRepository>('IFollowRepository', {
     useClass: SupabaseFollowRepository,
+  });
+  container.register<ISubscriptionChecker>('ISubscriptionChecker', {
+    useClass: SubscriptionChecker,
   });
 
   // Infrastructure - Blockchain Adapters

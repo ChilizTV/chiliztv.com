@@ -1,6 +1,6 @@
 import { injectable, inject } from 'tsyringe';
-import { Follow } from '../../../domain/follows/entities/Follow';
-import { IFollowRepository } from '../../../domain/follows/repositories/IFollowRepository';
+import { Follow } from '@chiliztv/domain/follows/entities/Follow';
+import { IFollowRepository } from '@chiliztv/domain/follows/repositories/IFollowRepository';
 
 @injectable()
 export class FollowStreamerUseCase {

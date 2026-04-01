@@ -10,7 +10,13 @@
     "outDir": "dist",
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
-    "typeRoots": ["./node_modules/@types", "./src/types"]
+    "typeRoots": ["./node_modules/@types", "./src/types"],
+    "paths": {
+      "@chiliztv/domain": ["../../packages/domain/src/index.ts"],
+      "@chiliztv/domain/*": ["../../packages/domain/src/*"],
+      "@chiliztv/shared": ["../../packages/shared/src/index.ts"],
+      "@chiliztv/shared/*": ["../../packages/shared/src/*"]
+    }
   },
   "ts-node": {
     "files": true

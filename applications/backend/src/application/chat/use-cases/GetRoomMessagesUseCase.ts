@@ -1,6 +1,6 @@
 import { injectable, inject } from 'tsyringe';
-import { ChatMessage } from '../../../domain/chat/entities/ChatMessage';
-import { IChatRepository } from '../../../domain/chat/repositories/IChatRepository';
+import { ChatMessage } from '@chiliztv/domain/chat/entities/ChatMessage';
+import { IChatRepository } from '@chiliztv/domain/chat/repositories/IChatRepository';
 
 @injectable()
 export class GetRoomMessagesUseCase {

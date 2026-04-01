@@ -1,6 +1,6 @@
 import { injectable, inject } from 'tsyringe';
-import { Stream } from '../../../domain/streams/entities/Stream';
-import { IStreamRepository } from '../../../domain/streams/repositories/IStreamRepository';
+import { Stream } from '@chiliztv/domain/streams/entities/Stream';
+import { IStreamRepository } from '@chiliztv/domain/streams/repositories/IStreamRepository';
 
 @injectable()
 export class GetActiveStreamsUseCase {

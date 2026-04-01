@@ -1,6 +1,6 @@
 import { injectable, inject } from 'tsyringe';
-import { IWaitlistRepository } from '../../../domain/waitlist/repositories/IWaitlistRepository';
-import { WaitlistEntry } from '../../../domain/waitlist/entities/WaitlistEntry';
+import { IWaitlistRepository } from '@chiliztv/domain/waitlist/repositories/IWaitlistRepository';
+import { WaitlistEntry } from '@chiliztv/domain/waitlist/entities/WaitlistEntry';
 
 export interface CheckAccessResult {
   hasAccess: boolean;

@@ -1,16 +1,16 @@
 import { injectable, inject } from 'tsyringe';
-import { ChatMessage, MessageType } from '../../../domain/chat/entities/ChatMessage';
-import { IChatRepository } from '../../../domain/chat/repositories/IChatRepository';
-import { SubscriptionChecker } from '../../../domain/chat/services/SubscriptionChecker';
-import { SendMessageDto } from '../dto/SendMessageDto';
+import { ChatMessage, MessageType } from '@chiliztv/domain/chat/entities/ChatMessage';
+import { IChatRepository } from '@chiliztv/domain/chat/repositories/IChatRepository';
+import { ISubscriptionChecker } from '@chiliztv/domain/shared/ports/ISubscriptionChecker';
+import { SendMessageDto } from '@chiliztv/shared/dto/chat/SendMessageDto';
 
 @injectable()
 export class SendMessageUseCase {
   constructor(
     @inject('IChatRepository')
     private readonly chatRepository: IChatRepository,
-    @inject(SubscriptionChecker)
-    private readonly subscriptionChecker: SubscriptionChecker
+    @inject('ISubscriptionChecker')
+    private readonly subscriptionChecker: ISubscriptionChecker
   ) {}
 
   async execute(dto: SendMessageDto): Promise<ChatMessage> {

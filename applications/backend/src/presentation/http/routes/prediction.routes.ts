@@ -6,7 +6,7 @@ import {
   createPredictionSchema,
   getUserPredictionsSchema,
   getUserStatsSchema
-} from '../validation/schemas/prediction.schemas';
+} from '@chiliztv/shared/schemas/prediction.schemas';
 
 const router = Router();
 const predictionController = container.resolve(PredictionController);

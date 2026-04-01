@@ -1,5 +1,5 @@
 import { injectable, inject } from 'tsyringe';
-import { IStreamRepository } from '../../../domain/streams/repositories/IStreamRepository';
+import { IStreamRepository } from '@chiliztv/domain/streams/repositories/IStreamRepository';
 import { logger } from '../../../infrastructure/logging/logger';
 
 /**

@@ -1,6 +1,6 @@
 import { injectable, inject } from 'tsyringe';
-import { Donation } from '../../../domain/stream-wallet/entities/Donation';
-import { IStreamWalletRepository } from '../../../domain/stream-wallet/repositories/IStreamWalletRepository';
+import { Donation } from '@chiliztv/domain/stream-wallet/entities/Donation';
+import { IStreamWalletRepository } from '@chiliztv/domain/stream-wallet/repositories/IStreamWalletRepository';
 
 @injectable()
 export class GetDonorHistoryUseCase {

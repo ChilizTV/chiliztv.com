@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { jwtConfig } from '../../../infrastructure/config/jwt.config';
-import { UnauthorizedError } from '../../../domain/shared/errors/UnauthorizedError';
+import { UnauthorizedError } from '@chiliztv/domain/shared/errors/UnauthorizedError';
 import { JwtPayload as CustomJwtPayload } from '../../../application/auth/types/JwtPayload';
 
 /**

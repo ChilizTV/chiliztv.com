@@ -3,7 +3,7 @@ import { injectable, inject } from 'tsyringe';
 import { CreatePredictionUseCase } from '../../../application/predictions/use-cases/CreatePredictionUseCase';
 import { GetUserPredictionsUseCase } from '../../../application/predictions/use-cases/GetUserPredictionsUseCase';
 import { GetUserStatsUseCase } from '../../../application/predictions/use-cases/GetUserStatsUseCase';
-import { CreatePredictionDto } from '../../../application/predictions/dto/CreatePredictionDto';
+import { CreatePredictionDto } from '@chiliztv/shared/dto/predictions/CreatePredictionDto';
 
 @injectable()
 export class PredictionController {

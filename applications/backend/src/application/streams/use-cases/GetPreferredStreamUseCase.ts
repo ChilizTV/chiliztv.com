@@ -1,7 +1,7 @@
 import { injectable, inject } from 'tsyringe';
-import { Stream } from '../../../domain/streams/entities/Stream';
-import { IStreamRepository } from '../../../domain/streams/repositories/IStreamRepository';
-import { IFollowRepository } from '../../../domain/follows/repositories/IFollowRepository';
+import { Stream } from '@chiliztv/domain/streams/entities/Stream';
+import { IStreamRepository } from '@chiliztv/domain/streams/repositories/IStreamRepository';
+import { IFollowRepository } from '@chiliztv/domain/follows/repositories/IFollowRepository';
 
 export type PreferredStreamSource = 'followed' | 'top_viewer' | 'none';
 

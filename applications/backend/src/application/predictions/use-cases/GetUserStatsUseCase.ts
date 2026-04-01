@@ -1,5 +1,5 @@
 import { injectable, inject } from 'tsyringe';
-import { IPredictionRepository, UserPredictionStats } from '../../../domain/predictions/repositories/IPredictionRepository';
+import { IPredictionRepository, UserPredictionStats } from '@chiliztv/domain/predictions/repositories/IPredictionRepository';
 
 @injectable()
 export class GetUserStatsUseCase {

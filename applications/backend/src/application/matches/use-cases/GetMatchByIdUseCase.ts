@@ -1,7 +1,7 @@
 import { injectable, inject } from 'tsyringe';
-import { Match } from '../../../domain/matches/entities/Match';
-import { IMatchRepository } from '../../../domain/matches/repositories/IMatchRepository';
-import { NotFoundError } from '../../../domain/shared/errors/NotFoundError';
+import { Match } from '@chiliztv/domain/matches/entities/Match';
+import { IMatchRepository } from '@chiliztv/domain/matches/repositories/IMatchRepository';
+import { NotFoundError } from '@chiliztv/domain/shared/errors/NotFoundError';
 
 @injectable()
 export class GetMatchByIdUseCase {

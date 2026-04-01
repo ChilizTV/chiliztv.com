@@ -1,14 +1,14 @@
 import { injectable, inject } from 'tsyringe';
-import { IMatchRepository } from '../../../domain/matches/repositories/IMatchRepository';
-import { IStreamRepository } from '../../../domain/streams/repositories/IStreamRepository';
-import { MatchFetchWindow } from '../../../domain/matches/value-objects/MatchFetchWindow';
-import { Stream } from '../../../domain/streams/entities/Stream';
+import { IMatchRepository } from '@chiliztv/domain/matches/repositories/IMatchRepository';
+import { IStreamRepository } from '@chiliztv/domain/streams/repositories/IStreamRepository';
+import { MatchFetchWindow } from '@chiliztv/domain/matches/value-objects/MatchFetchWindow';
+import { Stream } from '@chiliztv/domain/streams/entities/Stream';
 import {
   BrowseMatchesResponseDto,
   BrowseLeagueDto,
   BrowseMatchDto,
   StreamPreviewDto,
-} from '../dto/BrowseMatchesDto';
+} from '@chiliztv/shared/dto/matches/BrowseMatchesDto';
 
 @injectable()
 export class GetBrowseMatchesUseCase {

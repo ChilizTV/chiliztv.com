@@ -1,7 +1,7 @@
 import { injectable, inject } from 'tsyringe';
-import { Stream, StreamStatus } from '../../../domain/streams/entities/Stream';
-import { IStreamRepository } from '../../../domain/streams/repositories/IStreamRepository';
-import { CreateStreamDto } from '../dto/CreateStreamDto';
+import { Stream, StreamStatus } from '@chiliztv/domain/streams/entities/Stream';
+import { IStreamRepository } from '@chiliztv/domain/streams/repositories/IStreamRepository';
+import { CreateStreamDto } from '@chiliztv/shared/dto/streams/CreateStreamDto';
 
 @injectable()
 export class CreateStreamUseCase {

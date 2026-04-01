@@ -1,6 +1,6 @@
 import { injectable, inject } from 'tsyringe';
-import { IStreamRepository } from '../../../domain/streams/repositories/IStreamRepository';
-import { NotFoundError } from '../../../domain/shared/errors/NotFoundError';
+import { IStreamRepository } from '@chiliztv/domain/streams/repositories/IStreamRepository';
+import { NotFoundError } from '@chiliztv/domain/shared/errors/NotFoundError';
 
 @injectable()
 export class EndStreamUseCase {

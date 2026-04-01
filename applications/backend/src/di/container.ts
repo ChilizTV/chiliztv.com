@@ -29,6 +29,8 @@ import { INetworkConfig } from '@chiliztv/domain/shared/ports/INetworkConfig';
 import { NetworkConfigService } from '../infrastructure/config/NetworkConfigService';
 import { IAuthConfig } from '@chiliztv/domain/shared/ports/IAuthConfig';
 import { AuthConfigService } from '../infrastructure/config/AuthConfigService';
+import { ILogger } from '@chiliztv/domain/shared/ports/ILogger';
+import { WinstonLogger } from '../infrastructure/logging/WinstonLogger';
 
 // ─── Blockchain Adapters (legacy — kept for TokenBalanceAdapter and indexers) ─
 import { TokenBalanceAdapter } from '../infrastructure/blockchain/adapters/TokenBalanceAdapter';
@@ -133,6 +135,7 @@ import { TestMatchLifecycleCommand } from '../presentation/cli/commands/TestMatc
 
 export function setupDependencyInjection(): void {
   // ─── 0. Config ports ────────────────────────────────────────────────────────
+  container.registerSingleton<ILogger>(TOKENS.ILogger, WinstonLogger);
   container.registerSingleton<INetworkConfig>(TOKENS.INetworkConfig, NetworkConfigService);
   container.registerSingleton<IAuthConfig>(TOKENS.IAuthConfig, AuthConfigService);
 

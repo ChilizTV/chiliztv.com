@@ -1,5 +1,5 @@
 import { injectable, inject } from 'tsyringe';
-import { IMatchRepository } from '../../../domain/matches/repositories/IMatchRepository';
+import { IMatchRepository } from '@chiliztv/domain/matches/repositories/IMatchRepository';
 import { MatchResolutionAdapter } from '../../../infrastructure/blockchain/adapters/MatchResolutionAdapter';
 import { logger } from '../../../infrastructure/logging/logger';
 

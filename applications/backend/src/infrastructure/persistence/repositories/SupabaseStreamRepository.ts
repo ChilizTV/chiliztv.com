@@ -1,7 +1,7 @@
 import { injectable } from 'tsyringe';
 import { supabaseClient as supabase } from '../../database/supabase/client';
-import { Stream, StreamStatus } from '../../../domain/streams/entities/Stream';
-import { IStreamRepository } from '../../../domain/streams/repositories/IStreamRepository';
+import { Stream, StreamStatus } from '@chiliztv/domain/streams/entities/Stream';
+import { IStreamRepository } from '@chiliztv/domain/streams/repositories/IStreamRepository';
 import { logger } from '../../logging/logger';
 
 interface StreamRow {

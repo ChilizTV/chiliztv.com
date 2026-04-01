@@ -1,11 +1,11 @@
 import { injectable, inject } from 'tsyringe';
-import { Prediction } from '../../../domain/predictions/entities/Prediction';
-import { IPredictionRepository } from '../../../domain/predictions/repositories/IPredictionRepository';
-import { TransactionHash } from '../../../domain/predictions/value-objects/TransactionHash';
-import { Odds } from '../../../domain/predictions/value-objects/Odds';
-import { PredictionStatus } from '../../../domain/predictions/value-objects/PredictionStatus';
-import { CreatePredictionDto } from '../dto/CreatePredictionDto';
-import { ConflictError } from '../../../domain/shared/errors/ConflictError';
+import { Prediction } from '@chiliztv/domain/predictions/entities/Prediction';
+import { IPredictionRepository } from '@chiliztv/domain/predictions/repositories/IPredictionRepository';
+import { TransactionHash } from '@chiliztv/domain/predictions/value-objects/TransactionHash';
+import { Odds } from '@chiliztv/domain/predictions/value-objects/Odds';
+import { PredictionStatus } from '@chiliztv/domain/predictions/value-objects/PredictionStatus';
+import { CreatePredictionDto } from '@chiliztv/shared/dto/predictions/CreatePredictionDto';
+import { ConflictError } from '@chiliztv/domain/shared/errors/ConflictError';
 import { v4 as uuidv4 } from 'uuid';
 
 @injectable()

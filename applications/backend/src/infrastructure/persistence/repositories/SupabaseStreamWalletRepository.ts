@@ -1,8 +1,8 @@
 import { injectable } from 'tsyringe';
 import { supabaseClient as supabase } from '../../database/supabase/client';
-import { Donation } from '../../../domain/stream-wallet/entities/Donation';
-import { Subscription } from '../../../domain/stream-wallet/entities/Subscription';
-import { IStreamWalletRepository, StreamerStats } from '../../../domain/stream-wallet/repositories/IStreamWalletRepository';
+import { Donation } from '@chiliztv/domain/stream-wallet/entities/Donation';
+import { Subscription } from '@chiliztv/domain/stream-wallet/entities/Subscription';
+import { IStreamWalletRepository, StreamerStats } from '@chiliztv/domain/stream-wallet/repositories/IStreamWalletRepository';
 import { logger } from '../../logging/logger';
 
 interface DonationRow {

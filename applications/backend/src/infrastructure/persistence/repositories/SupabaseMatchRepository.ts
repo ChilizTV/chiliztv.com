@@ -1,8 +1,8 @@
 import { injectable } from 'tsyringe';
 import { supabaseClient as supabase } from '../../database/supabase/client';
-import { Match, MatchOdds } from '../../../domain/matches/entities/Match';
-import { IMatchRepository, MatchStats } from '../../../domain/matches/repositories/IMatchRepository';
-import { MatchFetchWindow } from '../../../domain/matches/value-objects/MatchFetchWindow';
+import { Match, MatchOdds } from '@chiliztv/domain/matches/entities/Match';
+import { IMatchRepository, MatchStats } from '@chiliztv/domain/matches/repositories/IMatchRepository';
+import { MatchFetchWindow } from '@chiliztv/domain/matches/value-objects/MatchFetchWindow';
 import { logger } from '../../logging/logger';
 
 interface MatchRow {

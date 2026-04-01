@@ -1,5 +1,5 @@
 import { injectable, inject } from 'tsyringe';
-import { IChatRepository } from '../../../domain/chat/repositories/IChatRepository';
+import { IChatRepository } from '@chiliztv/domain/chat/repositories/IChatRepository';
 
 @injectable()
 export class LeaveRoomUseCase {

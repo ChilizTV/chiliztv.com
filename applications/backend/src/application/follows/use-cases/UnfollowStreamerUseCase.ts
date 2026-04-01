@@ -1,5 +1,5 @@
 import { injectable, inject } from 'tsyringe';
-import { IFollowRepository } from '../../../domain/follows/repositories/IFollowRepository';
+import { IFollowRepository } from '@chiliztv/domain/follows/repositories/IFollowRepository';
 
 @injectable()
 export class UnfollowStreamerUseCase {

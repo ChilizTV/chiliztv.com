@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import { injectable, inject } from 'tsyringe';
-import { IStreamRepository } from '../../../domain/streams/repositories/IStreamRepository';
+import { IStreamRepository } from '@chiliztv/domain/streams/repositories/IStreamRepository';
 import { StreamLifecycleService } from '../../../infrastructure/services/StreamLifecycleService';
 import { extractStreamKey } from '../../../infrastructure/streaming/utils/mediamtx-path';
 import { logger } from '../../../infrastructure/logging/logger';

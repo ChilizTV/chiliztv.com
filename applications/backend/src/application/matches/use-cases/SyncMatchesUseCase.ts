@@ -1,10 +1,10 @@
 import { injectable, inject } from 'tsyringe';
-import { IMatchRepository } from '../../../domain/matches/repositories/IMatchRepository';
-import { MatchFetchWindow } from '../../../domain/matches/value-objects/MatchFetchWindow';
+import { IMatchRepository } from '@chiliztv/domain/matches/repositories/IMatchRepository';
+import { MatchFetchWindow } from '@chiliztv/domain/matches/value-objects/MatchFetchWindow';
 import { FootballApiAdapter } from '../../../infrastructure/external/adapters/FootballApiAdapter';
 import { BettingContractDeploymentAdapter } from '../../../infrastructure/blockchain/adapters/BettingContractDeploymentAdapter';
 import { MarketOddsAdapter } from '../../../infrastructure/blockchain/adapters/MarketOddsAdapter';
-import { Match, MatchOdds } from '../../../domain/matches/entities/Match';
+import { Match, MatchOdds } from '@chiliztv/domain/matches/entities/Match';
 import { ApiFootballOdds, ExtendedOdds } from '../../../infrastructure/external/types/ApiFootball.types';
 import { logger } from '../../../infrastructure/logging/logger';
 

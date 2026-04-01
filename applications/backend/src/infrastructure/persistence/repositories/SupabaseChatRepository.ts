@@ -1,8 +1,8 @@
 import { injectable } from 'tsyringe';
 import { supabaseClient as supabase } from '../../database/supabase/client';
-import { ChatMessage, MessageType } from '../../../domain/chat/entities/ChatMessage';
-import { ConnectedUser } from '../../../domain/chat/entities/ConnectedUser';
-import { IChatRepository, ChatStats } from '../../../domain/chat/repositories/IChatRepository';
+import { ChatMessage, MessageType } from '@chiliztv/domain/chat/entities/ChatMessage';
+import { ConnectedUser } from '@chiliztv/domain/chat/entities/ConnectedUser';
+import { IChatRepository, ChatStats } from '@chiliztv/domain/chat/repositories/IChatRepository';
 import { logger } from '../../logging/logger';
 
 interface ChatMessageRow {

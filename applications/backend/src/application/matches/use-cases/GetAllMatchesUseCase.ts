@@ -1,7 +1,7 @@
 import { injectable, inject } from 'tsyringe';
-import { Match } from '../../../domain/matches/entities/Match';
-import { IMatchRepository } from '../../../domain/matches/repositories/IMatchRepository';
-import { MatchFetchWindow } from '../../../domain/matches/value-objects/MatchFetchWindow';
+import { Match } from '@chiliztv/domain/matches/entities/Match';
+import { IMatchRepository } from '@chiliztv/domain/matches/repositories/IMatchRepository';
+import { MatchFetchWindow } from '@chiliztv/domain/matches/value-objects/MatchFetchWindow';
 
 @injectable()
 export class GetAllMatchesUseCase {

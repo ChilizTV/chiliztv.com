@@ -1,5 +1,5 @@
 import { injectable, inject } from 'tsyringe';
-import { IStreamWalletRepository, StreamerStats } from '../../../domain/stream-wallet/repositories/IStreamWalletRepository';
+import { IStreamWalletRepository, StreamerStats } from '@chiliztv/domain/stream-wallet/repositories/IStreamWalletRepository';
 
 @injectable()
 export class GetStreamerStatsUseCase {

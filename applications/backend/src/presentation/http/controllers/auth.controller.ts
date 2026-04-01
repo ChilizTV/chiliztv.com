@@ -3,7 +3,7 @@ import jwt from 'jsonwebtoken';
 import { injectable, inject } from 'tsyringe';
 import { CheckAccessUseCase } from '../../../application/waitlist/use-cases/CheckAccessUseCase';
 import { jwtConfig } from '../../../infrastructure/config/jwt.config';
-import { UnauthorizedError } from '../../../domain/shared/errors/UnauthorizedError';
+import { UnauthorizedError } from '@chiliztv/domain/shared/errors/UnauthorizedError';
 import { logger } from '../../../infrastructure/logging/logger';
 
 /**

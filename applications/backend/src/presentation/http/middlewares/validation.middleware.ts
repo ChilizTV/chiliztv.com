@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { AnyZodObject, ZodError } from 'zod';
-import { ValidationError } from '../../../domain/shared/errors/ValidationError';
+import { ValidationError } from '@chiliztv/domain/shared/errors/ValidationError';
 
 /**
  * Validation middleware factory - validates req.body, req.params, req.query against Zod schema

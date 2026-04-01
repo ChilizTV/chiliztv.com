@@ -1,6 +1,6 @@
 import { injectable, inject } from 'tsyringe';
-import { IPredictionRepository } from '../../../domain/predictions/repositories/IPredictionRepository';
-import { IMatchRepository } from '../../../domain/matches/repositories/IMatchRepository';
+import { IPredictionRepository } from '@chiliztv/domain/predictions/repositories/IPredictionRepository';
+import { IMatchRepository } from '@chiliztv/domain/matches/repositories/IMatchRepository';
 import { logger } from '../../../infrastructure/logging/logger';
 
 /**

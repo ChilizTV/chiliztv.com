@@ -1,7 +1,7 @@
 import { injectable } from 'tsyringe';
 import { supabaseClient as supabase } from '../../database/supabase/client';
-import { WaitlistEntry } from '../../../domain/waitlist/entities/WaitlistEntry';
-import { IWaitlistRepository, WaitlistStats } from '../../../domain/waitlist/repositories/IWaitlistRepository';
+import { WaitlistEntry } from '@chiliztv/domain/waitlist/entities/WaitlistEntry';
+import { IWaitlistRepository, WaitlistStats } from '@chiliztv/domain/waitlist/repositories/IWaitlistRepository';
 import { logger } from '../../logging/logger';
 
 interface WaitlistRow {

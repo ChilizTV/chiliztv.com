@@ -21,14 +21,22 @@ import { IFollowRepository } from '@chiliztv/domain/follows/repositories/IFollow
 import { SupabaseFollowRepository } from '../infrastructure/persistence/repositories/SupabaseFollowRepository';
 import { ISubscriptionChecker } from '@chiliztv/domain/shared/ports/ISubscriptionChecker';
 import { SubscriptionChecker } from '../infrastructure/services/SubscriptionChecker';
+import { IFootballApiService } from '@chiliztv/domain/shared/ports/IFootballApiService';
+import { FootballApiAdapterImpl } from '../infrastructure/external/adapters/FootballApiAdapterImpl';
+import { IBlockchainService } from '@chiliztv/domain/shared/ports/IBlockchainService';
+import { ViemBlockchainService } from '../infrastructure/blockchain/services/ViemBlockchainService';
+import { INetworkConfig } from '@chiliztv/domain/shared/ports/INetworkConfig';
+import { NetworkConfigService } from '../infrastructure/config/NetworkConfigService';
+import { IAuthConfig } from '@chiliztv/domain/shared/ports/IAuthConfig';
+import { AuthConfigService } from '../infrastructure/config/AuthConfigService';
 
-// ─── Blockchain Adapters ─────────────────────────────────────────────────────
+// ─── Blockchain Adapters (legacy — kept for TokenBalanceAdapter and indexers) ─
 import { TokenBalanceAdapter } from '../infrastructure/blockchain/adapters/TokenBalanceAdapter';
 import { MarketOddsAdapter } from '../infrastructure/blockchain/adapters/MarketOddsAdapter';
 import { MatchResolutionAdapter } from '../infrastructure/blockchain/adapters/MatchResolutionAdapter';
 import { BettingContractDeploymentAdapter } from '../infrastructure/blockchain/adapters/BettingContractDeploymentAdapter';
 
-// ─── External Adapters ────────────────────────────────────────────────────────
+// ─── External Adapters (legacy — kept for backward compatibility) ─────────────
 import { FootballApiAdapter } from '../infrastructure/external/adapters/FootballApiAdapter';
 
 // ─── Application — Predictions ───────────────────────────────────────────────
@@ -124,6 +132,14 @@ import { SetupMarketsCommand } from '../presentation/cli/commands/SetupMarketsCo
 import { TestMatchLifecycleCommand } from '../presentation/cli/commands/TestMatchLifecycleCommand';
 
 export function setupDependencyInjection(): void {
+  // ─── 0. Config ports ────────────────────────────────────────────────────────
+  container.registerSingleton<INetworkConfig>(TOKENS.INetworkConfig, NetworkConfigService);
+  container.registerSingleton<IAuthConfig>(TOKENS.IAuthConfig, AuthConfigService);
+
+  // ─── 0b. Service ports ──────────────────────────────────────────────────────
+  container.registerSingleton<IFootballApiService>(TOKENS.IFootballApiService, FootballApiAdapterImpl);
+  container.registerSingleton<IBlockchainService>(TOKENS.IBlockchainService, ViemBlockchainService);
+
   // ─── 1. Repositories (Symbol tokens) ───────────────────────────────────────
   container.registerSingleton<IPredictionRepository>(TOKENS.IPredictionRepository, SupabasePredictionRepository);
   container.registerSingleton<IMatchRepository>(TOKENS.IMatchRepository, SupabaseMatchRepository);

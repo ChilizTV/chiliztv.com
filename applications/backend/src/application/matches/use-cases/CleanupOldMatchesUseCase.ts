@@ -2,12 +2,9 @@ import { injectable, inject } from 'tsyringe';
 import { TOKENS } from '@chiliztv/domain/shared/tokens';
 import { IMatchRepository } from '@chiliztv/domain/matches/repositories/IMatchRepository';
 import { MatchFetchWindow } from '@chiliztv/domain/matches/value-objects/MatchFetchWindow';
-import { logger } from '../../../infrastructure/logging/logger';
-
 /**
  * Cleanup Old Matches Use Case
- * Removes matches that are older than a specified date
- * Typically used to clean up matches outside the 24h window
+ * Removes matches that are older than a specified date.
  */
 @injectable()
 export class CleanupOldMatchesUseCase {
@@ -15,26 +12,8 @@ export class CleanupOldMatchesUseCase {
         @inject(TOKENS.IMatchRepository) private readonly matchRepository: IMatchRepository
     ) {}
 
-    /**
-     * Delete matches older than the specified date
-     * @param before - Delete matches before this date
-     * @returns Number of matches deleted
-     */
     async execute(before: Date): Promise<number> {
-        try {
-            logger.info('Cleaning up old matches', { before: before.toISOString() });
-
-            const deletedCount = await this.matchRepository.deleteOldMatches(before);
-
-            logger.info('Old matches cleaned up', { deletedCount });
-
-            return deletedCount;
-        } catch (error) {
-            logger.error('Failed to cleanup old matches', {
-                error: error instanceof Error ? error.message : 'Unknown error'
-            });
-            throw error;
-        }
+        return this.matchRepository.deleteOldMatches(before);
     }
 
     /**

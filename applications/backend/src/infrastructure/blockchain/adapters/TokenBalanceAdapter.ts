@@ -2,7 +2,7 @@ import { injectable } from 'tsyringe';
 import { createPublicClient, http } from 'viem';
 import { chiliz } from 'viem/chains';
 import { chilizConfig, ChilizToken, networkType } from '../../config/chiliz.config';
-import { baseSepolia } from '../chains';
+import { baseSepolia } from '@chiliztv/blockchain';
 import { logger } from '../../logging/logger';
 
 export interface TokenBalance {

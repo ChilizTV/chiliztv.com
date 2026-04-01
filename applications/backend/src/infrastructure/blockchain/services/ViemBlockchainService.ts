@@ -15,8 +15,8 @@ import {
     DeployContractResult,
 } from '@chiliztv/domain/shared/ports/IBlockchainService';
 import { ExtendedOdds } from '@chiliztv/domain/shared/ports/IFootballApiService';
-import { FACTORY_ABI, FOOTBALL_MATCH_ABI } from '../abis';
-import { baseSepolia } from '../chains';
+import { FACTORY_ABI, FOOTBALL_MATCH_ABI } from '@chiliztv/blockchain';
+import { baseSepolia } from '@chiliztv/blockchain';
 import { logger } from '../../logging/logger';
 
 const MARKET_STATE_RESOLVED = 4;

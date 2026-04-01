@@ -3,8 +3,8 @@ import { createWalletClient, createPublicClient, http, keccak256, toBytes } from
 import { privateKeyToAccount } from 'viem/accounts';
 import { chiliz } from 'viem/chains';
 import { chilizConfig, networkType } from '../../config/chiliz.config';
-import { FACTORY_ABI, FOOTBALL_MATCH_ABI } from '../abis';
-import { baseSepolia } from '../chains';
+import { FACTORY_ABI, FOOTBALL_MATCH_ABI } from '@chiliztv/blockchain';
+import { baseSepolia } from '@chiliztv/blockchain';
 import { logger } from '../../logging/logger';
 
 const FACTORY_ADDRESS = (process.env.BETTING_MATCH_FACTORY_ADDRESS ||

@@ -2,7 +2,7 @@ import { injectable } from 'tsyringe';
 import { createPublicClient, http, defineChain } from 'viem';
 import { chiliz } from 'viem/chains';
 import { chilizConfig, networkType } from '../../config/chiliz.config';
-import { ERC20_ABI } from '../abis';
+import { ERC20_ABI } from '@chiliztv/blockchain';
 import { logger } from '../../logging';
 import { IFanTokenRepository, UserTokenBalance } from '@chiliztv/domain/fan-tokens/repositories/IFanTokenRepository';
 

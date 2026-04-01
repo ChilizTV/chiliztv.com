@@ -10,6 +10,9 @@ importers:
 
   applications/backend:
     dependencies:
+      '@chiliztv/blockchain':
+        specifier: workspace:*
+        version: link:../../packages/blockchain
       '@chiliztv/domain':
         specifier: workspace:*
         version: link:../../packages/domain
@@ -267,6 +270,18 @@ importers:
       typescript:
         specifier: ^5
         version: 5.9.3
+
+  packages/blockchain:
+    devDependencies:
+      '@types/node':
+        specifier: ^20.19.33
+        version: 20.19.37
+      typescript:
+        specifier: ^5.4.5
+        version: 5.9.3
+      viem:
+        specifier: ^2.31.7
+        version: 2.47.6(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@6.0.6)(zod@4.3.6)
 
   packages/domain:
     devDependencies:

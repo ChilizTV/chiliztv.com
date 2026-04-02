@@ -74,7 +74,7 @@ export class SupabaseChatService {
                     user_id: userId,
                     username: username,
                     message: message,
-                    message_type: 'message',
+                    message_type: MessageType.REGULAR,
                     wallet_address: walletAddress?.toLowerCase() ?? walletAddress,
                     created_at: new Date().toISOString()
                 })
@@ -119,7 +119,7 @@ export class SupabaseChatService {
                 user_id: userId,
                 username: username,
                 message: `Pari ${betType} - ${betSubType}`,
-                message_type: 'bet',
+                message_type: MessageType.BET,
                 bet_type: betType,
                 bet_sub_type: betSubType,
                 amount: amount,
@@ -149,7 +149,7 @@ export class SupabaseChatService {
                 user_id: 'system',
                 username: 'Système',
                 message: message,
-                message_type: 'system',
+                message_type: MessageType.SYSTEM,
                 system_type: systemType,
                 created_at: new Date().toISOString()
             })
@@ -406,7 +406,7 @@ export class SupabaseChatService {
                 user_id: userId,
                 username: username,
                 message: message,
-                message_type: 'message',
+                message_type: MessageType.REGULAR,
                 wallet_address: walletAddress?.toLowerCase() ?? walletAddress,
                 created_at: new Date().toISOString()
             })

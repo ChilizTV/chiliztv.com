@@ -31,6 +31,18 @@ function delay(ms: number = TX_DELAY_MS): Promise<void> {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
 
+/**
+ * Fetch the next nonce using the "pending" block tag so that consecutive
+ * transactions always use a strictly increasing nonce, even when a previous
+ * tx is still in the mempool (avoids "replacement transaction underpriced").
+ */
+async function getPendingNonce(
+    publicClient: ReturnType<typeof createPublicClient>,
+    address: `0x${string}`
+): Promise<number> {
+    return publicClient.getTransactionCount({ address, blockTag: 'pending' });
+}
+
 export interface MarketSetupOdds {
     homeWin?: number;
     draw?: number;
@@ -88,12 +100,15 @@ export class BettingContractDeploymentAdapter {
         try {
             logger.info('Deploying FootballMatch contract', { matchName, ownerAddress });
 
+            const nonce = await getPendingNonce(this.publicClient, this.walletClient.account.address);
+
             // Call createFootballMatch on the Factory
             const hash = await this.walletClient.writeContract({
                 address: FACTORY_ADDRESS,
                 abi: FACTORY_ABI,
                 functionName: 'createFootballMatch',
                 args: [matchName, ownerAddress as `0x${string}`],
+                nonce,
             });
 
             logger.debug('Transaction sent', { hash });
@@ -150,43 +165,49 @@ export class BettingContractDeploymentAdapter {
 
         let hash: `0x${string}`;
 
-        const sendAndWait = async (fn: () => Promise<`0x${string}`>) => {
-            hash = await fn();
+        const accountAddress = this.walletClient.account.address;
+        const sendAndWait = async (fn: (nonce: number) => Promise<`0x${string}`>) => {
+            const nonce = await getPendingNonce(this.publicClient, accountAddress);
+            hash = await fn(nonce);
             await this.publicClient.waitForTransactionReceipt({ hash, timeout: 90_000 });
-            await delay(); // Avoid "replacement transaction underpriced"
+            await delay(); // Give the node time to update the pending nonce
         };
 
         logger.info('Adding WINNER market (1X2)', { contractAddress });
-        await sendAndWait(() => this.walletClient.writeContract({
+        await sendAndWait((nonce) => this.walletClient.writeContract({
             address: matchAddr,
             abi: FOOTBALL_MATCH_ABI,
             functionName: 'addMarket',
             args: [MARKET_WINNER, oddsHome],
+            nonce,
         }));
 
         logger.info('Adding GOALS_TOTAL market (Over/Under 2.5)', { contractAddress });
-        await sendAndWait(() => this.walletClient.writeContract({
+        await sendAndWait((nonce) => this.walletClient.writeContract({
             address: matchAddr,
             abi: FOOTBALL_MATCH_ABI,
             functionName: 'addMarketWithLine',
             args: [MARKET_GOALS_TOTAL, oddsOver25, 25],
+            nonce,
         }));
 
         logger.info('Adding BOTH_SCORE market (BTTS)', { contractAddress });
-        await sendAndWait(() => this.walletClient.writeContract({
+        await sendAndWait((nonce) => this.walletClient.writeContract({
             address: matchAddr,
             abi: FOOTBALL_MATCH_ABI,
             functionName: 'addMarket',
             args: [MARKET_BOTH_SCORE, oddsBttsYes],
+            nonce,
         }));
 
         logger.info('Opening markets', { contractAddress });
         for (let marketId = 0; marketId < 3; marketId++) {
-            await sendAndWait(() => this.walletClient.writeContract({
+            await sendAndWait((nonce) => this.walletClient.writeContract({
                 address: matchAddr,
                 abi: FOOTBALL_MATCH_ABI,
                 functionName: 'openMarket',
                 args: [BigInt(marketId)],
+                nonce,
             }));
         }
         logger.info('Markets created and opened', {
@@ -231,8 +252,10 @@ export class BettingContractDeploymentAdapter {
         const matchAddr = contractAddress as `0x${string}`;
         let opened = 0;
 
-        const sendAndWait = async (fn: () => Promise<`0x${string}`>) => {
-            const hash = await fn();
+        const accountAddress = this.walletClient.account.address;
+        const sendAndWait = async (fn: (nonce: number) => Promise<`0x${string}`>) => {
+            const nonce = await getPendingNonce(this.publicClient, accountAddress);
+            const hash = await fn(nonce);
             await this.publicClient.waitForTransactionReceipt({ hash, timeout: 90_000 });
             await delay();
         };
@@ -241,11 +264,12 @@ export class BettingContractDeploymentAdapter {
             const state = await this.getMarketState(contractAddress, marketId);
             if (state === MarketState.Inactive) {
                 logger.info('Opening inactive market', { contractAddress, marketId });
-                await sendAndWait(() => this.walletClient.writeContract({
+                await sendAndWait((nonce) => this.walletClient.writeContract({
                     address: matchAddr,
                     abi: FOOTBALL_MATCH_ABI,
                     functionName: 'openMarket',
                     args: [BigInt(marketId)],
+                    nonce,
                 }));
                 opened++;
             }

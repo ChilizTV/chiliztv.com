@@ -20,6 +20,10 @@
     ],
     "paths": {
       "@/*": ["./*"],
+      "@chiliztv/blockchain": ["../../packages/blockchain/src/index.ts"],
+      "@chiliztv/blockchain/*": ["../../packages/blockchain/src/*"],
+      "@chiliztv/domain": ["../../packages/domain/src/index.ts"],
+      "@chiliztv/domain/*": ["../../packages/domain/src/*"],
       "@chiliztv/shared": ["../../packages/shared/src/index.ts"],
       "@chiliztv/shared/*": ["../../packages/shared/src/*"]
     }

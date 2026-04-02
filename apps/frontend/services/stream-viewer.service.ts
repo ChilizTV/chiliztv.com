@@ -1,5 +1,6 @@
 import axios from 'axios';
-import { StreamListResponse, CreateStreamRequest, CreateStreamResponse, LiveStream } from '@/models/stream.model';
+import { StreamListResponse, CreateStreamResponse, LiveStream } from '@/models/stream.model';
+import type { CreateStreamDto as CreateStreamRequest } from '@chiliztv/shared/dto/streams/CreateStreamDto';
 import { streamsApi } from '@/lib/api/endpoints';
 
 export class StreamViewerService {

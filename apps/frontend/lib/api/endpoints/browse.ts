@@ -1,8 +1,8 @@
 import { apiClient } from '../client';
-import { BrowseMatchesResponse } from '@/types/browse.types';
+import type { BrowseMatchesResponseDto } from '@chiliztv/shared/dto/matches/BrowseMatchesDto';
 
 export const browseApi = {
-  getMatches: async (): Promise<BrowseMatchesResponse> => {
-    return await apiClient.get<BrowseMatchesResponse>('/matches/browse');
+  getMatches: async (): Promise<BrowseMatchesResponseDto> => {
+    return await apiClient.get<BrowseMatchesResponseDto>('/matches/browse');
   },
 };

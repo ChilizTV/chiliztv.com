@@ -17,7 +17,9 @@ import {
 import { ExtendedOdds } from "@/models/match.model";
 import { useMatch } from "@/hooks/api";
 import { SupabaseChatService } from "@/services";
+import { MessageType, SystemMessageType } from "@/models/chat.model";
 import { LiveStream } from "@/models/stream.model";
+import { StreamStatus } from '@chiliztv/domain/streams/entities/Stream';
 import { Address } from "viem";
 
 interface LiveDetailsPageProps {
@@ -57,7 +59,8 @@ export default function LiveDetailsPage({ id }: LiveDetailsPageProps) {
         streamerName: 'Test Streamer',
         streamerWalletAddress: testStreamerAddress,
         streamKey: 'mock',
-        status: 'live',
+        status: StreamStatus.LIVE,
+        isLive: true,
         viewerCount: 0,
         createdAt: new Date().toISOString(),
     } : null;
@@ -89,7 +92,7 @@ export default function LiveDetailsPage({ id }: LiveDetailsPageProps) {
             const supabaseChat = new SupabaseChatService();
             const messages = await supabaseChat.getRoomMessages(matchId, 1000);
 
-            const predictionMessages = messages.filter(msg => msg.type === 'bet' || msg.systemEventType === 'bet').length;
+            const predictionMessages = messages.filter(msg => msg.type === MessageType.BET || msg.systemEventType === SystemMessageType.BET_PLACED).length;
 
             setChatStats({
                 messagesCount: messages.length,

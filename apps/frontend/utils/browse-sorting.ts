@@ -1,11 +1,12 @@
-import { BrowseLeague, BrowseMatch, SortMode } from '@/types/browse.types';
+import type { BrowseLeagueDto, BrowseMatchDto } from '@chiliztv/shared/dto/matches/BrowseMatchesDto';
+import type { SortMode } from '@/types/browse.types';
 
 /**
- * @returns A comparator that sorts BrowseMatch by kickoffAt in the given order.
+ * @returns A comparator that sorts BrowseMatchDto by kickoffAt in the given order.
  */
 function byKickoff(order: 'asc' | 'desc') {
   const sign = order === 'asc' ? 1 : -1;
-  return (a: BrowseMatch, b: BrowseMatch): number =>
+  return (a: BrowseMatchDto, b: BrowseMatchDto): number =>
     sign * (new Date(a.kickoffAt).getTime() - new Date(b.kickoffAt).getTime());
 }
 
@@ -18,9 +19,9 @@ function byKickoff(order: 'asc' | 'desc') {
  *
  * @param leagues - Source leagues (already filtered)
  * @param mode    - Active sort mode
- * @returns A new BrowseLeague[] — input is never mutated.
+ * @returns A new BrowseLeagueDto[] — input is never mutated.
  */
-export function applySort(leagues: BrowseLeague[], mode: SortMode): BrowseLeague[] {
+export function applySort(leagues: BrowseLeagueDto[], mode: SortMode): BrowseLeagueDto[] {
   switch (mode) {
     case 'league_asc':
       return leagues.map(l => ({ ...l, matches: [...l.matches].sort(byKickoff('asc')) }));

@@ -9,6 +9,8 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@chiliztv/blockchain": "workspace:*",
+    "@chiliztv/domain": "workspace:*",
     "@chiliztv/shared": "workspace:*",
     "@cloudflare/stream-react": "^1.9.3",
     "@dynamic-labs/ethereum": "4.64.0",

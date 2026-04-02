@@ -1,5 +1,6 @@
-import { apiClient } from '../client';
-import { LiveStream, CreateStreamRequest } from '@/models/stream.model';
+import { apiClient, normalizeFormatA } from '../client';
+import { LiveStream } from '@/models/stream.model';
+import type { CreateStreamDto as CreateStreamRequest } from '@chiliztv/shared/dto/streams/CreateStreamDto';
 
 interface StreamListResponse {
   success: boolean;
@@ -18,11 +19,6 @@ interface EndStreamResponse {
   message?: string;
 }
 
-interface PreferredStreamResponse {
-  success: boolean;
-  stream: LiveStream | null;
-  source: 'followed' | 'top_viewer' | 'none';
-}
 
 /**
  * @notice Stream API endpoints with type-safe methods
@@ -48,8 +44,11 @@ export const streamsApi = {
   ): Promise<{ stream: LiveStream | null; source: 'followed' | 'top_viewer' | 'none' }> => {
     const params: Record<string, unknown> = { matchId };
     if (userId) params.userId = userId;
-    const response = await apiClient.get<PreferredStreamResponse>('/stream/preferred', { params } as never);
-    return { stream: response.stream, source: response.source };
+    const raw = await apiClient.get<unknown>('/stream/preferred', { params } as never);
+    return {
+      stream: normalizeFormatA<LiveStream | null>(raw, 'stream'),
+      source: normalizeFormatA<'followed' | 'top_viewer' | 'none'>(raw, 'source'),
+    };
   },
 
   /**

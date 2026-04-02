@@ -1,11 +1,11 @@
 "use client";
 
 import Image from "next/image";
-import { BrowseLeague } from "@/types/browse.types";
+import type { BrowseLeagueDto } from "@chiliztv/shared/dto/matches/BrowseMatchesDto";
 import { MatchCard } from "./MatchCard";
 
 interface LeagueSectionProps {
-  league: BrowseLeague;
+  league: BrowseLeagueDto;
   now: Date;
   /** Set to false for flat time-sorted views (league.id === 0) */
   showHeader?: boolean;

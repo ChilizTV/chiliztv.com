@@ -9,5 +9,6 @@ export interface CreatePredictionDto {
   predictedTeam: string;
   odds: number;
   transactionHash: string;
-  matchStartTime: Date;
+  /** ISO 8601 string — serializable over HTTP */
+  matchStartTime: string;
 }

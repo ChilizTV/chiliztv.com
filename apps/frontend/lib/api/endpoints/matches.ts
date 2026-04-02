@@ -1,73 +1,40 @@
-import { apiClient } from '../client';
+import { apiClient, normalizeFormatA } from '../client';
 import { Match } from '@/types/api.types';
-
-interface BackendMatch {
-  id: string;
-  apiFootballId: number;
-  homeTeam: { id: number; name: string; logo?: string };
-  awayTeam: { id: number; name: string; logo?: string };
-  league: { id: number; name: string };
-  season: string;
-  status: string;
-  matchDate: string;
-  venue?: string;
-  score: { home?: number; away?: number } | null;
-  odds?: {
-    homeWin: number;
-    draw: number;
-    awayWin: number;
-  };
-  bettingContractAddress?: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-interface MatchesResponse {
-  success: boolean;
-  matches: BackendMatch[];
-  count: number;
-  timestamp: number;
-}
-
-interface MatchResponse {
-  success: boolean;
-  match: BackendMatch;
-}
-
-interface StatsResponse {
-  success: boolean;
-  stats: {
-    total: number;
-    live: number;
-    upcoming: number;
-    finished: number;
-  };
-}
+import type {
+  MatchResponseDto,
+  MatchStatsResponseDto,
+} from '@chiliztv/shared/dto/matches/MatchResponseDto';
 
 /**
- * @notice Transform backend match to frontend Match type
+ * Maps the nested MatchResponseDto (raw backend shape) to the flat Match type
+ * consumed by frontend components. Consumers depend on Match, not MatchResponseDto.
+ *
+ * score?.home can be number | null at runtime (backend returns null when no score);
+ * `?? undefined` normalises null → undefined to satisfy Match.homeScore?: number.
  */
-function transformMatch(backendMatch: BackendMatch): Match {
+function transformMatch(m: MatchResponseDto): Match {
   return {
-    id: backendMatch.apiFootballId,
-    homeTeam: backendMatch.homeTeam.name,
-    awayTeam: backendMatch.awayTeam.name,
-    homeTeamLogo: backendMatch.homeTeam.logo,
-    awayTeamLogo: backendMatch.awayTeam.logo,
-    league: backendMatch.league.name,
-    status: backendMatch.status,
-    startTime: backendMatch.matchDate,
-    homeScore: backendMatch.score?.home,
-    awayScore: backendMatch.score?.away,
-    venue: backendMatch.venue,
-    contractAddress: backendMatch.bettingContractAddress,
-    odds: backendMatch.odds ? {
-      match_winner: {
-        home: backendMatch.odds.homeWin,
-        draw: backendMatch.odds.draw,
-        away: backendMatch.odds.awayWin,
-      }
-    } : undefined,
+    id: m.apiFootballId,
+    homeTeam: m.homeTeam.name,
+    awayTeam: m.awayTeam.name,
+    homeTeamLogo: m.homeTeam.logo,
+    awayTeamLogo: m.awayTeam.logo,
+    league: m.league.name,
+    status: m.status,
+    startTime: m.matchDate,
+    homeScore: m.score?.home ?? undefined,
+    awayScore: m.score?.away ?? undefined,
+    venue: m.venue,
+    contractAddress: m.bettingContractAddress,
+    odds: m.odds
+      ? {
+          match_winner: {
+            home: m.odds.homeWin,
+            draw: m.odds.draw,
+            away: m.odds.awayWin,
+          },
+        }
+      : undefined,
   };
 }
 
@@ -81,8 +48,8 @@ export const matchesApi = {
    * @return Promise resolving to array of matches
    */
   getAll: async (): Promise<Match[]> => {
-    const response = await apiClient.get<MatchesResponse>('/matches');
-    return response.matches.map(transformMatch);
+    const raw = await apiClient.get<unknown>('/matches');
+    return normalizeFormatA<MatchResponseDto[]>(raw, 'matches').map(transformMatch);
   },
 
   /**
@@ -91,8 +58,8 @@ export const matchesApi = {
    * @return Promise resolving to match data
    */
   getById: async (id: number | string): Promise<Match> => {
-    const response = await apiClient.get<MatchResponse>(`/matches/${id}`);
-    return transformMatch(response.match);
+    const raw = await apiClient.get<unknown>(`/matches/${id}`);
+    return transformMatch(normalizeFormatA<MatchResponseDto>(raw, 'match'));
   },
 
   /**
@@ -100,8 +67,8 @@ export const matchesApi = {
    * @return Promise resolving to array of live matches
    */
   getLive: async (): Promise<Match[]> => {
-    const response = await apiClient.get<MatchesResponse>('/matches/live');
-    return response.matches.map(transformMatch);
+    const raw = await apiClient.get<unknown>('/matches/live');
+    return normalizeFormatA<MatchResponseDto[]>(raw, 'matches').map(transformMatch);
   },
 
   /**
@@ -109,8 +76,8 @@ export const matchesApi = {
    * @return Promise resolving to array of upcoming matches
    */
   getUpcoming: async (): Promise<Match[]> => {
-    const response = await apiClient.get<MatchesResponse>('/matches/upcoming');
-    return response.matches.map(transformMatch);
+    const raw = await apiClient.get<unknown>('/matches/upcoming');
+    return normalizeFormatA<MatchResponseDto[]>(raw, 'matches').map(transformMatch);
   },
 
   /**
@@ -119,16 +86,16 @@ export const matchesApi = {
    * @return Promise resolving to array of matches in the league
    */
   getByLeague: async (league: string): Promise<Match[]> => {
-    const response = await apiClient.get<MatchesResponse>(`/matches/league/${league}`);
-    return response.matches.map(transformMatch);
+    const raw = await apiClient.get<unknown>(`/matches/league/${league}`);
+    return normalizeFormatA<MatchResponseDto[]>(raw, 'matches').map(transformMatch);
   },
 
   /**
    * @notice Fetches match statistics summary
    * @return Promise resolving to statistics data
    */
-  getStats: async (): Promise<{ total: number; live: number; upcoming: number; finished: number }> => {
-    const response = await apiClient.get<StatsResponse>('/matches/stats/summary');
-    return response.stats;
+  getStats: async (): Promise<MatchStatsResponseDto> => {
+    const raw = await apiClient.get<unknown>('/matches/stats/summary');
+    return normalizeFormatA<MatchStatsResponseDto>(raw, 'stats');
   },
 };

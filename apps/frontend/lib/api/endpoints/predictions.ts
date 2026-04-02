@@ -1,35 +1,18 @@
-import { apiClient } from '../client';
-import { Prediction, PredictionStats } from '@/types/api.types';
+import { apiPost, apiGet } from '../client';
+import type { PredictionResponseDto } from '@chiliztv/shared/dto/predictions/PredictionResponseDto';
+import type { UserPredictionStats } from '@chiliztv/domain/predictions/repositories/IPredictionRepository';
+import type { CreatePredictionDto } from '@chiliztv/shared/dto/predictions/CreatePredictionDto';
 
-export interface CreatePredictionDTO {
-  userId: string;
-  walletAddress: string;
-  username: string;
-  matchId: number;
-  matchName: string;
-  predictionType: 'WIN_HOME' | 'WIN_AWAY' | 'DRAW' | 'OVER' | 'UNDER';
-  predictionValue: string;
-  predictedTeam: string;
-  odds: number;
-  transactionHash: string;
-  matchStartTime: string;
-}
-
-interface ApiResponse<T> {
-  success: boolean;
-  data: T;
-}
-
-interface PaginatedApiResponse<T> extends ApiResponse<T> {
-  pagination: {
-    limit: number;
-    offset: number;
-  };
-}
+/**
+ * Re-exported under the old name so existing consumers (usePredictions.ts etc.)
+ * continue to work without changes.
+ */
+export type { CreatePredictionDto as CreatePredictionDTO };
 
 /**
  * @notice Prediction API endpoints with type-safe methods
- * @dev All methods use the centralized API client with JWT auth
+ * @dev All methods use apiPost/apiGet which apply normalizeFormatB automatically,
+ *      since prediction endpoints return Format B: { success: true, data: T }.
  */
 export const predictionsApi = {
   /**
@@ -37,9 +20,8 @@ export const predictionsApi = {
    * @param data Prediction data
    * @return Promise resolving to created prediction
    */
-  create: async (data: CreatePredictionDTO): Promise<Prediction> => {
-    const response = await apiClient.post<ApiResponse<Prediction>>('/predictions', data);
-    return response.data;
+  create: async (data: CreatePredictionDto): Promise<PredictionResponseDto> => {
+    return apiPost<PredictionResponseDto>('/predictions', data);
   },
 
   /**
@@ -47,9 +29,8 @@ export const predictionsApi = {
    * @param userId User ID
    * @return Promise resolving to array of predictions
    */
-  getByUser: async (userId: string): Promise<Prediction[]> => {
-    const response = await apiClient.get<PaginatedApiResponse<Prediction[]>>(`/predictions/${userId}`);
-    return response.data;
+  getByUser: async (userId: string): Promise<PredictionResponseDto[]> => {
+    return apiGet<PredictionResponseDto[]>(`/predictions/${userId}`);
   },
 
   /**
@@ -57,8 +38,7 @@ export const predictionsApi = {
    * @param userId User ID
    * @return Promise resolving to prediction stats
    */
-  getUserStats: async (userId: string): Promise<PredictionStats> => {
-    const response = await apiClient.get<ApiResponse<PredictionStats>>(`/predictions/stats/${userId}`);
-    return response.data;
+  getUserStats: async (userId: string): Promise<UserPredictionStats> => {
+    return apiGet<UserPredictionStats>(`/predictions/stats/${userId}`);
   },
 };

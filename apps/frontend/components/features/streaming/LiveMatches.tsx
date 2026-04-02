@@ -9,7 +9,8 @@ import { useMatchTimeUpdate } from "./hooks";
 import { getMatchStatus, MatchStatus } from "./utils";
 import { LeagueSection } from "@/components/features/browse/LeagueSection";
 import { BrowseFilterBar, StatusFilter } from "@/components/features/browse/BrowseFilterBar";
-import { BrowseLeague, BrowseMatch, SortMode } from "@/types/browse.types";
+import type { BrowseLeagueDto, BrowseMatchDto } from "@chiliztv/shared/dto/matches/BrowseMatchesDto";
+import type { SortMode } from "@/types/browse.types";
 import { applySort } from "@/utils/browse-sorting";
 import type { Match } from "@/types/api.types";
 
@@ -27,7 +28,7 @@ export default function LiveMatches() {
 
   const leagues = useMemo(() => data?.leagues ?? [], [data?.leagues]);
 
-  const filteredLeagues = useMemo<BrowseLeague[]>(() => {
+  const filteredLeagues = useMemo<BrowseLeagueDto[]>(() => {
     return leagues
       .map((league) => {
         // League filter — composite key handles duplicate IDs in test data
@@ -37,7 +38,7 @@ export default function LiveMatches() {
         // Status filter
         if (activeStatus === null) return league;
 
-        const filteredMatches = league.matches.filter((match: BrowseMatch) => {
+        const filteredMatches = league.matches.filter((match: BrowseMatchDto) => {
           const ds = getMatchStatus({
             status: match.status,
             startTime: match.kickoffAt,
@@ -51,10 +52,10 @@ export default function LiveMatches() {
         if (filteredMatches.length === 0) return null;
         return { ...league, matches: filteredMatches };
       })
-      .filter((l): l is BrowseLeague => l !== null);
+      .filter((l): l is BrowseLeagueDto => l !== null);
   }, [leagues, activeLeagueKey, activeStatus]);
 
-  const sortedLeagues = useMemo<BrowseLeague[]>(
+  const sortedLeagues = useMemo<BrowseLeagueDto[]>(
     () => applySort(filteredLeagues, sortMode),
     [filteredLeagues, sortMode],
   );

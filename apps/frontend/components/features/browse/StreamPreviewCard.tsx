@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { Eye } from "lucide-react";
-import { StreamPreview } from "@/types/browse.types";
+import type { StreamPreviewDto as StreamPreview } from "@chiliztv/shared/dto/matches/BrowseMatchesDto";
 import { formatViewers } from "@/components/features/streaming/utils";
 import { supabase } from "@/lib/supabase";
 

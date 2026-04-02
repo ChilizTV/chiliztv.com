@@ -120,6 +120,12 @@ importers:
 
   apps/frontend:
     dependencies:
+      '@chiliztv/blockchain':
+        specifier: workspace:*
+        version: link:../../packages/blockchain
+      '@chiliztv/domain':
+        specifier: workspace:*
+        version: link:../../packages/domain
       '@chiliztv/shared':
         specifier: workspace:*
         version: link:../../packages/shared

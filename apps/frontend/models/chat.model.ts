@@ -1,8 +1,10 @@
-export enum MessageType {
-    TEXT = 'message',
-    SYSTEM = 'system',
-    BET = 'bet'
-}
+// MessageType re-exported from domain — values: 'REGULAR' | 'BET' | 'SYSTEM' | 'DONATION'
+export { MessageType } from '@chiliztv/domain/chat/entities/ChatMessage';
+import { MessageType } from '@chiliztv/domain/chat/entities/ChatMessage';
+
+// SystemMessageType, BetType, and composite message interfaces have no equivalent
+// in packages/domain (domain uses a flat ChatMessage entity with optional fields).
+// They remain local until the chat feature is fully aligned with the domain model.
 
 export enum SystemMessageType {
     MATCH_START = 'match_start',
@@ -50,7 +52,6 @@ export interface ChatMessage {
 }
 
 export interface BetMessage extends ChatMessage {
-    type: MessageType.BET;
     betType: BetType;
     betSubType?: string;
     betAmount: number;
@@ -58,6 +59,5 @@ export interface BetMessage extends ChatMessage {
 }
 
 export interface SystemMessage extends ChatMessage {
-    type: MessageType.SYSTEM;
     data?: any;
 }

@@ -1,51 +1,25 @@
-export interface Donation {
-    id: string;
-    streamerAddress: string;
-    donorAddress: string;
-    streamWalletAddress?: string;
-    amount: number;
-    message?: string;
-    transactionHash: string;
-    platformFee?: string;
-    streamerAmount?: string;
-    timestamp: string;
-}
+export type { DonationResponseDto as Donation } from '@chiliztv/shared/dto/stream-wallet/DonationResponseDto';
+export type { SubscriptionResponseDto as Subscription } from '@chiliztv/shared/dto/stream-wallet/SubscriptionResponseDto';
+export type { StreamerStatsResponseDto as StreamerStats } from '@chiliztv/shared/dto/stream-wallet/StreamerStatsResponseDto';
 
-export interface Subscription {
-    id: string;
-    streamerAddress: string;
-    subscriberAddress: string;
-    amount: number;
-    durationSeconds: number;
-    startDate: string;
-    endDate: string;
-    transactionHash: string;
-    isActive: boolean;
-}
-
-export interface StreamerStats {
-    streamerAddress: string;
-    totalRevenue: string;
-    totalDonations: number;
-    totalSubscribers: number;
-    activeDonations: number;
-    activeSubscriptions: number;
-}
+import type { DonationResponseDto } from '@chiliztv/shared/dto/stream-wallet/DonationResponseDto';
+import type { SubscriptionResponseDto } from '@chiliztv/shared/dto/stream-wallet/SubscriptionResponseDto';
+import type { StreamerStatsResponseDto } from '@chiliztv/shared/dto/stream-wallet/StreamerStatsResponseDto';
 
 export interface DonationListResponse {
     success: boolean;
-    donations: Donation[];
+    donations: DonationResponseDto[];
     error?: string;
 }
 
 export interface SubscriptionListResponse {
     success: boolean;
-    subscriptions: Subscription[];
+    subscriptions: SubscriptionResponseDto[];
     error?: string;
 }
 
 export interface StreamerStatsResponse {
     success: boolean;
-    stats?: StreamerStats;
+    stats?: StreamerStatsResponseDto;
     error?: string;
 }

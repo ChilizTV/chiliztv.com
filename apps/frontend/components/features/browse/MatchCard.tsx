@@ -5,7 +5,7 @@ import { useState } from "react";
 import { Clock, Eye } from "lucide-react";
 import Image from "next/image";
 import type { Match } from "@/types/api.types";
-import { BrowseMatch } from "@/types/browse.types";
+import type { BrowseMatchDto } from "@chiliztv/shared/dto/matches/BrowseMatchesDto";
 import { getFanToken } from "@/utils/FanTokens";
 import {
   getMatchStatus,
@@ -18,12 +18,12 @@ import {
 import { StreamPreviewRow } from "./StreamPreviewRow";
 
 interface MatchCardProps {
-  match: BrowseMatch;
+  match: BrowseMatchDto;
   now: Date;
 }
 
-/** Minimal adapter so existing utils (which expect Match) work with BrowseMatch */
-function toMatchLike(match: BrowseMatch): Pick<Match, "status" | "startTime"> {
+/** Minimal adapter so existing utils (which expect Match) work with BrowseMatchDto */
+function toMatchLike(match: BrowseMatchDto): Pick<Match, "status" | "startTime"> {
   return { status: match.status, startTime: match.kickoffAt } as Pick<
     Match,
     "status" | "startTime"

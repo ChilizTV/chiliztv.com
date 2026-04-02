@@ -1,6 +1,61 @@
 import axios, { AxiosInstance, AxiosResponse, AxiosError, InternalAxiosRequestConfig } from 'axios';
+import type { ApiSuccessResponse, ApiErrorResponse } from '@chiliztv/shared/types/ApiResponse';
 import { getAuthToken, clearAuthToken } from './auth';
 import { handleApiError } from './error';
+import { mapApiError } from './errors';
+
+/**
+ * Unwraps Format B responses: { success: true, data: T, timestamp: string }
+ * For any other shape (Format A, plain objects) the raw value is returned as-is
+ * so existing callers are not affected.
+ */
+export function normalizeFormatB<T>(raw: unknown): T {
+  if (
+    raw !== null &&
+    typeof raw === 'object' &&
+    'success' in raw &&
+    (raw as Record<string, unknown>).success === true &&
+    'data' in raw
+  ) {
+    return (raw as ApiSuccessResponse<T>).data;
+  }
+  return raw as T;
+}
+
+/**
+ * Surfaces a Format B error body as a typed DomainError.
+ * In practice the backend always uses non-200 status for errors, so this is a
+ * defensive guard for any future 200+success:false edge case.
+ */
+/**
+ * Extracts a named payload key from Format A responses: { success, [payloadKey]: T, count? }
+ * Falls back to normalizeFormatB if the key is not present (future-proof if an endpoint
+ * upgrades to Format B).
+ */
+export function normalizeFormatA<T>(raw: unknown, payloadKey: string): T {
+  if (
+    raw !== null &&
+    typeof raw === 'object' &&
+    payloadKey in raw
+  ) {
+    return (raw as Record<string, T>)[payloadKey];
+  }
+  return normalizeFormatB<T>(raw);
+}
+
+export function handleFormatBError(raw: unknown): never {
+  if (
+    raw !== null &&
+    typeof raw === 'object' &&
+    'success' in raw &&
+    (raw as Record<string, unknown>).success === false &&
+    'error' in raw
+  ) {
+    const err = raw as ApiErrorResponse;
+    mapApiError(err.error.code, err.error.message);
+  }
+  throw new Error('Unknown API error');
+}
 
 /**
  * @notice Centralized API client with automatic JWT injection and error handling
@@ -11,7 +66,7 @@ class ApiClient {
 
   constructor() {
     this.client = axios.create({
-      baseURL: process.env.NEXT_PUBLIC_API_URL,
+      baseURL: process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001',
       timeout: 30000,
       withCredentials: true,
       headers: {
@@ -39,7 +94,21 @@ class ApiClient {
     );
 
     this.client.interceptors.response.use(
-      (response: AxiosResponse) => response,
+      (response: AxiosResponse) => {
+        // Defensive: the backend always uses non-200 for errors, but guard
+        // against any future 200+success:false body on Format B endpoints.
+        const data = response.data;
+        if (
+          data !== null &&
+          typeof data === 'object' &&
+          'success' in data &&
+          data.success === false &&
+          'error' in data
+        ) {
+          handleFormatBError(data);
+        }
+        return response;
+      },
       async (error: AxiosError) => {
         const originalRequest = error.config as InternalAxiosRequestConfig & {
           _retry?: boolean;
@@ -144,3 +213,28 @@ class ApiClient {
 }
 
 export const apiClient = new ApiClient();
+
+/**
+ * Standalone helpers for Format B endpoints.
+ * These layer normalizeFormatB on top of apiClient so Format B endpoint files
+ * don't have to call normalizeFormatB manually.
+ * Format A endpoint files continue using apiClient.get/post directly — untouched.
+ */
+export async function apiGet<T>(path: string, config?: InternalAxiosRequestConfig): Promise<T> {
+  const raw = await apiClient.get<unknown>(path, config);
+  return normalizeFormatB<T>(raw);
+}
+
+export async function apiPost<T>(path: string, body?: unknown, config?: InternalAxiosRequestConfig): Promise<T> {
+  const raw = await apiClient.post<unknown>(path, body, config);
+  return normalizeFormatB<T>(raw);
+}
+
+export async function apiPut<T>(path: string, body?: unknown, config?: InternalAxiosRequestConfig): Promise<T> {
+  const raw = await apiClient.put<unknown>(path, body, config);
+  return normalizeFormatB<T>(raw);
+}
+
+export async function apiDelete(path: string, config?: InternalAxiosRequestConfig): Promise<void> {
+  await apiClient.delete<unknown>(path, config);
+}

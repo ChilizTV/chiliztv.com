@@ -15,6 +15,26 @@ export interface ChatStats {
     lastMessageAt: Date | null;
 }
 
+/**
+ * Normalises legacy lowercase message_type values stored in Supabase
+ * to the domain MessageType enum (uppercase).
+ */
+function normalizeMessageType(raw: string): MessageType {
+    const mapping: Record<string, MessageType> = {
+        'message':  MessageType.REGULAR,
+        'text':     MessageType.REGULAR,
+        'bet':      MessageType.BET,
+        'system':   MessageType.SYSTEM,
+        'donation': MessageType.DONATION,
+        // Already-uppercase values pass through unchanged
+        'REGULAR':  MessageType.REGULAR,
+        'BET':      MessageType.BET,
+        'SYSTEM':   MessageType.SYSTEM,
+        'DONATION': MessageType.DONATION,
+    };
+    return mapping[raw] ?? MessageType.REGULAR;
+}
+
 export class SupabaseChatService {
     private subscriptions: Map<number, any> = new Map();
     private streamSubscriptions: Map<string, any> = new Map();
@@ -40,7 +60,7 @@ export class SupabaseChatService {
                     userId: userId,
                     username: username,
                     message: message,
-                    type: MessageType.TEXT,
+                    type: MessageType.REGULAR,
                     walletAddress: walletAddress,
                     createdAt: new Date(),
                     updatedAt: new Date()
@@ -74,7 +94,7 @@ export class SupabaseChatService {
                 userId: userId,
                 username: username,
                 message: message,
-                type: MessageType.TEXT,
+                type: MessageType.REGULAR,
                 walletAddress: walletAddress,
                 createdAt: new Date(),
                 updatedAt: new Date()
@@ -434,7 +454,7 @@ export class SupabaseChatService {
             userId: data.user_id,
             username: data.username,
             message: data.message,
-            type: data.message_type,
+            type: normalizeMessageType(data.message_type),
             walletAddress: data.wallet_address || '',
             createdAt: new Date(data.created_at),
             updatedAt: data.updated_at ? new Date(data.updated_at) : new Date(data.created_at),

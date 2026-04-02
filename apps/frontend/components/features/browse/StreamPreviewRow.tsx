@@ -1,6 +1,6 @@
 "use client";
 
-import { StreamPreview } from "@/types/browse.types";
+import type { StreamPreviewDto as StreamPreview } from "@chiliztv/shared/dto/matches/BrowseMatchesDto";
 import { StreamPreviewCard } from "./StreamPreviewCard";
 
 interface StreamPreviewRowProps {

@@ -2,12 +2,13 @@
 
 import Image from "next/image";
 import { Radio, Clock, CheckCircle2, ArrowUpNarrowWide, ArrowDownNarrowWide } from "lucide-react";
-import { BrowseLeague, SortMode } from "@/types/browse.types";
+import type { BrowseLeagueDto } from "@chiliztv/shared/dto/matches/BrowseMatchesDto";
+import type { SortMode } from "@/types/browse.types";
 
 export type StatusFilter = "live" | "upcoming" | "finished";
 
 interface BrowseFilterBarProps {
-  leagues: BrowseLeague[];
+  leagues: BrowseLeagueDto[];
   activeLeagueKey: string | null;
   activeStatus: StatusFilter | null;
   sortMode: SortMode;

@@ -56,10 +56,10 @@ export function Dashboard() {
   const { data: statsData } = useUserPredictionStats(userId);
 
   const userStats = {
-    totalPredictions: statsData?.totalBets || 0,
-    totalWins: statsData?.wonBets || 0,
-    totalLosses: statsData?.lostBets || 0,
-    activePredictions: statsData?.pendingBets || 0,
+    totalPredictions: statsData?.totalPredictions || 0,
+    totalWins: statsData?.totalWins || 0,
+    totalLosses: statsData?.totalLosses || 0,
+    activePredictions: statsData?.activePredictions || 0,
     winRate: statsData?.winRate || 0,
   };
 

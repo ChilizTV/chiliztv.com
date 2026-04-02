@@ -1,5 +1,6 @@
 {
   "compilerOptions": {
+    "baseUrl": ".",
     "target": "ES2022",
     "module": "commonjs",
     "lib": ["ES2022", "DOM"],
@@ -21,7 +22,8 @@
     }
   },
   "ts-node": {
-    "files": true
+    "files": true,
+    "require": ["tsconfig-paths/register"]
   },
   "include": ["src/**/*"],
   "exclude": [

@@ -29,7 +29,7 @@ export class PredictionController {
         predictedTeam: req.body.predictedTeam,
         odds: parseFloat(req.body.odds),
         transactionHash: req.body.transactionHash,
-        matchStartTime: new Date(req.body.matchStartTime),
+        matchStartTime: req.body.matchStartTime,
       };
 
       const prediction = await this.createPredictionUseCase.execute(dto);

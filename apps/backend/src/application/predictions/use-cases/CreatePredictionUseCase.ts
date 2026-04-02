@@ -39,7 +39,7 @@ export class CreatePredictionUseCase {
       odds,
       status: PredictionStatus.PENDING,
       transactionHash,
-      matchStartTime: dto.matchStartTime,
+      matchStartTime: new Date(dto.matchStartTime),
     });
 
     return await this.predictionRepository.save(prediction);

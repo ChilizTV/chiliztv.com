@@ -6,9 +6,13 @@ settings:
 
 importers:
 
-  .: {}
+  .:
+    devDependencies:
+      turbo:
+        specifier: ^2.9.3
+        version: 2.9.3
 
-  applications/backend:
+  apps/backend:
     dependencies:
       '@chiliztv/blockchain':
         specifier: workspace:*
@@ -114,7 +118,7 @@ importers:
         specifier: ^5.4.5
         version: 5.9.3
 
-  applications/frontend:
+  apps/frontend:
     dependencies:
       '@chiliztv/shared':
         specifier: workspace:*
@@ -3185,6 +3189,36 @@ packages:
 
   '@tsconfig/node16@1.0.4':
     resolution: {integrity: sha512-vxhUy4J8lyeyinH7Azl1pdd43GJhZH/tP2weN8TntQblOY+A0XbT8DJk1/oCPuOOyg/Ja757rG0CgHcWC8OfMA==}
+
+  '@turbo/darwin-64@2.9.3':
+    resolution: {integrity: sha512-P8foouaP+y/p+hhEGBoZpzMbpVvUMwPjDpcy6wN7EYfvvyISD1USuV27qWkczecihwuPJzQ1lDBuL8ERcavTyg==}
+    cpu: [x64]
+    os: [darwin]
+
+  '@turbo/darwin-arm64@2.9.3':
+    resolution: {integrity: sha512-SIzEkvtNdzdI50FJDaIQ6kQGqgSSdFPcdn0wqmmONN6iGKjy6hsT+EH99GP65FsfV7DLZTh2NmtTIRl2kdoz5Q==}
+    cpu: [arm64]
+    os: [darwin]
+
+  '@turbo/linux-64@2.9.3':
+    resolution: {integrity: sha512-pLRwFmcHHNBvsCySLS6OFabr/07kDT2pxEt/k6eBf/3asiVQZKJ7Rk88AafQx2aYA641qek4RsXvYO3JYpiBug==}
+    cpu: [x64]
+    os: [linux]
+
+  '@turbo/linux-arm64@2.9.3':
+    resolution: {integrity: sha512-gy6ApUroC2Nzv+qjGtE/uPNkhHAFU4c8God+zd5Aiv9L9uBgHlxVJpHT3XWl5xwlJZ2KWuMrlHTaS5kmNB+q1Q==}
+    cpu: [arm64]
+    os: [linux]
+
+  '@turbo/windows-64@2.9.3':
+    resolution: {integrity: sha512-d0YelTX6hAsB7kIEtGB3PzIzSfAg3yDoUlHwuwJc3adBXUsyUIs0YLG+1NNtuhcDOUGnWQeKUoJ2pGWvbpRj7w==}
+    cpu: [x64]
+    os: [win32]
+
+  '@turbo/windows-arm64@2.9.3':
+    resolution: {integrity: sha512-/08CwpKJl3oRY8nOlh2YgilZVJDHsr60XTNxRhuDeuFXONpUZ5X+Nv65izbG/xBew9qxcJFbDX9/sAmAX+ITcQ==}
+    cpu: [arm64]
+    os: [win32]
 
   '@turnkey/api-key-stamper@0.4.7':
     resolution: {integrity: sha512-/0/kW7v+uCnmHnGMoHSXn4Vb/MxLAIivGxX/T0L4vVoIiJalQmqcCtgiWnPWZDiJNGjMKp+jd/8j6VXgbVVozg==}
@@ -6758,6 +6792,10 @@ packages:
     resolution: {integrity: sha512-axr3IdNuVIxnaK5XGEUFTu3YmAQ6lllgrvqfEoR16g/HGnYY/6We4oWENtAnzK6/LpJ2ur9PAb80RBt7/U4ugw==}
     engines: {node: '>= 6.0.0'}
 
+  turbo@2.9.3:
+    resolution: {integrity: sha512-J/VUvsGRykPb9R8Kh8dHVBOqioDexLk9BhLCU/ZybRR+HN9UR3cURdazFvNgMDt9zPP8TF6K73Z+tplfmi0PqQ==}
+    hasBin: true
+
   tw-animate-css@1.4.0:
     resolution: {integrity: sha512-7bziOlRqH0hJx80h/3mbicLW7o8qLsH5+RaLR2t+OHM3D0JlWGODQKQ4cxbK7WlvmUxpcj6Kgu6EKqjrGFe3QQ==}
 
@@ -7411,7 +7449,7 @@ snapshots:
     dependencies:
       '@noble/hashes': 1.8.0
       clsx: 1.2.1
-      eventemitter3: 5.0.1
+      eventemitter3: 5.0.4
       preact: 10.29.0
       viem: 2.47.6(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@6.0.6)(zod@4.3.6)
     transitivePeerDependencies:
@@ -7467,7 +7505,7 @@ snapshots:
   '@dynamic-labs-wallet/browser-wallet-client@0.0.261(bufferutil@4.1.0)(utf-8-validate@6.0.6)':
     dependencies:
       '@dynamic-labs-wallet/core': 0.0.261(bufferutil@4.1.0)(utf-8-validate@6.0.6)
-      '@dynamic-labs/logger': 4.64.0
+      '@dynamic-labs/logger': 4.73.2
       '@dynamic-labs/message-transport': 4.73.2
       uuid: 11.1.0
     transitivePeerDependencies:
@@ -7478,7 +7516,7 @@ snapshots:
   '@dynamic-labs-wallet/browser-wallet-client@0.0.282(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@6.0.6)':
     dependencies:
       '@dynamic-labs-wallet/core': 0.0.282(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@6.0.6)
-      '@dynamic-labs/logger': 4.64.0
+      '@dynamic-labs/logger': 4.73.2
       '@dynamic-labs/message-transport': 4.73.2
       uuid: 11.1.0
     transitivePeerDependencies:
@@ -7490,7 +7528,7 @@ snapshots:
   '@dynamic-labs-wallet/browser@0.0.167':
     dependencies:
       '@dynamic-labs-wallet/core': 0.0.167
-      '@dynamic-labs/logger': 4.64.0
+      '@dynamic-labs/logger': 4.73.2
       '@dynamic-labs/sdk-api-core': 0.0.764
       '@noble/hashes': 1.7.1
       argon2id: 1.0.1
@@ -7504,7 +7542,7 @@ snapshots:
   '@dynamic-labs-wallet/browser@0.0.203(bufferutil@4.1.0)(utf-8-validate@6.0.6)':
     dependencies:
       '@dynamic-labs-wallet/core': 0.0.203(bufferutil@4.1.0)(utf-8-validate@6.0.6)
-      '@dynamic-labs/logger': 4.64.0
+      '@dynamic-labs/logger': 4.73.2
       '@dynamic-labs/sdk-api-core': 0.0.818
       '@noble/hashes': 1.7.1
       argon2id: 1.0.1
@@ -7520,7 +7558,7 @@ snapshots:
   '@dynamic-labs-wallet/browser@0.0.259(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@6.0.6)':
     dependencies:
       '@dynamic-labs-wallet/core': 0.0.259(bufferutil@4.1.0)(utf-8-validate@6.0.6)
-      '@dynamic-labs/logger': 4.64.0
+      '@dynamic-labs/logger': 4.73.2
       '@dynamic-labs/sdk-api-core': 0.0.864
       '@noble/hashes': 1.7.1
       argon2id: 1.0.1
@@ -7547,7 +7585,7 @@ snapshots:
   '@dynamic-labs-wallet/core@0.0.203(bufferutil@4.1.0)(utf-8-validate@6.0.6)':
     dependencies:
       '@dynamic-labs-wallet/forward-mpc-client': 0.1.3(bufferutil@4.1.0)(utf-8-validate@6.0.6)
-      '@dynamic-labs/logger': 4.64.0
+      '@dynamic-labs/logger': 4.73.2
       '@dynamic-labs/sdk-api-core': 0.0.818
       axios: 1.13.2
       http-errors: 2.0.0
@@ -7560,7 +7598,7 @@ snapshots:
   '@dynamic-labs-wallet/core@0.0.259(bufferutil@4.1.0)(utf-8-validate@6.0.6)':
     dependencies:
       '@dynamic-labs-wallet/forward-mpc-client': 0.2.0(bufferutil@4.1.0)(utf-8-validate@6.0.6)
-      '@dynamic-labs/logger': 4.64.0
+      '@dynamic-labs/logger': 4.73.2
       '@dynamic-labs/sdk-api-core': 0.0.864
       axios: 1.13.2
       http-errors: 2.0.0
@@ -7573,7 +7611,7 @@ snapshots:
   '@dynamic-labs-wallet/core@0.0.261(bufferutil@4.1.0)(utf-8-validate@6.0.6)':
     dependencies:
       '@dynamic-labs-wallet/forward-mpc-client': 0.2.0(bufferutil@4.1.0)(utf-8-validate@6.0.6)
-      '@dynamic-labs/logger': 4.64.0
+      '@dynamic-labs/logger': 4.73.2
       '@dynamic-labs/sdk-api-core': 0.0.864
       axios: 1.13.2
       http-errors: 2.0.0
@@ -7586,7 +7624,7 @@ snapshots:
   '@dynamic-labs-wallet/core@0.0.282(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@6.0.6)':
     dependencies:
       '@dynamic-labs-wallet/forward-mpc-client': 0.3.0(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@6.0.6)
-      '@dynamic-labs/logger': 4.64.0
+      '@dynamic-labs/logger': 4.73.2
       '@dynamic-labs/sdk-api-core': 0.0.875
       axios: 1.13.5
       uuid: 11.1.0
@@ -7603,7 +7641,7 @@ snapshots:
       '@evervault/wasm-attestation-bindings': 0.3.1
       '@noble/hashes': 2.0.1
       '@noble/post-quantum': 0.5.4
-      eventemitter3: 5.0.1
+      eventemitter3: 5.0.4
       fp-ts: 2.16.11
       ws: 8.20.0(bufferutil@4.1.0)(utf-8-validate@6.0.6)
     transitivePeerDependencies:
@@ -7618,7 +7656,7 @@ snapshots:
       '@evervault/wasm-attestation-bindings': 0.3.1
       '@noble/hashes': 2.0.1
       '@noble/post-quantum': 0.5.4
-      eventemitter3: 5.0.1
+      eventemitter3: 5.0.4
       fp-ts: 2.16.11
       ws: 8.20.0(bufferutil@4.1.0)(utf-8-validate@6.0.6)
     transitivePeerDependencies:
@@ -7633,7 +7671,7 @@ snapshots:
       '@evervault/wasm-attestation-bindings': 0.3.1
       '@noble/hashes': 2.0.1
       '@noble/post-quantum': 0.5.4
-      eventemitter3: 5.0.1
+      eventemitter3: 5.0.4
       fp-ts: 2.16.11
       ws: 8.20.0(bufferutil@4.1.0)(utf-8-validate@6.0.6)
     transitivePeerDependencies:
@@ -11096,6 +11134,24 @@ snapshots:
   '@tsconfig/node14@1.0.3': {}
 
   '@tsconfig/node16@1.0.4': {}
+
+  '@turbo/darwin-64@2.9.3':
+    optional: true
+
+  '@turbo/darwin-arm64@2.9.3':
+    optional: true
+
+  '@turbo/linux-64@2.9.3':
+    optional: true
+
+  '@turbo/linux-arm64@2.9.3':
+    optional: true
+
+  '@turbo/windows-64@2.9.3':
+    optional: true
+
+  '@turbo/windows-arm64@2.9.3':
+    optional: true
 
   '@turnkey/api-key-stamper@0.4.7':
     dependencies:
@@ -14807,11 +14863,11 @@ snapshots:
   ox@0.6.7(typescript@5.9.3)(zod@4.3.6):
     dependencies:
       '@adraffy/ens-normalize': 1.11.1
-      '@noble/curves': 1.8.1
-      '@noble/hashes': 1.7.1
-      '@scure/bip32': 1.6.2
-      '@scure/bip39': 1.5.4
-      abitype: 1.0.8(typescript@5.9.3)(zod@4.3.6)
+      '@noble/curves': 1.9.7
+      '@noble/hashes': 1.8.0
+      '@scure/bip32': 1.7.0
+      '@scure/bip39': 1.6.0
+      abitype: 1.2.3(typescript@5.9.3)(zod@4.3.6)
       eventemitter3: 5.0.1
     optionalDependencies:
       typescript: 5.9.3
@@ -14836,11 +14892,11 @@ snapshots:
     dependencies:
       '@adraffy/ens-normalize': 1.11.1
       '@noble/ciphers': 1.3.0
-      '@noble/curves': 1.9.2
+      '@noble/curves': 1.9.7
       '@noble/hashes': 1.8.0
       '@scure/bip32': 1.7.0
       '@scure/bip39': 1.6.0
-      abitype: 1.0.8(typescript@5.9.3)(zod@4.3.6)
+      abitype: 1.2.3(typescript@5.9.3)(zod@4.3.6)
       eventemitter3: 5.0.1
     optionalDependencies:
       typescript: 5.9.3
@@ -14880,7 +14936,7 @@ snapshots:
 
   p-queue@9.1.0:
     dependencies:
-      eventemitter3: 5.0.1
+      eventemitter3: 5.0.4
       p-timeout: 7.0.1
 
   p-timeout@7.0.1: {}
@@ -15371,7 +15427,7 @@ snapshots:
       '@types/uuid': 10.0.0
       '@types/ws': 8.18.1
       buffer: 6.0.3
-      eventemitter3: 5.0.1
+      eventemitter3: 5.0.4
       uuid: 11.1.0
       ws: 8.20.0(bufferutil@4.1.0)(utf-8-validate@6.0.6)
     optionalDependencies:
@@ -15935,6 +15991,15 @@ snapshots:
   tsyringe@4.10.0:
     dependencies:
       tslib: 1.14.1
+
+  turbo@2.9.3:
+    optionalDependencies:
+      '@turbo/darwin-64': 2.9.3
+      '@turbo/darwin-arm64': 2.9.3
+      '@turbo/linux-64': 2.9.3
+      '@turbo/linux-arm64': 2.9.3
+      '@turbo/windows-64': 2.9.3
+      '@turbo/windows-arm64': 2.9.3
 
   tw-animate-css@1.4.0: {}
 

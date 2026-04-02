@@ -6,36 +6,43 @@ WORKDIR /home/node
 
 FROM node:25.7.0-alpine3.23 AS build
 
+# Install pnpm globally
+RUN npm install -g pnpm
+
 USER node
 
 WORKDIR /home/node
 
 COPY --chown=node:node . .
 
-RUN npm install && npm --workspace applications/backend run build && npm --workspace applications/frontend run build
+RUN pnpm install --frozen-lockfile && pnpm build
 
 FROM node:25.7.0-alpine3.23 AS frontend
 
+RUN npm install -g pnpm
+
 USER node
 
 WORKDIR /home/node
 
-COPY --chown=node:node --from=build /home/node/applications/frontend/dist /home/node/dist
-COPY --chown=node:node --from=build /home/node/applications/frontend/package.json /home/node/package.json
+COPY --chown=node:node --from=build /home/node/apps/frontend/dist /home/node/dist
+COPY --chown=node:node --from=build /home/node/apps/frontend/package.json /home/node/package.json
 
-RUN npm install --omit=dev
+RUN pnpm install --prod
 
-CMD [ "npm", "start" ]
+CMD [ "pnpm", "start" ]
 
 FROM node:25.7.0-alpine3.23 AS backend
 
+RUN npm install -g pnpm
+
 USER node
 
 WORKDIR /home/node
 
-COPY --chown=node:node --from=build /home/node/applications/backend/dist /home/node/dist
-COPY --chown=node:node --from=build /home/node/applications/backend/package.json /home/node/package.json
+COPY --chown=node:node --from=build /home/node/apps/backend/dist /home/node/dist
+COPY --chown=node:node --from=build /home/node/apps/backend/package.json /home/node/package.json
 
-RUN npm install --omit=dev
+RUN pnpm install --prod
 
-CMD [ "npm", "start" ]
+CMD [ "pnpm", "start" ]

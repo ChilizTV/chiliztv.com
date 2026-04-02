@@ -1,0 +1,49 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "globalEnv": [
+    "NODE_ENV",
+    "SUPABASE_URL",
+    "SUPABASE_ANON_KEY",
+    "SUPABASE_SERVICE_ROLE_KEY",
+    "API_FOOTBALL_KEY",
+    "NETWORK",
+    "BETTING_MATCH_FACTORY_ADDRESS",
+    "STREAM_WALLET_FACTORY_ADDRESS",
+    "ADMIN_PRIVATE_KEY",
+    "JWT_SECRET",
+    "JWT_ISSUER",
+    "JWT_EXPIRY",
+    "PORT",
+    "ALLOWED_ORIGINS",
+    "MEDIAMTX_API_URL",
+    "MEDIAMTX_PUBLISH_SECRET",
+    "LOG_LEVEL"
+  ],
+  "tasks": {
+    "build": {
+      "dependsOn": ["^build"],
+      "outputs": ["dist/**"]
+    },
+    "dev": {
+      "cache": false,
+      "persistent": true,
+      "dependsOn": ["^build"]
+    },
+    "test": {
+      "dependsOn": ["^build"],
+      "outputs": ["coverage/**"]
+    },
+    "lint": {
+      "outputs": [],
+      "cache": true
+    },
+    "type-check": {
+      "dependsOn": ["^build"],
+      "outputs": []
+    },
+    "db:gen-types": {
+      "cache": false,
+      "outputs": ["src/infrastructure/persistence/types/database.types.ts"]
+    }
+  }
+}

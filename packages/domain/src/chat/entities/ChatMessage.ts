@@ -16,6 +16,7 @@ export interface ChatMessageProps {
   timestamp: Date;
   type: MessageType;
   isFeatured: boolean;
+  systemType?: string;
   betType?: string;
   betSubType?: string;
   amount?: number;
@@ -69,6 +70,7 @@ export class ChatMessage {
       timestamp: this.props.timestamp.getTime(),
       type: this.props.type,
       isFeatured: this.props.isFeatured,
+      ...(this.props.systemType && { systemType: this.props.systemType }),
       ...(this.props.betType && { betType: this.props.betType }),
       ...(this.props.betSubType && { betSubType: this.props.betSubType }),
       ...(this.props.amount && { amount: this.props.amount }),

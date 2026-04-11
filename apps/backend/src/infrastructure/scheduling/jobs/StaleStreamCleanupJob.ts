@@ -1,5 +1,6 @@
 import { injectable } from 'tsyringe';
 import { container } from '../../config/di-container';
+import { TOKENS } from '@chiliztv/domain/shared/tokens';
 import { StreamLifecycleService } from '../../services/StreamLifecycleService';
 import { IStreamRepository } from '@chiliztv/domain/streams/repositories/IStreamRepository';
 import { logger } from '../../logging/logger';
@@ -20,7 +21,7 @@ export class StaleStreamCleanupJob {
   async execute(): Promise<void> {
     try {
       const lifecycleService = container.resolve(StreamLifecycleService);
-      const streamRepository = container.resolve<IStreamRepository>('IStreamRepository');
+      const streamRepository = container.resolve<IStreamRepository>(TOKENS.IStreamRepository);
 
       // Timeout = 5 minutes — tolerates OBS reconnects and brief network cuts
       const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);

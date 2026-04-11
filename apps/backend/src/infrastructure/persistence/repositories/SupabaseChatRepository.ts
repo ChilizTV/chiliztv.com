@@ -211,6 +211,7 @@ export class SupabaseChatRepository implements IChatRepository {
       is_featured: json.isFeatured,
       bet_type: json.betType,
       bet_sub_type: json.betSubType,
+      system_type: json.systemType ?? null,
       amount: json.amount,
       odds: json.odds,
       created_at: new Date(json.timestamp).toISOString(),

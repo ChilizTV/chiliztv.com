@@ -268,14 +268,15 @@ export class StreamWalletIndexer {
             await this.streamWalletRepository.saveDonation(donation);
             logger.info('Indexed donation', { txHash: transactionHash.slice(0, 10), amount: (Number(amountBigInt) / 1e18).toFixed(4) });
 
-            const matchId = await this.getMatchIdForStreamer(streamer.toLowerCase(), streamWalletAddress?.toLowerCase() ?? null);
-            if (matchId) {
+            const activeStream = await this.getActiveStreamForStreamer(streamer.toLowerCase(), streamWalletAddress?.toLowerCase() ?? null);
+            if (activeStream) {
                 await this.insertChatMessageForStreamerEvent(
-                    matchId,
+                    activeStream.matchId,
                     'donation',
                     donor.toLowerCase(),
                     (Number(amountBigInt) / 1e18).toString(),
-                    message || undefined
+                    message || undefined,
+                    activeStream.streamId
                 );
             } else {
                 logger.warn('No active stream found for donation, skipping chat message', { streamer });
@@ -333,13 +334,15 @@ export class StreamWalletIndexer {
             await this.streamWalletRepository.saveSubscription(subscription);
             logger.info('Indexed subscription', { txHash: transactionHash.slice(0, 10), amount: (Number(amountBigInt) / 1e18).toFixed(4) });
 
-            const matchId = await this.getMatchIdForStreamer(streamer.toLowerCase(), streamWalletAddress?.toLowerCase() ?? null);
-            if (matchId) {
+            const activeStream = await this.getActiveStreamForStreamer(streamer.toLowerCase(), streamWalletAddress?.toLowerCase() ?? null);
+            if (activeStream) {
                 await this.insertChatMessageForStreamerEvent(
-                    matchId,
+                    activeStream.matchId,
                     'subscription',
                     subscriber.toLowerCase(),
-                    (Number(amountBigInt) / 1e18).toString()
+                    (Number(amountBigInt) / 1e18).toString(),
+                    undefined,
+                    activeStream.streamId
                 );
             } else {
                 logger.warn('No active stream found for subscription, skipping chat message', { streamer });
@@ -351,7 +354,10 @@ export class StreamWalletIndexer {
         }
     }
 
-    private async getMatchIdForStreamer(streamerAddress: string, streamWalletAddress: string | null): Promise<number | null> {
+    private async getActiveStreamForStreamer(
+        streamerAddress: string,
+        streamWalletAddress: string | null
+    ): Promise<{ matchId: number; streamId: string } | null> {
         try {
             const addresses = [streamerAddress.toLowerCase()];
             if (streamWalletAddress) addresses.push(streamWalletAddress.toLowerCase());
@@ -360,14 +366,14 @@ export class StreamWalletIndexer {
 
             const { data, error } = await supabase
                 .from('live_streams')
-                .select('match_id')
+                .select('id, match_id')
                 .or(conditions)
                 .order('created_at', { ascending: false })
                 .limit(1)
                 .single();
 
             if (error || !data) return null;
-            return data.match_id;
+            return { matchId: data.match_id, streamId: data.id };
         } catch {
             return null;
         }
@@ -414,7 +420,8 @@ export class StreamWalletIndexer {
         type: 'donation' | 'subscription',
         userAddress: string,
         amount: string,
-        extraMessage?: string
+        extraMessage?: string,
+        streamId?: string
     ): Promise<void> {
         try {
             const displayName = await this.getUsernameForWallet(userAddress)
@@ -424,18 +431,24 @@ export class StreamWalletIndexer {
                 ? `🎁 ${displayName} donated ${amountFormatted} CHZ${extraMessage ? `: "${extraMessage}"` : ''}`
                 : `⭐ ${displayName} subscribed for ${amountFormatted} CHZ`;
 
-            const chatMessage = ChatMessage.create({
+            const baseProps = {
                 matchId,
                 userId: 'system',
                 walletAddress: userAddress,
                 username: 'System',
                 message: messageText,
                 type: MessageType.SYSTEM,
+                systemType: type, // 'donation' | 'subscription'
                 isFeatured: false,
-            });
+            };
 
-            await this.chatRepository.saveMessage(chatMessage);
-            logger.info(`Chat message posted for ${type}`, { matchId });
+            if (streamId) {
+                // Post only to the stream chat — stream_id = <uuid>
+                await this.chatRepository.saveMessage(ChatMessage.create({ ...baseProps, streamId }));
+                logger.info(`Chat message posted for ${type}`, { matchId, streamId });
+            } else {
+                logger.warn(`No streamId for ${type} chat message, message not posted`, { matchId });
+            }
         } catch (err) {
             logger.error(`Error inserting chat message for ${type}`, {
                 error: err instanceof Error ? err.message : 'Unknown error'

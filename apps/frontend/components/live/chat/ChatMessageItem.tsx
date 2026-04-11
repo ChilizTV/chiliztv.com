@@ -26,22 +26,22 @@ export function ChatMessageItem({ message, userId, username }: ChatMessageItemPr
   const isOwnMessage =
     !isSystemMessage && (message.userId === userId || message.username === username);
 
-  // System messages (donations, subscriptions, bets) — Twitch-style inline notice
+  // System messages (donations, subscriptions, bets) — prominent inline notice
   if (isSystemMessage) {
     const isDonation = message.systemEventType === SystemMessageType.DONATION;
     const isSubscription = message.systemEventType === SystemMessageType.SUBSCRIPTION;
 
     return (
       <div className={cn(
-        "flex items-baseline justify-between gap-2 text-sm py-1.5 px-3 rounded-sm border-l-2 w-full",
+        "flex items-center justify-between gap-2 w-full rounded-md px-3 py-2 border",
         isDonation
-          ? "bg-yellow-500/10 border-yellow-400/80 text-yellow-100"
+          ? "bg-yellow-500/15 border-yellow-400/40 text-yellow-100"
           : isSubscription
-            ? "bg-purple-500/10 border-purple-400/80 text-purple-100"
-            : "bg-blue-500/10 border-blue-400/80 text-blue-100"
+            ? "bg-purple-500/15 border-purple-400/40 text-purple-100"
+            : "bg-blue-500/15 border-blue-400/40 text-blue-100"
       )}>
-        <span className="leading-snug font-medium">{message.message}</span>
-        <span className="text-xs opacity-40 shrink-0 ml-2">
+        <span className="text-xs font-semibold leading-snug">{message.message}</span>
+        <span className="text-[10px] opacity-40 shrink-0 ml-2">
           {formatTime(message.createdAt.getTime())}
         </span>
       </div>

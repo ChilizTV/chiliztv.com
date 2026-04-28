@@ -1,10 +1,11 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import type { BrowseMatchDto } from "@chiliztv/shared/dto/matches/BrowseMatchesDto";
+import type { BrowseMatchDto, StreamPreviewDto } from "@chiliztv/shared/dto/matches/BrowseMatchesDto";
 import { useBrowseMatches } from "@/hooks/api/useBrowseMatches";
 import { PoolStatsSection } from "./PoolStatsSection";
 import { DiscoverMatchCard } from "./DiscoverMatchCard";
+import { StreamCard, type StreamCardData } from "./StreamCard";
 import { MOCK_LEAGUES } from "./mockMatches";
 
 type FlatMatch = BrowseMatchDto & { leagueName: string };
@@ -24,6 +25,25 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
       </h2>
     </div>
   );
+}
+
+function buildStreams(matches: FlatMatch[]): StreamCardData[] {
+  return matches
+    .flatMap((m) =>
+      m.streamsPreview.map((sp: StreamPreviewDto) => ({
+        streamId: sp.streamId,
+        streamerName: sp.streamerName,
+        thumbnailUrl: sp.thumbnailUrl,
+        viewers: sp.viewers,
+        matchId: m.id,
+        homeTeam: m.homeTeam.name,
+        awayTeam: m.awayTeam.name,
+        score: m.score,
+      }))
+    )
+    .sort((a, b) => b.viewers - a.viewers)
+    .slice(0, 8)
+    .map((s, i) => ({ ...s, featured: i === 0 }));
 }
 
 export function DiscoverPage() {
@@ -50,6 +70,7 @@ export function DiscoverPage() {
 
   const liveMatches = allMatches.filter((m) => LIVE_STATUSES.has(m.status));
   const upcomingMatches = allMatches.filter((m) => m.status === "NS");
+  const topStreams = buildStreams(allMatches);
 
   const filtered =
     activeTab === "live"
@@ -66,9 +87,8 @@ export function DiscoverPage() {
 
   return (
     <div className="min-h-screen" style={{ background: "#0A0A0A" }}>
-      <div
-        className="max-w-[1280px] mx-auto px-4 sm:px-6 py-12 sm:py-14 flex flex-col gap-12"
-      >
+      <div className="max-w-[1280px] mx-auto px-4 sm:px-6 py-12 sm:py-14 flex flex-col gap-12">
+
         {/* Page title */}
         <div>
           <div className="flex items-center gap-3 mb-1">
@@ -80,26 +100,32 @@ export function DiscoverPage() {
               Discover
             </h1>
           </div>
-          <p
-            className="text-[13px] ml-4"
-            style={{ color: "#888", fontFamily: "'Barlow', sans-serif" }}
-          >
+          <p className="text-[13px] ml-4" style={{ color: "#888", fontFamily: "'Barlow', sans-serif" }}>
             Live sports. Live community. On-chain.
           </p>
         </div>
 
-        {/* Pool stats */}
+        {/* Pool */}
         <PoolStatsSection />
+
+        {/* Top Streamers */}
+        {topStreams.length > 0 && (
+          <section>
+            <SectionTitle>Top Streamers</SectionTitle>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              {topStreams.map((s) => (
+                <StreamCard key={s.streamId} stream={s} />
+              ))}
+            </div>
+          </section>
+        )}
 
         {/* Matches */}
         <section>
           <SectionTitle>Matches</SectionTitle>
 
           {/* Tab bar */}
-          <div
-            className="flex gap-0 mb-6"
-            style={{ borderBottom: "1px solid #2A2A2A" }}
-          >
+          <div className="flex gap-0 mb-6" style={{ borderBottom: "1px solid #2A2A2A" }}>
             {tabs.map((t) => (
               <button
                 key={t.key}
@@ -125,27 +151,19 @@ export function DiscoverPage() {
             ))}
           </div>
 
-          {/* Grid */}
           {filtered.length === 0 ? (
-            <div
-              className="py-16 text-center text-[14px]"
-              style={{ color: "#555", fontFamily: "'Barlow', sans-serif" }}
-            >
+            <div className="py-16 text-center text-[14px]" style={{ color: "#555" }}>
               No matches for this filter.
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {filtered.map((m) => (
-                <DiscoverMatchCard
-                  key={m.id}
-                  match={m}
-                  leagueName={m.leagueName}
-                  now={now}
-                />
+                <DiscoverMatchCard key={m.id} match={m} leagueName={m.leagueName} now={now} />
               ))}
             </div>
           )}
         </section>
+
       </div>
     </div>
   );

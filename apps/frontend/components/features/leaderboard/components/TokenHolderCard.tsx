@@ -1,12 +1,7 @@
-/**
- * @notice Individual token holder card component for leaderboard
- * @dev Displays rank, avatar, username, token holdings, and portfolio value
- */
+"use client";
 
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import Image from "next/image";
 import { TokenHolderEntry } from "../utils";
-import { RankIcon } from "./RankIcon";
 import { formatLargeNumber } from "@/lib/utils/formatting/number";
 import { formatUSDValue } from "@/lib/utils/formatting/price";
 
@@ -15,53 +10,88 @@ interface TokenHolderCardProps {
   tokenLogo: string;
 }
 
-/**
- * @notice Render token holder leaderboard card
- * @param holder Token holder data entry
- * @param tokenLogo URL to top token logo
- */
+const TOP_BG: Record<number, string> = {
+  1: "linear-gradient(90deg, rgba(245,197,24,0.07) 0%, transparent 60%)",
+  2: "linear-gradient(90deg, rgba(180,180,180,0.04) 0%, transparent 60%)",
+  3: "linear-gradient(90deg, rgba(200,110,40,0.06) 0%, transparent 60%)",
+};
+const RANK_COLOR: Record<number, string> = { 1: "#F5C518", 2: "#aaaaaa", 3: "#c87941" };
+const MEDALS = ["🥇", "🥈", "🥉"];
+
 export function TokenHolderCard({ holder, tokenLogo }: TokenHolderCardProps) {
+  const isTop3 = holder.rank <= 3;
+  const rowBg = TOP_BG[holder.rank] ?? "transparent";
+  const rankColor = RANK_COLOR[holder.rank] ?? "#555";
+
   return (
     <div
-      className={`p-4 sm:p-6 rounded-lg border transition-all duration-300 hover:border-primary/30 flex flex-col sm:flex-row items-center sm:items-start justify-between gap-4 ${
-        holder.rank <= 3
-          ? "bg-gradient-to-r from-primary/10 to-[#FF3465]/10 border-primary/20"
-          : "bg-[#0f0f0f] border-white/10"
-      }`}
+      className="flex items-center gap-3 px-4 py-3.5 transition-colors duration-150"
+      style={{ background: rowBg, borderBottom: "1px solid #2A2A2A" }}
+      onMouseEnter={(e) => {
+        if (!isTop3) (e.currentTarget as HTMLDivElement).style.background = "#181818";
+      }}
+      onMouseLeave={(e) => {
+        (e.currentTarget as HTMLDivElement).style.background = rowBg;
+      }}
     >
-      {/* Rank & Avatar */}
-      <div className="flex items-center gap-4 flex-shrink-0">
-        <div className="flex items-center justify-center w-10 h-10 sm:w-12 sm:h-12">
-          <RankIcon rank={holder.rank} />
-        </div>
-        <Avatar className="w-10 h-10 sm:w-12 sm:h-12 border border-white/10">
-          <AvatarImage src={holder.avatar} alt={holder.username} />
-          <AvatarFallback className="bg-primary/20 text-primary">
-            {holder.username.slice(0, 2).toUpperCase()}
-          </AvatarFallback>
-        </Avatar>
+      {/* Rank */}
+      <div
+        className="w-10 flex-shrink-0 text-center font-mono text-[15px] font-bold"
+        style={{ color: rankColor, fontFamily: "'JetBrains Mono', monospace" }}
+      >
+        {isTop3 ? MEDALS[holder.rank - 1] : holder.rank}
       </div>
 
-      {/* User Info */}
-      <div className="flex-grow text-center sm:text-left">
-        <h3 className="font-bold text-white text-sm sm:text-[16px]" style={{ fontFamily: "Lexend, sans-serif" }}>
-          {holder.username}
-        </h3>
-        <div className="flex flex-wrap justify-center sm:justify-start gap-4 text-xs sm:text-sm text-white/60 mt-1">
-          <div className="flex items-center gap-1">
-            <Image src={tokenLogo} alt={holder.topToken} width={16} height={16} className="w-4 h-4 rounded-full" />
-            <span>Top: {holder.topToken}</span>
+      {/* Avatar + name */}
+      <div className="flex items-center gap-2.5 flex-1 min-w-0">
+        <div
+          className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0"
+          style={{ border: "1px solid #2A2A2A" }}
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={holder.avatar} alt={holder.username} className="w-full h-full object-cover" />
+        </div>
+        <div className="min-w-0">
+          <div
+            className="text-[13px] font-bold text-white truncate"
+            style={{ fontFamily: "'Barlow Condensed', sans-serif" }}
+          >
+            {holder.username}
           </div>
-          <span>{holder.tokensHeld} different tokens</span>
+          <div className="flex items-center gap-1.5 mt-0.5">
+            <Image src={tokenLogo} alt={holder.topToken} width={11} height={11} className="rounded-full flex-shrink-0" />
+            <span className="text-[11px] truncate" style={{ color: "#555" }}>
+              {holder.topToken} · {holder.tokensHeld} tokens
+            </span>
+          </div>
         </div>
       </div>
 
-      {/* Stats */}
-      <div className="text-center sm:text-right flex-shrink-0 min-w-[110px]">
-        <div className="text-lg sm:text-[20px] font-bold text-blue-400 whitespace-nowrap">
-          {formatLargeNumber(holder.totalTokens)} tokens
+      {/* Stats — desktop */}
+      <div className="hidden sm:flex items-center gap-5 flex-shrink-0">
+        {/* Total tokens */}
+        <div className="text-center w-24">
+          <div className="font-mono text-[13px] font-semibold text-white" style={{ fontFamily: "'JetBrains Mono', monospace" }}>
+            {formatLargeNumber(holder.totalTokens)}
+          </div>
+          <div className="text-[9px] uppercase tracking-[0.08em]" style={{ color: "#555" }}>Tokens</div>
         </div>
-        <div className="text-xs sm:text-sm text-white/60">{formatUSDValue(holder.portfolioValue)} value</div>
+
+        {/* Portfolio */}
+        <div className="text-center w-24">
+          <div className="font-mono text-[13px] font-bold" style={{ color: "#F5C518", fontFamily: "'JetBrains Mono', monospace" }}>
+            {formatUSDValue(holder.portfolioValue)}
+          </div>
+          <div className="text-[9px] uppercase tracking-[0.08em]" style={{ color: "#555" }}>Portfolio</div>
+        </div>
+      </div>
+
+      {/* Mobile: portfolio only */}
+      <div className="sm:hidden flex-shrink-0 text-right">
+        <div className="font-mono text-[13px] font-bold" style={{ color: "#F5C518", fontFamily: "'JetBrains Mono', monospace" }}>
+          {formatUSDValue(holder.portfolioValue)}
+        </div>
+        <div className="text-[10px]" style={{ color: "#555" }}>portfolio</div>
       </div>
     </div>
   );

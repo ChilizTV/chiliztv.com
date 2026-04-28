@@ -1,50 +1,72 @@
-/**
- * @notice Achievement badges section displaying monthly winners
- * @dev Shows Champion, Sharpshooter, and Speed Demon badges
- */
+import { Crown, Target, Zap } from "lucide-react";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Crown, Star, Target, Zap } from "lucide-react";
+const BADGES = [
+  {
+    icon: Crown,
+    label: "Champion",
+    sub: "Most wins this month",
+    holder: "FootballKing",
+    stat: "127 wins",
+    iconColor: "#F5C518",
+    glowColor: "rgba(245,197,24,0.06)",
+    borderColor: "rgba(245,197,24,0.16)",
+  },
+  {
+    icon: Target,
+    label: "Sharpshooter",
+    sub: "Highest accuracy",
+    holder: "StrategyGuru",
+    stat: "89.2% accuracy",
+    iconColor: "#E8001D",
+    glowColor: "rgba(232,0,29,0.05)",
+    borderColor: "rgba(232,0,29,0.16)",
+  },
+  {
+    icon: Zap,
+    label: "Speed Demon",
+    sub: "Fastest live predictions",
+    holder: "LivePredictionPro",
+    stat: "0.3s avg",
+    iconColor: "#00C853",
+    glowColor: "rgba(0,200,83,0.05)",
+    borderColor: "rgba(0,200,83,0.16)",
+  },
+];
 
-/**
- * @notice Display monthly achievement badges
- */
 export function AchievementBadges() {
   return (
-    <Card className="mt-6 sm:mt-8 bg-gradient-to-r from-[#1a1919] to-[#0f0f0f] border-white/10">
-      <CardHeader>
-        <CardTitle className="text-white flex items-center gap-2 text-lg sm:text-xl">
-          <Star className="w-5 h-5 text-primary" />
-          Monthly Achievements
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          {/* Champion Badge */}
-          <div className="text-center p-4 bg-gradient-to-b from-yellow-500/20 to-yellow-600/5 rounded-lg border border-yellow-500/20">
-            <Crown className="w-12 h-12 text-yellow-500 mx-auto mb-2" />
-            <h4 className="font-bold text-white mb-1 text-base sm:text-lg">Champion</h4>
-            <p className="text-yellow-500 text-sm sm:text-base">Most wins this month</p>
-            <p className="text-white/60 text-xs sm:text-sm mt-1">FootballKing - 127 wins</p>
+    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-8">
+      {BADGES.map(({ icon: Icon, label, sub, holder, stat, iconColor, glowColor, borderColor }) => (
+        <div
+          key={label}
+          className="flex items-center gap-4 px-5 py-4 rounded-lg"
+          style={{ background: glowColor, border: `1px solid ${borderColor}` }}
+        >
+          <div
+            className="w-11 h-11 rounded-lg flex items-center justify-center flex-shrink-0"
+            style={{ background: `${iconColor}18` }}
+          >
+            <Icon size={20} style={{ color: iconColor }} />
           </div>
-
-          {/* Sharpshooter Badge */}
-          <div className="text-center p-4 bg-gradient-to-b from-blue-500/20 to-blue-600/5 rounded-lg border border-blue-500/20">
-            <Target className="w-12 h-12 text-blue-500 mx-auto mb-2" />
-            <h4 className="font-bold text-white mb-1 text-base sm:text-lg">Sharpshooter</h4>
-            <p className="text-blue-500 text-sm sm:text-base">Highest accuracy</p>
-            <p className="text-white/60 text-xs sm:text-sm mt-1">StrategyGuru - 89.2%</p>
-          </div>
-
-          {/* Speed Demon Badge */}
-          <div className="text-center p-4 bg-gradient-to-b from-purple-500/20 to-purple-600/5 rounded-lg border border-purple-500/20">
-            <Zap className="w-12 h-12 text-purple-500 mx-auto mb-2" />
-            <h4 className="font-bold text-white mb-1 text-base sm:text-lg">Speed Demon</h4>
-            <p className="text-purple-500 text-sm sm:text-base">Fastest live predictions</p>
-            <p className="text-white/60 text-xs sm:text-sm mt-1">LivePredictionPro - 0.3s avg</p>
+          <div className="min-w-0">
+            <div
+              className="text-[10px] font-bold uppercase tracking-[0.12em] mb-0.5"
+              style={{ color: iconColor, fontFamily: "'Barlow', sans-serif" }}
+            >
+              {label}
+            </div>
+            <div
+              className="text-[14px] font-bold text-white truncate"
+              style={{ fontFamily: "'Barlow Condensed', sans-serif" }}
+            >
+              {holder}
+            </div>
+            <div className="text-[11px] mt-0.5" style={{ color: "#555" }}>
+              {stat} · {sub}
+            </div>
           </div>
         </div>
-      </CardContent>
-    </Card>
+      ))}
+    </div>
   );
 }

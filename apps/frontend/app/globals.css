@@ -121,6 +121,12 @@
   }
 }
 
+/* LIVE pulse animation */
+@keyframes pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(1.3); }
+}
+
 /* Custom scrollbar styles for chat */
 @layer utilities {
   .scrollbar-thin::-webkit-scrollbar {

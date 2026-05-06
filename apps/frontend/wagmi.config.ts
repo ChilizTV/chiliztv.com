@@ -8,6 +8,7 @@ import BettingMatchFactoryJSON from "./artifacts/BettingMatchFactory.json";
 import StreamWalletJSON from "./artifacts/StreamWallet.json";
 import StreamWalletFactoryJSON from "./artifacts/StreamWalletFactory.json";
 import LiquidityPoolJSON from "./artifacts/LiquidityPool.json";
+import ChilizSwapRouterJSON from "./artifacts/ChilizSwapRouter.json";
 
 // Counter to track function occurrences for unique naming
 const hookNameCounter: Record<string, number> = {};
@@ -34,6 +35,10 @@ export default defineConfig({
     {
       name: 'LiquidityPool',
       abi: LiquidityPoolJSON.abi as Abi
+    },
+    {
+      name: 'ChilizSwapRouter',
+      abi: ChilizSwapRouterJSON.abi as Abi
     },
   ],
   plugins: [

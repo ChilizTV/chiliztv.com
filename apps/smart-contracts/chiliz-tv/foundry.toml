@@ -1,0 +1,32 @@
+[profile.default]
+src = "src"
+out = "out"
+libs = ["lib"]
+no_match_coverage = "^(script|test)/"
+remappings = [
+    "@openzeppelin/contracts-upgradeable/=lib/openzeppelin-contracts-upgradeable/contracts/",
+    "@openzeppelin/contracts/=lib/openzeppelin-contracts/contracts/",
+    "forge-std/=lib/forge-std/src/"
+]
+optimizer = true
+optimizer_runs = 1
+solc_version = "0.8.24"
+evm_version = "shanghai"  # Chiliz Chain requirement — do not change
+# ...existing settings...
+via_ir = true
+
+# Etherscan API configuration for Chiliz chains
+[etherscan]
+chiliz_spicy = { key = "${ETHERSCAN_API_KEY}", chain = 88882, url = "https://api.routescan.io/v2/network/testnet/evm/88882/etherscan" }
+chiliz_mainnet = { key = "${ETHERSCAN_API_KEY}", chain = 88888, url = "https://api.routescan.io/v2/network/mainnet/evm/88888/etherscan" }
+
+# Custom chain registration so forge's NamedChain lookup doesn't reject
+# Chiliz Spicy / Mainnet IDs with "Chain X not supported". Required because
+# `alloy_chains::Chain` may not include Chiliz Spicy by default in older
+# forge builds. Once registered here, forge uses these slugs for chain
+# detection over its built-in registry.
+[rpc_endpoints]
+chiliz_spicy   = "https://spicy-rpc.chiliz.com"
+chiliz_mainnet = "https://rpc.chiliz.com"
+
+# See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options

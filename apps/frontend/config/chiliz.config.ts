@@ -11,10 +11,18 @@ export interface ChilizToken {
 
 export interface ChilizNetworkConfig {
     rpcUrl: string;
+    chainId: number;
     bettingContract: `0x${string}`; // Legacy (deprecated)
     bettingMatchFactory: `0x${string}`;
     streamWalletFactory: `0x${string}`;
     liquidityPool: `0x${string}`;
+    /** Unified swap router (FanX/Kayen adapter). Source of multi-asset bets,
+     *  donations, subscriptions, and LP deposits. */
+    chilizSwapRouter: `0x${string}`;
+    /** USDC token used as settlement currency by the pool and swap router. */
+    usdc: `0x${string}`;
+    /** Wrapped CHZ — used by the swap router's native-CHZ swap path. */
+    wchz: `0x${string}`;
     tokens: ChilizToken[];
 }
 
@@ -231,12 +239,46 @@ const MAINNET_LIQUIDITY_POOL = (
     '0x0000000000000000000000000000000000000000'
 ) as `0x${string}`;
 
+// Unified swap router (FanX/Kayen adapter). Single entrypoint for multi-asset
+// bets, donations, subscriptions, and LP deposits.
+const TESTNET_SWAP_ROUTER = (
+    process.env.NEXT_PUBLIC_CHILIZ_SWAP_ROUTER_ADDRESS ||
+    '0x0000000000000000000000000000000000000000'
+) as `0x${string}`;
+const MAINNET_SWAP_ROUTER = (
+    process.env.NEXT_PUBLIC_CHILIZ_SWAP_ROUTER_ADDRESS_MAINNET ||
+    '0x0000000000000000000000000000000000000000'
+) as `0x${string}`;
+
+// USDC + WCHZ — settlement and native-CHZ swap path tokens.
+const TESTNET_USDC = (
+    process.env.NEXT_PUBLIC_USDC_ADDRESS ||
+    '0x0000000000000000000000000000000000000000'
+) as `0x${string}`;
+const MAINNET_USDC = (
+    process.env.NEXT_PUBLIC_USDC_ADDRESS_MAINNET ||
+    '0x0000000000000000000000000000000000000000'
+) as `0x${string}`;
+
+const TESTNET_WCHZ = (
+    process.env.NEXT_PUBLIC_WCHZ_ADDRESS ||
+    '0x0000000000000000000000000000000000000000'
+) as `0x${string}`;
+const MAINNET_WCHZ = (
+    process.env.NEXT_PUBLIC_WCHZ_ADDRESS_MAINNET ||
+    '0x0000000000000000000000000000000000000000'
+) as `0x${string}`;
+
 const TESTNET_CONFIG: ChilizNetworkConfig = {
     rpcUrl: 'https://spicy-rpc.chiliz.com',
+    chainId: 88882,
     bettingContract: TESTNET_BETTING_CONTRACT,
     bettingMatchFactory: TESTNET_BETTING_FACTORY,
     streamWalletFactory: TESTNET_STREAM_WALLET_FACTORY,
     liquidityPool: TESTNET_LIQUIDITY_POOL,
+    chilizSwapRouter: TESTNET_SWAP_ROUTER,
+    usdc: TESTNET_USDC,
+    wchz: TESTNET_WCHZ,
     tokens: TESTNET_TOKENS.map(token => ({
         ...token,
         tokenAddress: token.testnetTokenAddress
@@ -245,10 +287,14 @@ const TESTNET_CONFIG: ChilizNetworkConfig = {
 
 const MAINNET_CONFIG: ChilizNetworkConfig = {
     rpcUrl: 'https://rpc.ankr.com/chiliz',
+    chainId: 88888,
     bettingContract: MAINNET_BETTING_CONTRACT,
     bettingMatchFactory: MAINNET_BETTING_FACTORY,
     streamWalletFactory: MAINNET_STREAM_WALLET_FACTORY,
     liquidityPool: MAINNET_LIQUIDITY_POOL,
+    chilizSwapRouter: MAINNET_SWAP_ROUTER,
+    usdc: MAINNET_USDC,
+    wchz: MAINNET_WCHZ,
     tokens: MAINNET_TOKENS
 };
 

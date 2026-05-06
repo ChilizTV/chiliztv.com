@@ -13,10 +13,12 @@ import {
 import Image from "next/image";
 import { TrendingUp } from "lucide-react";
 import { useBalance } from "wagmi";
+import { parseUnits } from "viem";
 import { useDynamicContext } from "@dynamic-labs/sdk-react-core";
 import Confetti from "react-confetti";
 import { useFanTokens } from "@/hooks/useFanTokens";
 import { useBettingMatch } from "@/hooks/useBettingMatch";
+import { usePoolDecimals } from "@/hooks/usePoolDecimals";
 import { useCreatePrediction } from "@/hooks/api";
 import { ExtendedOdds } from "@/models/match.model";
 import { useCHZPrice } from "./hooks";
@@ -123,6 +125,7 @@ export default function PredictionsDialog({
   const matchContractAddress =
     bettingContractAddress || ("0x0000000000000000000000000000000000000000" as `0x${string}`);
 
+  const { assetDecimals: usdcDecimals } = usePoolDecimals();
   const { placeBet, betState } = useBettingMatch(
     matchContractAddress,
     user as `0x${string}`
@@ -215,11 +218,16 @@ export default function PredictionsDialog({
         predictedTeam
       });
 
-      // BettingMatch now takes USDC raw (6 decimals). predictionAmount is in USD,
-      // so 1 USD ≈ 1 USDC for bet sizing purposes. The chzPrice/amountInCHZ path is
-      // legacy from the native-CHZ flow and should be removed when this dialog is
-      // wired up to the new live page. Caller must approve USDC for matchContract first.
-      const grossAmountUsdcRaw = BigInt(Math.round(Number(predictionAmount) * 1e6));
+      // BettingMatch takes the bet amount in the pool asset's atomic units.
+      // Decimals come from the live pool — Spicy test USDC is 18-decimal, real
+      // (Circle) USDC is 6-decimal, so we read it dynamically. predictionAmount
+      // is in USD, so 1 USD ≈ 1 USDC for bet sizing purposes.
+      // Caller must approve USDC for matchContract first.
+      if (usdcDecimals === undefined) {
+        console.error("USDC decimals not loaded yet");
+        return;
+      }
+      const grossAmountUsdcRaw = parseUnits(predictionAmount, usdcDecimals);
       await placeBet(marketId, outcome, grossAmountUsdcRaw);
     } catch (err) {
       console.error("Error placing bet:", err);

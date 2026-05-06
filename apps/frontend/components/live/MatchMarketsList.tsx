@@ -9,6 +9,7 @@ import {
 } from "@/lib/contracts/generated";
 import { MarketBetDialog } from "./MarketBetDialog";
 import { BET_TOKEN_SYMBOL, formatBetAmount } from "./utils/betToken";
+import { usePoolDecimals } from "@/hooks/usePoolDecimals";
 
 // Pin contract reads to Chiliz Spicy testnet so they don't depend on the
 // connected wallet's active chain (otherwise the request never fires).
@@ -86,20 +87,12 @@ interface MarketRowProps {
 }
 
 function MarketRow({ contractAddress, marketId, onBet }: MarketRowProps) {
-  const { data, isLoading, error } = useBettingMatchReadGetMarketInfo({
+  const { data, isLoading } = useBettingMatchReadGetMarketInfo({
     address: contractAddress,
     args: [BigInt(marketId)],
     chainId: BETTING_CHAIN_ID,
   });
-
-  // eslint-disable-next-line no-console
-  console.log("[MarketRow]", {
-    contractAddress,
-    marketId,
-    isLoading,
-    error: error?.message,
-    data,
-  });
+  const { assetDecimals } = usePoolDecimals();
 
   if (isLoading || !data) {
     return (
@@ -196,7 +189,7 @@ function MarketRow({ contractAddress, marketId, onBet }: MarketRowProps) {
           className="text-[11px]"
           style={{ color: "#888", fontFamily: "'JetBrains Mono', monospace" }}
         >
-          {formatBetAmount(totalPool)} {BET_TOKEN_SYMBOL}
+          {formatBetAmount(totalPool, assetDecimals)} {BET_TOKEN_SYMBOL}
         </span>
       </div>
 

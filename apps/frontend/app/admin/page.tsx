@@ -1,11 +1,11 @@
 import { Header } from "@/components/Header";
-import { AdminPage } from "@/components/features/admin/AdminPage";
+import { AdminTabs } from "@/components/features/admin/AdminTabs";
 
 export default function AdminConsolePage() {
   return (
     <main>
       <Header />
-      <AdminPage />
+      <AdminTabs />
     </main>
   );
 }

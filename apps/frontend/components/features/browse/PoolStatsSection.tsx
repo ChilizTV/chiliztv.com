@@ -5,14 +5,13 @@ import { formatUnits, type Address } from "viem";
 import { Lock, Zap, Activity, TrendingUp, ArrowRight } from "lucide-react";
 import { useDynamicContext } from "@dynamic-labs/sdk-react-core";
 import { useLiquidityPool } from "@/hooks/useLiquidityPool";
+import { usePoolDecimals } from "@/hooks/usePoolDecimals";
 import { chilizConfig } from "@/config/chiliz.config";
 import { PoolDepositDialog } from "./PoolDepositDialog";
 
-const USDC_DECIMALS = 6;
-
-function formatUsdc(value: bigint | undefined, fractionDigits = 0): string {
-  if (value === undefined) return "—";
-  const n = Number(formatUnits(value, USDC_DECIMALS));
+function formatUsdc(value: bigint | undefined, decimals: number | undefined, fractionDigits = 0): string {
+  if (value === undefined || decimals === undefined) return "—";
+  const n = Number(formatUnits(value, decimals));
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(2)}M`;
   if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
   return n.toLocaleString("en-US", {
@@ -39,13 +38,14 @@ export function PoolStatsSection() {
   const [dialogOpen, setDialogOpen] = useState(false);
 
   const { stats, isLoadingStats } = useLiquidityPool(poolAddress, userAddress);
+  const { assetDecimals } = usePoolDecimals();
 
   const poolUnconfigured =
     poolAddress === "0x0000000000000000000000000000000000000000";
 
-  const tvl = formatUsdc(stats.totalAssets, 0);
-  const liabilities = formatUsdc(stats.totalLiabilities, 0);
-  const free = formatUsdc(stats.freeBalance, 0);
+  const tvl = formatUsdc(stats.totalAssets, assetDecimals, 0);
+  const liabilities = formatUsdc(stats.totalLiabilities, assetDecimals, 0);
+  const free = formatUsdc(stats.freeBalance, assetDecimals, 0);
 
   const metrics = [
     {

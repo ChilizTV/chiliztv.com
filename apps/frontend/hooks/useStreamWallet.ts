@@ -17,9 +17,16 @@ import {
 } from '@/lib/contracts/generated';
 import { useStreamerDonations, useStreamerSubscriptions } from '@/hooks/api';
 import type { Donation, Subscription } from '@/models/stream-wallet.model';
+import { chilizConfig } from '@/config/chiliz.config';
 
-const FACTORY_ADDRESS = (process.env.NEXT_PUBLIC_STREAM_WALLET_FACTORY_ADDRESS || 
+const FACTORY_ADDRESS = (process.env.NEXT_PUBLIC_STREAM_WALLET_FACTORY_ADDRESS ||
     '0x7310cE3bD564fA63587a388b87a8C973a0BA3d7B') as `0x${string}`;
+
+// Pin reads to the deployed chain (memory: generated read hooks silently
+// never fire when chainId is omitted and the wallet is on a different chain).
+// Typed as `number` rather than a literal union — wagmi's generated read
+// hook overloads explode TS's depth limit when the chainId is narrow.
+const CHAIN_ID: number = chilizConfig.chainId;
 
 interface UseStreamWalletProps {
     streamerAddress?: `0x${string}`;
@@ -74,41 +81,50 @@ export function useStreamWallet({ streamerAddress }: UseStreamWalletProps) {
     const { data: hasWallet, refetch: refetchHasWallet } = useStreamWalletFactoryReadHasWallet({
         address: FACTORY_ADDRESS,
         args: streamerAddress ? [streamerAddress] : undefined,
+        chainId: CHAIN_ID,
     });
 
     const { data: streamWalletAddress, refetch: refetchWalletAddress } = useStreamWalletFactoryReadGetWallet({
         address: FACTORY_ADDRESS,
         args: streamerAddress ? [streamerAddress] : undefined,
+        chainId: CHAIN_ID,
     });
 
     const { data: totalRevenue } = useStreamWalletReadTotalRevenue({
         address: streamWalletAddress as `0x${string}` | undefined,
+        chainId: CHAIN_ID,
     });
 
     const { data: totalWithdrawn } = useStreamWalletReadTotalWithdrawn({
         address: streamWalletAddress as `0x${string}` | undefined,
+        chainId: CHAIN_ID,
     });
 
     const { data: availableBalance } = useStreamWalletReadAvailableBalance({
         address: streamWalletAddress as `0x${string}` | undefined,
+        chainId: CHAIN_ID,
     });
 
     const { data: platformFeeBps } = useStreamWalletReadPlatformFeeBps({
         address: streamWalletAddress as `0x${string}` | undefined,
+        chainId: CHAIN_ID,
     });
 
     const { data: totalSubscribers } = useStreamWalletReadTotalSubscribers({
         address: streamWalletAddress as `0x${string}` | undefined,
+        chainId: CHAIN_ID,
     });
 
     const { data: isSubscribed, refetch: refetchIsSubscribed } = useStreamWalletReadIsSubscribed({
         address: streamWalletAddress as `0x${string}` | undefined,
         args: walletAddress ? [walletAddress] : undefined,
+        chainId: CHAIN_ID,
     });
 
     const { data: subscription, refetch: refetchSubscription } = useStreamWalletReadGetSubscription({
         address: streamWalletAddress as `0x${string}` | undefined,
         args: walletAddress ? [walletAddress] : undefined,
+        chainId: CHAIN_ID,
     });
 
     // ============================================================

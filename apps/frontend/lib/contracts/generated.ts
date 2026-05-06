@@ -346,7 +346,7 @@ export const bettingMatchAbi = [
     inputs: [
       { name: 'marketId', internalType: 'uint256', type: 'uint256' },
       { name: 'selection', internalType: 'uint64', type: 'uint64' },
-      { name: 'grossAmount', internalType: 'uint256', type: 'uint256' },
+      { name: 'amount', internalType: 'uint256', type: 'uint256' },
     ],
     name: 'placeBetUSDC',
     outputs: [],
@@ -358,7 +358,7 @@ export const bettingMatchAbi = [
       { name: 'user', internalType: 'address', type: 'address' },
       { name: 'marketId', internalType: 'uint256', type: 'uint256' },
       { name: 'selection', internalType: 'uint64', type: 'uint64' },
-      { name: 'netStake', internalType: 'uint256', type: 'uint256' },
+      { name: 'amount', internalType: 'uint256', type: 'uint256' },
     ],
     name: 'placeBetUSDCFor',
     outputs: [],
@@ -1353,6 +1353,955 @@ export const bettingMatchFactoryAbi = [
 ] as const
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// ChilizSwapRouter
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+export const chilizSwapRouterAbi = [
+  {
+    type: 'constructor',
+    inputs: [
+      { name: '_masterRouter', internalType: 'address', type: 'address' },
+      { name: '_tokenRouter', internalType: 'address', type: 'address' },
+      { name: '_usdc', internalType: 'address', type: 'address' },
+      { name: '_wchz', internalType: 'address', type: 'address' },
+      { name: '_treasury', internalType: 'address', type: 'address' },
+      { name: '_platformFeeBps', internalType: 'uint16', type: 'uint16' },
+    ],
+    stateMutability: 'nonpayable',
+  },
+  { type: 'receive', stateMutability: 'payable' },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'bettingMatchFactory',
+    outputs: [
+      {
+        name: '',
+        internalType: 'contract BettingMatchFactory',
+        type: 'address',
+      },
+    ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'amountOutMin', internalType: 'uint256', type: 'uint256' },
+      { name: 'deadline', internalType: 'uint256', type: 'uint256' },
+      { name: 'receiver', internalType: 'address', type: 'address' },
+    ],
+    name: 'depositLiquidityWithCHZ',
+    outputs: [{ name: 'shares', internalType: 'uint256', type: 'uint256' }],
+    stateMutability: 'payable',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'token', internalType: 'address', type: 'address' },
+      { name: 'amount', internalType: 'uint256', type: 'uint256' },
+      { name: 'amountOutMin', internalType: 'uint256', type: 'uint256' },
+      { name: 'deadline', internalType: 'uint256', type: 'uint256' },
+      { name: 'receiver', internalType: 'address', type: 'address' },
+    ],
+    name: 'depositLiquidityWithToken',
+    outputs: [{ name: 'shares', internalType: 'uint256', type: 'uint256' }],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'amount', internalType: 'uint256', type: 'uint256' },
+      { name: 'receiver', internalType: 'address', type: 'address' },
+    ],
+    name: 'depositLiquidityWithUSDC',
+    outputs: [{ name: 'shares', internalType: 'uint256', type: 'uint256' }],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'streamer', internalType: 'address', type: 'address' },
+      { name: 'message', internalType: 'string', type: 'string' },
+      { name: 'amountOutMin', internalType: 'uint256', type: 'uint256' },
+      { name: 'deadline', internalType: 'uint256', type: 'uint256' },
+    ],
+    name: 'donateWithCHZ',
+    outputs: [],
+    stateMutability: 'payable',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'token', internalType: 'address', type: 'address' },
+      { name: 'amount', internalType: 'uint256', type: 'uint256' },
+      { name: 'streamer', internalType: 'address', type: 'address' },
+      { name: 'message', internalType: 'string', type: 'string' },
+      { name: 'amountOutMin', internalType: 'uint256', type: 'uint256' },
+      { name: 'deadline', internalType: 'uint256', type: 'uint256' },
+    ],
+    name: 'donateWithToken',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'streamer', internalType: 'address', type: 'address' },
+      { name: 'message', internalType: 'string', type: 'string' },
+      { name: 'amount', internalType: 'uint256', type: 'uint256' },
+    ],
+    name: 'donateWithUSDC',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'liquidityPool',
+    outputs: [
+      {
+        name: '',
+        internalType: 'contract ILiquidityPoolDeposit',
+        type: 'address',
+      },
+    ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'masterRouter',
+    outputs: [
+      {
+        name: '',
+        internalType: 'contract IKayenMasterRouterV2',
+        type: 'address',
+      },
+    ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'owner',
+    outputs: [{ name: '', internalType: 'address', type: 'address' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'bettingMatch', internalType: 'address', type: 'address' },
+      { name: 'marketId', internalType: 'uint256', type: 'uint256' },
+      { name: 'selection', internalType: 'uint64', type: 'uint64' },
+      { name: 'amountOutMin', internalType: 'uint256', type: 'uint256' },
+      { name: 'deadline', internalType: 'uint256', type: 'uint256' },
+    ],
+    name: 'placeBetWithCHZ',
+    outputs: [],
+    stateMutability: 'payable',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'token', internalType: 'address', type: 'address' },
+      { name: 'amount', internalType: 'uint256', type: 'uint256' },
+      { name: 'bettingMatch', internalType: 'address', type: 'address' },
+      { name: 'marketId', internalType: 'uint256', type: 'uint256' },
+      { name: 'selection', internalType: 'uint64', type: 'uint64' },
+      { name: 'amountOutMin', internalType: 'uint256', type: 'uint256' },
+      { name: 'deadline', internalType: 'uint256', type: 'uint256' },
+    ],
+    name: 'placeBetWithToken',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'bettingMatch', internalType: 'address', type: 'address' },
+      { name: 'marketId', internalType: 'uint256', type: 'uint256' },
+      { name: 'selection', internalType: 'uint64', type: 'uint64' },
+      { name: 'amount', internalType: 'uint256', type: 'uint256' },
+    ],
+    name: 'placeBetWithUSDC',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'platformFeeBps',
+    outputs: [{ name: '', internalType: 'uint16', type: 'uint16' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'renounceOwnership',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [{ name: '_pool', internalType: 'address', type: 'address' }],
+    name: 'setLiquidityPool',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [{ name: '_factory', internalType: 'address', type: 'address' }],
+    name: 'setMatchFactory',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [{ name: '_feeBps', internalType: 'uint16', type: 'uint16' }],
+    name: 'setPlatformFeeBps',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [{ name: '_factory', internalType: 'address', type: 'address' }],
+    name: 'setStreamWalletFactory',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [{ name: '_treasury', internalType: 'address', type: 'address' }],
+    name: 'setTreasury',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'streamWalletFactory',
+    outputs: [
+      {
+        name: '',
+        internalType: 'contract StreamWalletFactory',
+        type: 'address',
+      },
+    ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'streamer', internalType: 'address', type: 'address' },
+      { name: 'duration', internalType: 'uint256', type: 'uint256' },
+      { name: 'amountOutMin', internalType: 'uint256', type: 'uint256' },
+      { name: 'deadline', internalType: 'uint256', type: 'uint256' },
+    ],
+    name: 'subscribeWithCHZ',
+    outputs: [],
+    stateMutability: 'payable',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'token', internalType: 'address', type: 'address' },
+      { name: 'amount', internalType: 'uint256', type: 'uint256' },
+      { name: 'streamer', internalType: 'address', type: 'address' },
+      { name: 'duration', internalType: 'uint256', type: 'uint256' },
+      { name: 'amountOutMin', internalType: 'uint256', type: 'uint256' },
+      { name: 'deadline', internalType: 'uint256', type: 'uint256' },
+    ],
+    name: 'subscribeWithToken',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'streamer', internalType: 'address', type: 'address' },
+      { name: 'duration', internalType: 'uint256', type: 'uint256' },
+      { name: 'amount', internalType: 'uint256', type: 'uint256' },
+    ],
+    name: 'subscribeWithUSDC',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'tokenRouter',
+    outputs: [
+      { name: '', internalType: 'contract IKayenRouter', type: 'address' },
+    ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [{ name: 'newOwner', internalType: 'address', type: 'address' }],
+    name: 'transferOwnership',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'treasury',
+    outputs: [{ name: '', internalType: 'address', type: 'address' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'usdc',
+    outputs: [{ name: '', internalType: 'contract IERC20', type: 'address' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'wchz',
+    outputs: [{ name: '', internalType: 'address', type: 'address' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
+        name: 'bettingMatch',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+      { name: 'user', internalType: 'address', type: 'address', indexed: true },
+      {
+        name: 'chzSpent',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: false,
+      },
+      {
+        name: 'usdcReceived',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: false,
+      },
+      {
+        name: 'marketId',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: false,
+      },
+      {
+        name: 'selection',
+        internalType: 'uint64',
+        type: 'uint64',
+        indexed: false,
+      },
+    ],
+    name: 'BetPlacedViaCHZ',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
+        name: 'bettingMatch',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+      { name: 'user', internalType: 'address', type: 'address', indexed: true },
+      {
+        name: 'token',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+      {
+        name: 'tokenSpent',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: false,
+      },
+      {
+        name: 'usdcReceived',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: false,
+      },
+      {
+        name: 'marketId',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: false,
+      },
+      {
+        name: 'selection',
+        internalType: 'uint64',
+        type: 'uint64',
+        indexed: false,
+      },
+    ],
+    name: 'BetPlacedViaToken',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
+        name: 'bettingMatch',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+      { name: 'user', internalType: 'address', type: 'address', indexed: true },
+      {
+        name: 'amount',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: false,
+      },
+      {
+        name: 'marketId',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: false,
+      },
+      {
+        name: 'selection',
+        internalType: 'uint64',
+        type: 'uint64',
+        indexed: false,
+      },
+    ],
+    name: 'BetPlacedWithUSDC',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
+        name: 'donor',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+      {
+        name: 'streamer',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+      {
+        name: 'chzSpent',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: false,
+      },
+      {
+        name: 'usdcDonated',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: false,
+      },
+      {
+        name: 'platformFee',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: false,
+      },
+      {
+        name: 'message',
+        internalType: 'string',
+        type: 'string',
+        indexed: false,
+      },
+    ],
+    name: 'DonationWithCHZ',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
+        name: 'donor',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+      {
+        name: 'streamer',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+      {
+        name: 'token',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+      {
+        name: 'tokenSpent',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: false,
+      },
+      {
+        name: 'usdcDonated',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: false,
+      },
+      {
+        name: 'platformFee',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: false,
+      },
+      {
+        name: 'message',
+        internalType: 'string',
+        type: 'string',
+        indexed: false,
+      },
+    ],
+    name: 'DonationWithToken',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
+        name: 'donor',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+      {
+        name: 'streamer',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+      {
+        name: 'amount',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: false,
+      },
+      {
+        name: 'platformFee',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: false,
+      },
+      {
+        name: 'message',
+        internalType: 'string',
+        type: 'string',
+        indexed: false,
+      },
+    ],
+    name: 'DonationWithUSDCEvent',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
+        name: 'depositor',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+      {
+        name: 'receiver',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+      {
+        name: 'chzSpent',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: false,
+      },
+      {
+        name: 'usdcReceived',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: false,
+      },
+      {
+        name: 'sharesMinted',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: false,
+      },
+    ],
+    name: 'LiquidityDepositedWithCHZ',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
+        name: 'depositor',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+      {
+        name: 'receiver',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+      {
+        name: 'token',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+      {
+        name: 'tokenSpent',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: false,
+      },
+      {
+        name: 'usdcReceived',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: false,
+      },
+      {
+        name: 'sharesMinted',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: false,
+      },
+    ],
+    name: 'LiquidityDepositedWithToken',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
+        name: 'depositor',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+      {
+        name: 'receiver',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+      {
+        name: 'amount',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: false,
+      },
+      {
+        name: 'sharesMinted',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: false,
+      },
+    ],
+    name: 'LiquidityDepositedWithUSDC',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
+        name: 'oldPool',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+      {
+        name: 'newPool',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+    ],
+    name: 'LiquidityPoolSet',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
+        name: 'oldFactory',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+      {
+        name: 'newFactory',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+    ],
+    name: 'MatchFactorySet',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
+        name: 'previousOwner',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+      {
+        name: 'newOwner',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+    ],
+    name: 'OwnershipTransferred',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
+        name: 'oldFeeBps',
+        internalType: 'uint16',
+        type: 'uint16',
+        indexed: false,
+      },
+      {
+        name: 'newFeeBps',
+        internalType: 'uint16',
+        type: 'uint16',
+        indexed: false,
+      },
+    ],
+    name: 'PlatformFeeBpsSet',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
+        name: 'oldFactory',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+      {
+        name: 'newFactory',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+    ],
+    name: 'StreamWalletFactorySet',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
+        name: 'subscriber',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+      {
+        name: 'streamer',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+      {
+        name: 'chzSpent',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: false,
+      },
+      {
+        name: 'usdcPaid',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: false,
+      },
+      {
+        name: 'platformFee',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: false,
+      },
+      {
+        name: 'duration',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: false,
+      },
+    ],
+    name: 'SubscriptionWithCHZ',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
+        name: 'subscriber',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+      {
+        name: 'streamer',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+      {
+        name: 'token',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+      {
+        name: 'tokenSpent',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: false,
+      },
+      {
+        name: 'usdcPaid',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: false,
+      },
+      {
+        name: 'platformFee',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: false,
+      },
+      {
+        name: 'duration',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: false,
+      },
+    ],
+    name: 'SubscriptionWithToken',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
+        name: 'subscriber',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+      {
+        name: 'streamer',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+      {
+        name: 'amount',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: false,
+      },
+      {
+        name: 'platformFee',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: false,
+      },
+      {
+        name: 'duration',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: false,
+      },
+    ],
+    name: 'SubscriptionWithUSDCEvent',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
+        name: 'oldTreasury',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+      {
+        name: 'newTreasury',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+    ],
+    name: 'TreasurySet',
+  },
+  { type: 'error', inputs: [], name: 'BettingMatchFactoryNotSet' },
+  { type: 'error', inputs: [], name: 'DeadlinePassed' },
+  { type: 'error', inputs: [], name: 'InvalidFeeBps' },
+  { type: 'error', inputs: [], name: 'LiquidityPoolNotSet' },
+  {
+    type: 'error',
+    inputs: [{ name: 'owner', internalType: 'address', type: 'address' }],
+    name: 'OwnableInvalidOwner',
+  },
+  {
+    type: 'error',
+    inputs: [{ name: 'account', internalType: 'address', type: 'address' }],
+    name: 'OwnableUnauthorizedAccount',
+  },
+  {
+    type: 'error',
+    inputs: [
+      { name: 'poolAsset', internalType: 'address', type: 'address' },
+      { name: 'expectedUsdc', internalType: 'address', type: 'address' },
+    ],
+    name: 'PoolAssetMismatch',
+  },
+  { type: 'error', inputs: [], name: 'ReentrancyGuardReentrantCall' },
+  { type: 'error', inputs: [], name: 'RouterNotConfiguredOnFactory' },
+  {
+    type: 'error',
+    inputs: [{ name: 'token', internalType: 'address', type: 'address' }],
+    name: 'SafeERC20FailedOperation',
+  },
+  { type: 'error', inputs: [], name: 'TokenIsUSDC' },
+  {
+    type: 'error',
+    inputs: [
+      { name: 'bettingMatch', internalType: 'address', type: 'address' },
+    ],
+    name: 'UnauthorizedBettingMatch',
+  },
+  { type: 'error', inputs: [], name: 'ZeroAddress' },
+  { type: 'error', inputs: [], name: 'ZeroValue' },
+] as const
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // LiquidityPool
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -1370,6 +2319,13 @@ export const liquidityPoolAbi = [
     inputs: [],
     name: 'DEFAULT_ADMIN_ROLE',
     outputs: [{ name: '', internalType: 'bytes32', type: 'bytes32' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'LP_WITHDRAWAL_FEE_BPS_MAX',
+    outputs: [{ name: '', internalType: 'uint16', type: 'uint16' }],
     stateMutability: 'view',
   },
   {
@@ -1410,7 +2366,7 @@ export const liquidityPoolAbi = [
   {
     type: 'function',
     inputs: [],
-    name: 'TREASURY_SHARE_BPS',
+    name: 'TREASURY_SHARE_BPS_MAX',
     outputs: [{ name: '', internalType: 'uint16', type: 'uint16' }],
     stateMutability: 'view',
   },
@@ -1501,6 +2457,13 @@ export const liquidityPoolAbi = [
   },
   {
     type: 'function',
+    inputs: [{ name: 'holder', internalType: 'address', type: 'address' }],
+    name: 'costBasis',
+    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
     inputs: [],
     name: 'decimals',
     outputs: [{ name: '', internalType: 'uint8', type: 'uint8' }],
@@ -1577,6 +2540,13 @@ export const liquidityPoolAbi = [
     inputs: [{ name: 'holder', internalType: 'address', type: 'address' }],
     name: 'lastDepositAt',
     outputs: [{ name: '', internalType: 'uint48', type: 'uint48' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'lpWithdrawalFeeBps',
+    outputs: [{ name: '', internalType: 'uint16', type: 'uint16' }],
     stateMutability: 'view',
   },
   {
@@ -1822,6 +2792,13 @@ export const liquidityPoolAbi = [
   },
   {
     type: 'function',
+    inputs: [{ name: 'newBps', internalType: 'uint16', type: 'uint16' }],
+    name: 'setLpWithdrawalFeeBps',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
     inputs: [{ name: 'newMax', internalType: 'uint256', type: 'uint256' }],
     name: 'setMaxBetAmount',
     outputs: [],
@@ -1845,6 +2822,13 @@ export const liquidityPoolAbi = [
     type: 'function',
     inputs: [{ name: 'newBps', internalType: 'uint16', type: 'uint16' }],
     name: 'setProtocolFeeBps',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [{ name: 'newBps', internalType: 'uint16', type: 'uint16' }],
+    name: 'setTreasuryShareBps',
     outputs: [],
     stateMutability: 'nonpayable',
   },
@@ -1925,6 +2909,13 @@ export const liquidityPoolAbi = [
     inputs: [],
     name: 'treasury',
     outputs: [{ name: '', internalType: 'address', type: 'address' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'treasuryShareBps',
+    outputs: [{ name: '', internalType: 'uint16', type: 'uint16' }],
     stateMutability: 'view',
   },
   {
@@ -2100,6 +3091,45 @@ export const liquidityPoolAbi = [
       },
     ],
     name: 'Initialized',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
+        name: 'owner',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+      {
+        name: 'gain',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: false,
+      },
+      { name: 'fee', internalType: 'uint256', type: 'uint256', indexed: false },
+    ],
+    name: 'LpWithdrawalFeeAccrued',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
+        name: 'oldBps',
+        internalType: 'uint16',
+        type: 'uint16',
+        indexed: false,
+      },
+      {
+        name: 'newBps',
+        internalType: 'uint16',
+        type: 'uint16',
+        indexed: false,
+      },
+    ],
+    name: 'LpWithdrawalFeeBpsSet',
   },
   {
     type: 'event',
@@ -2429,6 +3459,25 @@ export const liquidityPoolAbi = [
       },
     ],
     name: 'TreasuryProposed',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
+        name: 'oldBps',
+        internalType: 'uint16',
+        type: 'uint16',
+        indexed: false,
+      },
+      {
+        name: 'newBps',
+        internalType: 'uint16',
+        type: 'uint16',
+        indexed: false,
+      },
+    ],
+    name: 'TreasuryShareBpsSet',
   },
   {
     type: 'event',
@@ -4927,6 +5976,620 @@ export const useBettingMatchFactoryWatchWiringSet =
   })
 
 /**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link chilizSwapRouterAbi}__
+ */
+export const useChilizSwapRouterReadundefined =
+  /*#__PURE__*/ createUseReadContract({ abi: chilizSwapRouterAbi })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link chilizSwapRouterAbi}__ and `functionName` set to `"bettingMatchFactory"`
+ */
+export const useChilizSwapRouterReadBettingMatchFactory =
+  /*#__PURE__*/ createUseReadContract({
+    abi: chilizSwapRouterAbi,
+    functionName: 'bettingMatchFactory',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link chilizSwapRouterAbi}__ and `functionName` set to `"liquidityPool"`
+ */
+export const useChilizSwapRouterReadLiquidityPool =
+  /*#__PURE__*/ createUseReadContract({
+    abi: chilizSwapRouterAbi,
+    functionName: 'liquidityPool',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link chilizSwapRouterAbi}__ and `functionName` set to `"masterRouter"`
+ */
+export const useChilizSwapRouterReadMasterRouter =
+  /*#__PURE__*/ createUseReadContract({
+    abi: chilizSwapRouterAbi,
+    functionName: 'masterRouter',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link chilizSwapRouterAbi}__ and `functionName` set to `"owner"`
+ */
+export const useChilizSwapRouterReadOwner = /*#__PURE__*/ createUseReadContract(
+  { abi: chilizSwapRouterAbi, functionName: 'owner' },
+)
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link chilizSwapRouterAbi}__ and `functionName` set to `"platformFeeBps"`
+ */
+export const useChilizSwapRouterReadPlatformFeeBps =
+  /*#__PURE__*/ createUseReadContract({
+    abi: chilizSwapRouterAbi,
+    functionName: 'platformFeeBps',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link chilizSwapRouterAbi}__ and `functionName` set to `"streamWalletFactory"`
+ */
+export const useChilizSwapRouterReadStreamWalletFactory =
+  /*#__PURE__*/ createUseReadContract({
+    abi: chilizSwapRouterAbi,
+    functionName: 'streamWalletFactory',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link chilizSwapRouterAbi}__ and `functionName` set to `"tokenRouter"`
+ */
+export const useChilizSwapRouterReadTokenRouter =
+  /*#__PURE__*/ createUseReadContract({
+    abi: chilizSwapRouterAbi,
+    functionName: 'tokenRouter',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link chilizSwapRouterAbi}__ and `functionName` set to `"treasury"`
+ */
+export const useChilizSwapRouterReadTreasury =
+  /*#__PURE__*/ createUseReadContract({
+    abi: chilizSwapRouterAbi,
+    functionName: 'treasury',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link chilizSwapRouterAbi}__ and `functionName` set to `"usdc"`
+ */
+export const useChilizSwapRouterReadUsdc = /*#__PURE__*/ createUseReadContract({
+  abi: chilizSwapRouterAbi,
+  functionName: 'usdc',
+})
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link chilizSwapRouterAbi}__ and `functionName` set to `"wchz"`
+ */
+export const useChilizSwapRouterReadWchz = /*#__PURE__*/ createUseReadContract({
+  abi: chilizSwapRouterAbi,
+  functionName: 'wchz',
+})
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link chilizSwapRouterAbi}__
+ */
+export const useChilizSwapRouterWriteundefined =
+  /*#__PURE__*/ createUseWriteContract({ abi: chilizSwapRouterAbi })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link chilizSwapRouterAbi}__ and `functionName` set to `"depositLiquidityWithCHZ"`
+ */
+export const useChilizSwapRouterWriteDepositLiquidityWithChz =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: chilizSwapRouterAbi,
+    functionName: 'depositLiquidityWithCHZ',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link chilizSwapRouterAbi}__ and `functionName` set to `"depositLiquidityWithToken"`
+ */
+export const useChilizSwapRouterWriteDepositLiquidityWithToken =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: chilizSwapRouterAbi,
+    functionName: 'depositLiquidityWithToken',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link chilizSwapRouterAbi}__ and `functionName` set to `"depositLiquidityWithUSDC"`
+ */
+export const useChilizSwapRouterWriteDepositLiquidityWithUsdc =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: chilizSwapRouterAbi,
+    functionName: 'depositLiquidityWithUSDC',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link chilizSwapRouterAbi}__ and `functionName` set to `"donateWithCHZ"`
+ */
+export const useChilizSwapRouterWriteDonateWithChz =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: chilizSwapRouterAbi,
+    functionName: 'donateWithCHZ',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link chilizSwapRouterAbi}__ and `functionName` set to `"donateWithToken"`
+ */
+export const useChilizSwapRouterWriteDonateWithToken =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: chilizSwapRouterAbi,
+    functionName: 'donateWithToken',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link chilizSwapRouterAbi}__ and `functionName` set to `"donateWithUSDC"`
+ */
+export const useChilizSwapRouterWriteDonateWithUsdc =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: chilizSwapRouterAbi,
+    functionName: 'donateWithUSDC',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link chilizSwapRouterAbi}__ and `functionName` set to `"placeBetWithCHZ"`
+ */
+export const useChilizSwapRouterWritePlaceBetWithChz =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: chilizSwapRouterAbi,
+    functionName: 'placeBetWithCHZ',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link chilizSwapRouterAbi}__ and `functionName` set to `"placeBetWithToken"`
+ */
+export const useChilizSwapRouterWritePlaceBetWithToken =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: chilizSwapRouterAbi,
+    functionName: 'placeBetWithToken',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link chilizSwapRouterAbi}__ and `functionName` set to `"placeBetWithUSDC"`
+ */
+export const useChilizSwapRouterWritePlaceBetWithUsdc =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: chilizSwapRouterAbi,
+    functionName: 'placeBetWithUSDC',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link chilizSwapRouterAbi}__ and `functionName` set to `"renounceOwnership"`
+ */
+export const useChilizSwapRouterWriteRenounceOwnership =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: chilizSwapRouterAbi,
+    functionName: 'renounceOwnership',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link chilizSwapRouterAbi}__ and `functionName` set to `"setLiquidityPool"`
+ */
+export const useChilizSwapRouterWriteSetLiquidityPool =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: chilizSwapRouterAbi,
+    functionName: 'setLiquidityPool',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link chilizSwapRouterAbi}__ and `functionName` set to `"setMatchFactory"`
+ */
+export const useChilizSwapRouterWriteSetMatchFactory =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: chilizSwapRouterAbi,
+    functionName: 'setMatchFactory',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link chilizSwapRouterAbi}__ and `functionName` set to `"setPlatformFeeBps"`
+ */
+export const useChilizSwapRouterWriteSetPlatformFeeBps =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: chilizSwapRouterAbi,
+    functionName: 'setPlatformFeeBps',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link chilizSwapRouterAbi}__ and `functionName` set to `"setStreamWalletFactory"`
+ */
+export const useChilizSwapRouterWriteSetStreamWalletFactory =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: chilizSwapRouterAbi,
+    functionName: 'setStreamWalletFactory',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link chilizSwapRouterAbi}__ and `functionName` set to `"setTreasury"`
+ */
+export const useChilizSwapRouterWriteSetTreasury =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: chilizSwapRouterAbi,
+    functionName: 'setTreasury',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link chilizSwapRouterAbi}__ and `functionName` set to `"subscribeWithCHZ"`
+ */
+export const useChilizSwapRouterWriteSubscribeWithChz =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: chilizSwapRouterAbi,
+    functionName: 'subscribeWithCHZ',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link chilizSwapRouterAbi}__ and `functionName` set to `"subscribeWithToken"`
+ */
+export const useChilizSwapRouterWriteSubscribeWithToken =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: chilizSwapRouterAbi,
+    functionName: 'subscribeWithToken',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link chilizSwapRouterAbi}__ and `functionName` set to `"subscribeWithUSDC"`
+ */
+export const useChilizSwapRouterWriteSubscribeWithUsdc =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: chilizSwapRouterAbi,
+    functionName: 'subscribeWithUSDC',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link chilizSwapRouterAbi}__ and `functionName` set to `"transferOwnership"`
+ */
+export const useChilizSwapRouterWriteTransferOwnership =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: chilizSwapRouterAbi,
+    functionName: 'transferOwnership',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link chilizSwapRouterAbi}__
+ */
+export const useChilizSwapRouterSimulateundefined =
+  /*#__PURE__*/ createUseSimulateContract({ abi: chilizSwapRouterAbi })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link chilizSwapRouterAbi}__ and `functionName` set to `"depositLiquidityWithCHZ"`
+ */
+export const useChilizSwapRouterSimulateDepositLiquidityWithChz =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: chilizSwapRouterAbi,
+    functionName: 'depositLiquidityWithCHZ',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link chilizSwapRouterAbi}__ and `functionName` set to `"depositLiquidityWithToken"`
+ */
+export const useChilizSwapRouterSimulateDepositLiquidityWithToken =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: chilizSwapRouterAbi,
+    functionName: 'depositLiquidityWithToken',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link chilizSwapRouterAbi}__ and `functionName` set to `"depositLiquidityWithUSDC"`
+ */
+export const useChilizSwapRouterSimulateDepositLiquidityWithUsdc =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: chilizSwapRouterAbi,
+    functionName: 'depositLiquidityWithUSDC',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link chilizSwapRouterAbi}__ and `functionName` set to `"donateWithCHZ"`
+ */
+export const useChilizSwapRouterSimulateDonateWithChz =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: chilizSwapRouterAbi,
+    functionName: 'donateWithCHZ',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link chilizSwapRouterAbi}__ and `functionName` set to `"donateWithToken"`
+ */
+export const useChilizSwapRouterSimulateDonateWithToken =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: chilizSwapRouterAbi,
+    functionName: 'donateWithToken',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link chilizSwapRouterAbi}__ and `functionName` set to `"donateWithUSDC"`
+ */
+export const useChilizSwapRouterSimulateDonateWithUsdc =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: chilizSwapRouterAbi,
+    functionName: 'donateWithUSDC',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link chilizSwapRouterAbi}__ and `functionName` set to `"placeBetWithCHZ"`
+ */
+export const useChilizSwapRouterSimulatePlaceBetWithChz =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: chilizSwapRouterAbi,
+    functionName: 'placeBetWithCHZ',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link chilizSwapRouterAbi}__ and `functionName` set to `"placeBetWithToken"`
+ */
+export const useChilizSwapRouterSimulatePlaceBetWithToken =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: chilizSwapRouterAbi,
+    functionName: 'placeBetWithToken',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link chilizSwapRouterAbi}__ and `functionName` set to `"placeBetWithUSDC"`
+ */
+export const useChilizSwapRouterSimulatePlaceBetWithUsdc =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: chilizSwapRouterAbi,
+    functionName: 'placeBetWithUSDC',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link chilizSwapRouterAbi}__ and `functionName` set to `"renounceOwnership"`
+ */
+export const useChilizSwapRouterSimulateRenounceOwnership =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: chilizSwapRouterAbi,
+    functionName: 'renounceOwnership',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link chilizSwapRouterAbi}__ and `functionName` set to `"setLiquidityPool"`
+ */
+export const useChilizSwapRouterSimulateSetLiquidityPool =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: chilizSwapRouterAbi,
+    functionName: 'setLiquidityPool',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link chilizSwapRouterAbi}__ and `functionName` set to `"setMatchFactory"`
+ */
+export const useChilizSwapRouterSimulateSetMatchFactory =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: chilizSwapRouterAbi,
+    functionName: 'setMatchFactory',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link chilizSwapRouterAbi}__ and `functionName` set to `"setPlatformFeeBps"`
+ */
+export const useChilizSwapRouterSimulateSetPlatformFeeBps =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: chilizSwapRouterAbi,
+    functionName: 'setPlatformFeeBps',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link chilizSwapRouterAbi}__ and `functionName` set to `"setStreamWalletFactory"`
+ */
+export const useChilizSwapRouterSimulateSetStreamWalletFactory =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: chilizSwapRouterAbi,
+    functionName: 'setStreamWalletFactory',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link chilizSwapRouterAbi}__ and `functionName` set to `"setTreasury"`
+ */
+export const useChilizSwapRouterSimulateSetTreasury =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: chilizSwapRouterAbi,
+    functionName: 'setTreasury',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link chilizSwapRouterAbi}__ and `functionName` set to `"subscribeWithCHZ"`
+ */
+export const useChilizSwapRouterSimulateSubscribeWithChz =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: chilizSwapRouterAbi,
+    functionName: 'subscribeWithCHZ',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link chilizSwapRouterAbi}__ and `functionName` set to `"subscribeWithToken"`
+ */
+export const useChilizSwapRouterSimulateSubscribeWithToken =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: chilizSwapRouterAbi,
+    functionName: 'subscribeWithToken',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link chilizSwapRouterAbi}__ and `functionName` set to `"subscribeWithUSDC"`
+ */
+export const useChilizSwapRouterSimulateSubscribeWithUsdc =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: chilizSwapRouterAbi,
+    functionName: 'subscribeWithUSDC',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link chilizSwapRouterAbi}__ and `functionName` set to `"transferOwnership"`
+ */
+export const useChilizSwapRouterSimulateTransferOwnership =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: chilizSwapRouterAbi,
+    functionName: 'transferOwnership',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link chilizSwapRouterAbi}__
+ */
+export const useChilizSwapRouterWatchundefined =
+  /*#__PURE__*/ createUseWatchContractEvent({ abi: chilizSwapRouterAbi })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link chilizSwapRouterAbi}__ and `eventName` set to `"BetPlacedViaCHZ"`
+ */
+export const useChilizSwapRouterWatchBetPlacedViaChz =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: chilizSwapRouterAbi,
+    eventName: 'BetPlacedViaCHZ',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link chilizSwapRouterAbi}__ and `eventName` set to `"BetPlacedViaToken"`
+ */
+export const useChilizSwapRouterWatchBetPlacedViaToken =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: chilizSwapRouterAbi,
+    eventName: 'BetPlacedViaToken',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link chilizSwapRouterAbi}__ and `eventName` set to `"BetPlacedWithUSDC"`
+ */
+export const useChilizSwapRouterWatchBetPlacedWithUsdc =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: chilizSwapRouterAbi,
+    eventName: 'BetPlacedWithUSDC',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link chilizSwapRouterAbi}__ and `eventName` set to `"DonationWithCHZ"`
+ */
+export const useChilizSwapRouterWatchDonationWithChz =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: chilizSwapRouterAbi,
+    eventName: 'DonationWithCHZ',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link chilizSwapRouterAbi}__ and `eventName` set to `"DonationWithToken"`
+ */
+export const useChilizSwapRouterWatchDonationWithToken =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: chilizSwapRouterAbi,
+    eventName: 'DonationWithToken',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link chilizSwapRouterAbi}__ and `eventName` set to `"DonationWithUSDCEvent"`
+ */
+export const useChilizSwapRouterWatchDonationWithUsdcEvent =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: chilizSwapRouterAbi,
+    eventName: 'DonationWithUSDCEvent',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link chilizSwapRouterAbi}__ and `eventName` set to `"LiquidityDepositedWithCHZ"`
+ */
+export const useChilizSwapRouterWatchLiquidityDepositedWithChz =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: chilizSwapRouterAbi,
+    eventName: 'LiquidityDepositedWithCHZ',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link chilizSwapRouterAbi}__ and `eventName` set to `"LiquidityDepositedWithToken"`
+ */
+export const useChilizSwapRouterWatchLiquidityDepositedWithToken =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: chilizSwapRouterAbi,
+    eventName: 'LiquidityDepositedWithToken',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link chilizSwapRouterAbi}__ and `eventName` set to `"LiquidityDepositedWithUSDC"`
+ */
+export const useChilizSwapRouterWatchLiquidityDepositedWithUsdc =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: chilizSwapRouterAbi,
+    eventName: 'LiquidityDepositedWithUSDC',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link chilizSwapRouterAbi}__ and `eventName` set to `"LiquidityPoolSet"`
+ */
+export const useChilizSwapRouterWatchLiquidityPoolSet =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: chilizSwapRouterAbi,
+    eventName: 'LiquidityPoolSet',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link chilizSwapRouterAbi}__ and `eventName` set to `"MatchFactorySet"`
+ */
+export const useChilizSwapRouterWatchMatchFactorySet =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: chilizSwapRouterAbi,
+    eventName: 'MatchFactorySet',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link chilizSwapRouterAbi}__ and `eventName` set to `"OwnershipTransferred"`
+ */
+export const useChilizSwapRouterWatchOwnershipTransferred =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: chilizSwapRouterAbi,
+    eventName: 'OwnershipTransferred',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link chilizSwapRouterAbi}__ and `eventName` set to `"PlatformFeeBpsSet"`
+ */
+export const useChilizSwapRouterWatchPlatformFeeBpsSet =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: chilizSwapRouterAbi,
+    eventName: 'PlatformFeeBpsSet',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link chilizSwapRouterAbi}__ and `eventName` set to `"StreamWalletFactorySet"`
+ */
+export const useChilizSwapRouterWatchStreamWalletFactorySet =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: chilizSwapRouterAbi,
+    eventName: 'StreamWalletFactorySet',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link chilizSwapRouterAbi}__ and `eventName` set to `"SubscriptionWithCHZ"`
+ */
+export const useChilizSwapRouterWatchSubscriptionWithChz =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: chilizSwapRouterAbi,
+    eventName: 'SubscriptionWithCHZ',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link chilizSwapRouterAbi}__ and `eventName` set to `"SubscriptionWithToken"`
+ */
+export const useChilizSwapRouterWatchSubscriptionWithToken =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: chilizSwapRouterAbi,
+    eventName: 'SubscriptionWithToken',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link chilizSwapRouterAbi}__ and `eventName` set to `"SubscriptionWithUSDCEvent"`
+ */
+export const useChilizSwapRouterWatchSubscriptionWithUsdcEvent =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: chilizSwapRouterAbi,
+    eventName: 'SubscriptionWithUSDCEvent',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link chilizSwapRouterAbi}__ and `eventName` set to `"TreasurySet"`
+ */
+export const useChilizSwapRouterWatchTreasurySet =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: chilizSwapRouterAbi,
+    eventName: 'TreasurySet',
+  })
+
+/**
  * Wraps __{@link useReadContract}__ with `abi` set to __{@link liquidityPoolAbi}__
  */
 export const useLiquidityPoolReadundefined =
@@ -4948,6 +6611,15 @@ export const useLiquidityPoolReadDefaultAdminRole =
   /*#__PURE__*/ createUseReadContract({
     abi: liquidityPoolAbi,
     functionName: 'DEFAULT_ADMIN_ROLE',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link liquidityPoolAbi}__ and `functionName` set to `"LP_WITHDRAWAL_FEE_BPS_MAX"`
+ */
+export const useLiquidityPoolReadLpWithdrawalFeeBpsMax =
+  /*#__PURE__*/ createUseReadContract({
+    abi: liquidityPoolAbi,
+    functionName: 'LP_WITHDRAWAL_FEE_BPS_MAX',
   })
 
 /**
@@ -4996,12 +6668,12 @@ export const useLiquidityPoolReadRouterRole =
   })
 
 /**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link liquidityPoolAbi}__ and `functionName` set to `"TREASURY_SHARE_BPS"`
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link liquidityPoolAbi}__ and `functionName` set to `"TREASURY_SHARE_BPS_MAX"`
  */
-export const useLiquidityPoolReadTreasuryShareBps =
+export const useLiquidityPoolReadTreasuryShareBpsMax =
   /*#__PURE__*/ createUseReadContract({
     abi: liquidityPoolAbi,
-    functionName: 'TREASURY_SHARE_BPS',
+    functionName: 'TREASURY_SHARE_BPS_MAX',
   })
 
 /**
@@ -5067,6 +6739,15 @@ export const useLiquidityPoolReadConvertToShares =
   })
 
 /**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link liquidityPoolAbi}__ and `functionName` set to `"costBasis"`
+ */
+export const useLiquidityPoolReadCostBasis =
+  /*#__PURE__*/ createUseReadContract({
+    abi: liquidityPoolAbi,
+    functionName: 'costBasis',
+  })
+
+/**
  * Wraps __{@link useReadContract}__ with `abi` set to __{@link liquidityPoolAbi}__ and `functionName` set to `"decimals"`
  */
 export const useLiquidityPoolReadDecimals = /*#__PURE__*/ createUseReadContract(
@@ -5115,6 +6796,15 @@ export const useLiquidityPoolReadLastDepositAt =
   /*#__PURE__*/ createUseReadContract({
     abi: liquidityPoolAbi,
     functionName: 'lastDepositAt',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link liquidityPoolAbi}__ and `functionName` set to `"lpWithdrawalFeeBps"`
+ */
+export const useLiquidityPoolReadLpWithdrawalFeeBps =
+  /*#__PURE__*/ createUseReadContract({
+    abi: liquidityPoolAbi,
+    functionName: 'lpWithdrawalFeeBps',
   })
 
 /**
@@ -5328,6 +7018,15 @@ export const useLiquidityPoolReadTreasury = /*#__PURE__*/ createUseReadContract(
 )
 
 /**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link liquidityPoolAbi}__ and `functionName` set to `"treasuryShareBps"`
+ */
+export const useLiquidityPoolReadTreasuryShareBps =
+  /*#__PURE__*/ createUseReadContract({
+    abi: liquidityPoolAbi,
+    functionName: 'treasuryShareBps',
+  })
+
+/**
  * Wraps __{@link useReadContract}__ with `abi` set to __{@link liquidityPoolAbi}__ and `functionName` set to `"treasuryWithdrawable"`
  */
 export const useLiquidityPoolReadTreasuryWithdrawable =
@@ -5510,6 +7209,15 @@ export const useLiquidityPoolWriteSetDepositCooldownSeconds =
   })
 
 /**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link liquidityPoolAbi}__ and `functionName` set to `"setLpWithdrawalFeeBps"`
+ */
+export const useLiquidityPoolWriteSetLpWithdrawalFeeBps =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: liquidityPoolAbi,
+    functionName: 'setLpWithdrawalFeeBps',
+  })
+
+/**
  * Wraps __{@link useWriteContract}__ with `abi` set to __{@link liquidityPoolAbi}__ and `functionName` set to `"setMaxBetAmount"`
  */
 export const useLiquidityPoolWriteSetMaxBetAmount =
@@ -5543,6 +7251,15 @@ export const useLiquidityPoolWriteSetProtocolFeeBps =
   /*#__PURE__*/ createUseWriteContract({
     abi: liquidityPoolAbi,
     functionName: 'setProtocolFeeBps',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link liquidityPoolAbi}__ and `functionName` set to `"setTreasuryShareBps"`
+ */
+export const useLiquidityPoolWriteSetTreasuryShareBps =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: liquidityPoolAbi,
+    functionName: 'setTreasuryShareBps',
   })
 
 /**
@@ -5777,6 +7494,15 @@ export const useLiquidityPoolSimulateSetDepositCooldownSeconds =
   })
 
 /**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link liquidityPoolAbi}__ and `functionName` set to `"setLpWithdrawalFeeBps"`
+ */
+export const useLiquidityPoolSimulateSetLpWithdrawalFeeBps =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: liquidityPoolAbi,
+    functionName: 'setLpWithdrawalFeeBps',
+  })
+
+/**
  * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link liquidityPoolAbi}__ and `functionName` set to `"setMaxBetAmount"`
  */
 export const useLiquidityPoolSimulateSetMaxBetAmount =
@@ -5810,6 +7536,15 @@ export const useLiquidityPoolSimulateSetProtocolFeeBps =
   /*#__PURE__*/ createUseSimulateContract({
     abi: liquidityPoolAbi,
     functionName: 'setProtocolFeeBps',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link liquidityPoolAbi}__ and `functionName` set to `"setTreasuryShareBps"`
+ */
+export const useLiquidityPoolSimulateSetTreasuryShareBps =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: liquidityPoolAbi,
+    functionName: 'setTreasuryShareBps',
   })
 
 /**
@@ -5924,6 +7659,24 @@ export const useLiquidityPoolWatchInitialized =
   /*#__PURE__*/ createUseWatchContractEvent({
     abi: liquidityPoolAbi,
     eventName: 'Initialized',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link liquidityPoolAbi}__ and `eventName` set to `"LpWithdrawalFeeAccrued"`
+ */
+export const useLiquidityPoolWatchLpWithdrawalFeeAccrued =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: liquidityPoolAbi,
+    eventName: 'LpWithdrawalFeeAccrued',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link liquidityPoolAbi}__ and `eventName` set to `"LpWithdrawalFeeBpsSet"`
+ */
+export const useLiquidityPoolWatchLpWithdrawalFeeBpsSet =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: liquidityPoolAbi,
+    eventName: 'LpWithdrawalFeeBpsSet',
   })
 
 /**
@@ -6077,6 +7830,15 @@ export const useLiquidityPoolWatchTreasuryProposed =
   /*#__PURE__*/ createUseWatchContractEvent({
     abi: liquidityPoolAbi,
     eventName: 'TreasuryProposed',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link liquidityPoolAbi}__ and `eventName` set to `"TreasuryShareBpsSet"`
+ */
+export const useLiquidityPoolWatchTreasuryShareBpsSet =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: liquidityPoolAbi,
+    eventName: 'TreasuryShareBpsSet',
   })
 
 /**

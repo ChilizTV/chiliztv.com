@@ -19,6 +19,8 @@ import { LiveStream } from "@/models/stream.model";
 import { StreamStatus } from "@chiliztv/domain/streams/entities/Stream";
 import { Address } from "viem";
 import { isTestMatchId, TEST_MATCH } from "@/lib/test-fixtures/psgOmMatch";
+import { useBettingMatchFactoryReadGetAllMatches } from "@/lib/contracts/generated";
+import { chilizConfig } from "@/config/chiliz.config";
 
 interface LiveDetailsPageProps {
   readonly id: string;
@@ -29,7 +31,21 @@ export default function LiveDetailsPage({ id }: LiveDetailsPageProps) {
   const { primaryWallet, user } = useDynamicContext();
   const isTestMatch = isTestMatchId(id);
   const { data: matchDataFromApi, isLoading: loadingFromApi, error: queryError } = useMatch(id);
-  const matchData = isTestMatch ? TEST_MATCH : matchDataFromApi;
+
+  // For the static test match (id 999999) we don't have a real on-chain
+  // BettingMatch — pull `factory.getAllMatches()[0]` so the live page can
+  // talk to whatever match was created last in /admin. Falls back to the
+  // fixture's hardcoded address if the factory has never deployed a match.
+  const { data: allMatches } = useBettingMatchFactoryReadGetAllMatches({
+    address: chilizConfig.bettingMatchFactory,
+    chainId: chilizConfig.chainId,
+    query: { enabled: isTestMatch },
+  });
+  const factoryFirstMatch = (allMatches as readonly Address[] | undefined)?.[0];
+
+  const matchData = isTestMatch
+    ? { ...TEST_MATCH, contractAddress: factoryFirstMatch ?? TEST_MATCH.contractAddress }
+    : matchDataFromApi;
   const loading = isTestMatch ? false : loadingFromApi;
 
   // eslint-disable-next-line no-console

@@ -1,18 +1,21 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { erc20Abi, maxUint256, parseUnits, type Address } from "viem";
+import { erc20Abi, formatUnits, maxUint256, parseUnits, type Address } from "viem";
 import { useBalance, useReadContract, useWaitForTransactionReceipt, useWriteContract } from "wagmi";
-import { TrendingUp, ExternalLink, CheckCircle2 } from "lucide-react";
+import { TrendingUp, ExternalLink, CheckCircle2, ChevronDown } from "lucide-react";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { useBettingMatch } from "@/hooks/useBettingMatch";
+import { useChilizSwapRouter } from "@/hooks/useChilizSwapRouter";
+import { useKayenQuote } from "@/hooks/useKayenQuote";
+import { usePoolDecimals } from "@/hooks/usePoolDecimals";
+import { chilizConfig } from "@/config/chiliz.config";
+import { NetworkGuard } from "@/components/web3/NetworkGuard";
 import type { MarketSelection } from "./MatchMarketsList";
-import { BET_TOKEN_DECIMALS, BET_TOKEN_SYMBOL, formatBetAmount } from "./utils/betToken";
 
 interface MarketBetDialogProps {
   open: boolean;
@@ -30,8 +33,40 @@ interface Outcome {
   hint?: string;
 }
 
+type BetToken =
+  | { kind: "USDC" }
+  | { kind: "CHZ" }
+  | { kind: "ERC20"; address: Address; symbol: string; name: string };
+
 const PERCENTS = [25, 50, 75, 100] as const;
-const MIN_BET = 1;
+const NATIVE_DECIMALS = 18;
+const FAN_TOKEN_DECIMALS = 18;
+const DEADLINE_MIN = 20; // minutes
+const DEFAULT_SLIPPAGE_BPS = 50; // 0.5%
+// MIN_NET_STAKE on the match is 0.1 USDC. We keep a small UX-side floor of 1
+// of the input token to avoid quoting tiny amounts that round to zero.
+const MIN_INPUT = 1;
+
+function tokenDecimals(t: BetToken, usdcDecimals: number | undefined): number | undefined {
+  if (t.kind === "USDC") return usdcDecimals;
+  if (t.kind === "CHZ") return NATIVE_DECIMALS;
+  return FAN_TOKEN_DECIMALS;
+}
+
+function tokenLabel(t: BetToken): string {
+  if (t.kind === "USDC") return "USDC";
+  if (t.kind === "CHZ") return "CHZ";
+  return t.symbol;
+}
+
+function formatUsdc(value: bigint | undefined, decimals: number | undefined, fractionDigits = 2): string {
+  if (value === undefined || decimals === undefined) return "—";
+  const n = Number(formatUnits(value, decimals));
+  return n.toLocaleString("en-US", {
+    minimumFractionDigits: fractionDigits,
+    maximumFractionDigits: fractionDigits,
+  });
+}
 
 function getOutcomes(
   marketTypeKey: string,
@@ -82,37 +117,63 @@ export function MarketBetDialog({
   const [selectedOutcome, setSelectedOutcome] = useState<number | null>(null);
   const [amount, setAmount] = useState("");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [token, setToken] = useState<BetToken>({ kind: "USDC" });
+  const [showTokenList, setShowTokenList] = useState(false);
+  const [slippageBps, setSlippageBps] = useState<number>(DEFAULT_SLIPPAGE_BPS);
 
   const outcomes = useMemo(
     () => (selection ? getOutcomes(selection.marketTypeKey, selection.line, homeTeam, awayTeam) : []),
     [selection, homeTeam, awayTeam],
   );
 
-  const { placeBet, betState, usdcToken } = useBettingMatch(
-    contractAddress,
-    walletAddress as `0x${string}`,
-    selection?.marketId ?? 0,
-  );
-  const betTokenAddress = usdcToken;
+  // Multi-asset bet entrypoint. All bets settle in USDC inside the pool;
+  // the router handles the FanX swap when needed.
+  const { placeBet, betState, routerAddress } = useChilizSwapRouter();
+  const { assetDecimals: usdcDecimals } = usePoolDecimals();
 
-  const { data: balanceData } = useBalance({
-    address: walletAddress as `0x${string}` | undefined,
-    token: betTokenAddress,
-    query: { enabled: !!walletAddress && !!betTokenAddress },
+  const decimals = tokenDecimals(token, usdcDecimals);
+  const numericAmount = Number(amount);
+  const isValidAmount = !Number.isNaN(numericAmount) && numericAmount >= MIN_INPUT;
+  const parsedAmount: bigint =
+    isValidAmount && decimals !== undefined ? parseUnits(amount, decimals) : BigInt(0);
+
+  // ── Token-specific balance + allowance ─────────────────────────────────
+  const erc20Address: Address | undefined = useMemo(() => {
+    if (token.kind === "USDC") return chilizConfig.usdc;
+    if (token.kind === "ERC20") return token.address;
+    return undefined; // CHZ has no ERC20 address
+  }, [token]);
+
+  const { data: erc20Balance } = useBalance({
+    address: walletAddress as Address | undefined,
+    token: erc20Address,
+    chainId: chilizConfig.chainId,
+    query: { enabled: !!walletAddress && !!erc20Address },
   });
-  const balance = balanceData ? Number(balanceData.formatted) : 0;
+
+  const { data: nativeBalance } = useBalance({
+    address: token.kind === "CHZ" ? (walletAddress as Address | undefined) : undefined,
+    chainId: chilizConfig.chainId,
+    query: { enabled: token.kind === "CHZ" && !!walletAddress },
+  });
+
+  const balance: number = token.kind === "CHZ"
+    ? (nativeBalance ? Number(nativeBalance.formatted) : 0)
+    : (erc20Balance ? Number(erc20Balance.formatted) : 0);
 
   const { data: allowanceData, refetch: refetchAllowance } = useReadContract({
     abi: erc20Abi,
-    address: betTokenAddress,
+    address: erc20Address,
     functionName: "allowance",
-    args: walletAddress && betTokenAddress
-      ? [walletAddress as `0x${string}`, contractAddress]
+    args: walletAddress && erc20Address
+      ? [walletAddress as Address, routerAddress]
       : undefined,
-    query: { enabled: !!walletAddress && !!betTokenAddress },
+    chainId: chilizConfig.chainId,
+    query: { enabled: !!walletAddress && !!erc20Address },
   });
   const allowance = (allowanceData as bigint | undefined) ?? BigInt(0);
 
+  // ── Approval flow (ERC20 paths only) ────────────────────────────────────
   const {
     writeContract: writeApprove,
     data: approveTxHash,
@@ -126,6 +187,34 @@ export function MarketBetDialog({
     if (isApproveSuccess) refetchAllowance();
   }, [isApproveSuccess, refetchAllowance]);
 
+  // ── FanX/Kayen quote for non-USDC paths ────────────────────────────────
+  const quoteTokenIn: Address | undefined =
+    token.kind === "ERC20" ? token.address : token.kind === "CHZ" ? chilizConfig.wchz : undefined;
+  const { amountOut: quotedUsdcOut, error: quoteError, isLoading: quoteLoading } = useKayenQuote(
+    parsedAmount > BigInt(0) ? parsedAmount : undefined,
+    quoteTokenIn,
+  );
+
+  // Kayen has no path for the chosen non-USDC token — fail fast in the UI
+  // instead of letting MetaMask report "transaction network fees unavailable"
+  // when the swap reverts at gas estimation.
+  const swapPathMissing =
+    token.kind !== "USDC" &&
+    parsedAmount > BigInt(0) &&
+    !quoteLoading &&
+    quoteError !== null;
+
+  // User picked USDC but holds none at the on-chain token address.
+  const usdcZeroBalance =
+    token.kind === "USDC" && balance <= 0;
+
+  const amountOutMin: bigint = useMemo(() => {
+    if (token.kind === "USDC" || quotedUsdcOut === undefined) return BigInt(0);
+    const slippageMul = BigInt(10_000 - slippageBps);
+    return (quotedUsdcOut * slippageMul) / BigInt(10_000);
+  }, [token.kind, quotedUsdcOut, slippageBps]);
+
+  // ── Status flags ────────────────────────────────────────────────────────
   const { isPending, isConfirming, isSuccess, txHash, error: txError } = betState;
   const isApproving = isApprovePending || isApproveConfirming;
   const isLoading = isPending || isConfirming || isApproving;
@@ -137,6 +226,7 @@ export function MarketBetDialog({
       setSelectedOutcome(null);
       setAmount("");
       setErrorMessage(null);
+      setShowTokenList(false);
     }
   }, [open, selection?.marketId]);
 
@@ -145,33 +235,56 @@ export function MarketBetDialog({
       setErrorMessage(txError.message ?? "Transaction failed");
     } else if (approveError) {
       setErrorMessage(approveError.message ?? "Approval failed");
+    } else {
+      setErrorMessage(null);
     }
   }, [txError, approveError]);
 
   if (!selection) return null;
 
-  const numericAmount = Number(amount);
-  const isValidAmount = !Number.isNaN(numericAmount) && numericAmount >= MIN_BET;
-  const amountUsdcRaw = isValidAmount ? parseUnits(amount, BET_TOKEN_DECIMALS) : BigInt(0);
-  const needsApproval = isValidAmount && allowance < amountUsdcRaw;
+  const needsApproval =
+    token.kind !== "CHZ" &&
+    parsedAmount > BigInt(0) &&
+    allowance < parsedAmount;
+
+  const insufficientBalance =
+    parsedAmount > BigInt(0) && balance < numericAmount;
+
   const canSubmit =
-    selectedOutcome !== null && isValidAmount && isMarketOpen && !isLoading && !!walletAddress && !!betTokenAddress;
+    selectedOutcome !== null &&
+    isValidAmount &&
+    isMarketOpen &&
+    !isLoading &&
+    !insufficientBalance &&
+    !swapPathMissing &&
+    !usdcZeroBalance &&
+    !!walletAddress;
 
   const handleSubmit = () => {
-    if (!canSubmit || selectedOutcome === null) return;
+    if (!canSubmit || selectedOutcome === null || !walletAddress) return;
     setErrorMessage(null);
     try {
       if (needsApproval) {
-        if (!betTokenAddress) return;
+        if (!erc20Address) return;
         writeApprove({
           abi: erc20Abi,
-          address: betTokenAddress,
+          address: erc20Address,
           functionName: "approve",
-          args: [contractAddress, maxUint256],
+          args: [routerAddress, maxUint256],
         });
         return;
       }
-      placeBet(selection.marketId, selectedOutcome, amountUsdcRaw);
+
+      const deadline = BigInt(Math.floor(Date.now() / 1000) + DEADLINE_MIN * 60);
+      placeBet({
+        token: token.kind === "USDC" ? "USDC" : token.kind === "CHZ" ? "CHZ" : token.address,
+        matchAddress: contractAddress,
+        marketId: BigInt(selection.marketId),
+        selection: BigInt(selectedOutcome),
+        amount: parsedAmount,
+        amountOutMin,
+        deadline,
+      });
     } catch (err) {
       setErrorMessage(err instanceof Error ? err.message : "Unknown error");
     }
@@ -179,9 +292,18 @@ export function MarketBetDialog({
 
   const setPercent = (pct: number) => {
     if (balance <= 0) return;
-    const value = (balance * pct) / 100;
+    const baseValue = (balance * pct) / 100;
+    // Reserve a small CHZ amount for gas when using "Max".
+    const value = token.kind === "CHZ" && pct === 100 ? Math.max(0, baseValue - 0.5) : baseValue;
     setAmount(value.toFixed(4));
   };
+
+  const fanTokens = (chilizConfig.tokens || []).filter((t) => !!t.tokenAddress);
+  const tokenOptions: BetToken[] = [
+    { kind: "USDC" },
+    { kind: "CHZ" },
+    ...fanTokens.map((t) => ({ kind: "ERC20" as const, address: t.tokenAddress as Address, symbol: t.symbol, name: t.name })),
+  ];
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
@@ -189,13 +311,11 @@ export function MarketBetDialog({
         className="sm:max-w-[460px] p-0 gap-0 rounded-lg overflow-hidden"
         style={{ background: "#0F0F0F", color: "#fff", border: "1px solid #2A2A2A" }}
       >
-        {/* Red top accent */}
         <div
           className="h-[2px] w-full"
           style={{ background: "linear-gradient(90deg, #E8001D 0%, transparent 60%)" }}
         />
 
-        {/* Header */}
         <DialogHeader className="p-0">
           <div
             className="px-5 py-4 flex items-center gap-2"
@@ -213,12 +333,11 @@ export function MarketBetDialog({
               className="text-[10px] font-semibold tracking-[0.08em] uppercase mr-6"
               style={{ color: "#888", fontFamily: "'JetBrains Mono', monospace" }}
             >
-              Pool {formatBetAmount(selection.totalPool)} {BET_TOKEN_SYMBOL}
+              Pool {formatUsdc(selection.totalPool, usdcDecimals)} USDC
             </span>
           </div>
         </DialogHeader>
 
-        {/* Body */}
         {isSuccess ? (
           <div className="px-5 py-8 flex flex-col items-center gap-3">
             <CheckCircle2 size={36} style={{ color: "#00C853" }} />
@@ -260,6 +379,8 @@ export function MarketBetDialog({
           </div>
         ) : (
           <div className="px-5 py-5 space-y-5">
+            <NetworkGuard />
+
             {/* Outcomes */}
             <div className="space-y-2">
               <div
@@ -321,15 +442,53 @@ export function MarketBetDialog({
               )}
             </div>
 
+            {/* Token picker */}
+            <div className="relative">
+              <button
+                onClick={() => setShowTokenList((v) => !v)}
+                className="w-full flex items-center justify-between px-3 py-2.5 rounded text-[12px]"
+                style={{ background: "#1E1E1E", border: "1px solid #2A2A2A", color: "#ccc" }}
+              >
+                <span className="uppercase tracking-[0.08em]" style={{ color: "#666" }}>Pay with</span>
+                <span className="flex items-center gap-1.5 font-bold" style={{ color: "#fff" }}>
+                  {tokenLabel(token)} <ChevronDown size={12} />
+                </span>
+              </button>
+              {showTokenList && (
+                <div
+                  className="absolute z-20 mt-1 w-full max-h-56 overflow-y-auto rounded"
+                  style={{ background: "#0F0F0F", border: "1px solid #2A2A2A" }}
+                >
+                  {tokenOptions.map((t, i) => (
+                    <button
+                      key={i}
+                      onClick={() => {
+                        setToken(t);
+                        setShowTokenList(false);
+                        setAmount("");
+                      }}
+                      className="w-full flex items-center justify-between px-3 py-2 text-[12px] hover:bg-[#181818]"
+                      style={{ color: "#ccc" }}
+                    >
+                      <span className="font-bold uppercase tracking-[0.05em]">{tokenLabel(t)}</span>
+                      {t.kind === "ERC20" && (
+                        <span className="text-[10px]" style={{ color: "#666" }}>{t.name}</span>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
             {/* Amount */}
             <div className="space-y-2">
               <div
                 className="flex items-center justify-between text-[10px] font-semibold tracking-[0.1em] uppercase"
                 style={{ color: "#555", fontFamily: "'Barlow', sans-serif" }}
               >
-                <span>Amount ({BET_TOKEN_SYMBOL})</span>
+                <span>Amount ({tokenLabel(token)})</span>
                 <span style={{ fontFamily: "'JetBrains Mono', monospace" }}>
-                  Balance {balance.toFixed(2)}
+                  Balance {balance.toFixed((decimals ?? 6) >= 18 ? 4 : 2)}
                 </span>
               </div>
               <input
@@ -337,7 +496,7 @@ export function MarketBetDialog({
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
                 placeholder="0.00"
-                min={MIN_BET}
+                min={MIN_INPUT}
                 step="0.01"
                 className="w-full px-4 py-3 rounded text-center font-bold focus:outline-none"
                 style={{
@@ -371,9 +530,47 @@ export function MarketBetDialog({
                 className="text-[10px] text-center"
                 style={{ color: "#555", fontFamily: "'Barlow', sans-serif" }}
               >
-                Min bet {MIN_BET} {BET_TOKEN_SYMBOL}
+                Min stake on the pool is 0.10 USDC equivalent.
               </p>
             </div>
+
+            {/* FanX quote (non-USDC) */}
+            {token.kind !== "USDC" && parsedAmount > BigInt(0) && (
+              <div
+                className="rounded p-3 space-y-2"
+                style={{ background: "#1A1A1A", border: "1px solid #2A2A2A" }}
+              >
+                <div className="flex items-center justify-between text-[11px]">
+                  <span className="uppercase tracking-[0.1em]" style={{ color: "#666" }}>FanX quote</span>
+                  <span style={{ color: "#fff", fontFamily: "'JetBrains Mono', monospace" }}>
+                    {quotedUsdcOut !== undefined ? `${formatUsdc(quotedUsdcOut, usdcDecimals)} USDC` : "—"}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between text-[11px]">
+                  <span className="uppercase tracking-[0.1em]" style={{ color: "#666" }}>Min received</span>
+                  <span style={{ color: "#888", fontFamily: "'JetBrains Mono', monospace" }}>
+                    {amountOutMin > BigInt(0) ? `${formatUsdc(amountOutMin, usdcDecimals)} USDC` : "—"}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 pt-1">
+                  <span className="text-[10px] uppercase tracking-[0.1em]" style={{ color: "#666" }}>Slippage</span>
+                  {[10, 50, 100].map((bps) => (
+                    <button
+                      key={bps}
+                      onClick={() => setSlippageBps(bps)}
+                      className="text-[10px] font-bold uppercase px-2 py-0.5 rounded"
+                      style={{
+                        background: slippageBps === bps ? "rgba(232,0,29,0.15)" : "#1A1A1A",
+                        color: slippageBps === bps ? "#E8001D" : "#888",
+                        border: `1px solid ${slippageBps === bps ? "#E8001D" : "#2A2A2A"}`,
+                      }}
+                    >
+                      {(bps / 100).toFixed(2)}%
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {!isMarketOpen && (
               <div
@@ -386,6 +583,38 @@ export function MarketBetDialog({
                 }}
               >
                 Market is not currently open for bets.
+              </div>
+            )}
+
+            {usdcZeroBalance && (
+              <div
+                className="px-3 py-2 rounded text-[11px]"
+                style={{
+                  background: "rgba(245,197,24,0.08)",
+                  border: "1px solid rgba(245,197,24,0.3)",
+                  color: "#F5C518",
+                  fontFamily: "'Barlow', sans-serif",
+                }}
+              >
+                You hold 0 USDC at{" "}
+                <span style={{ color: "#fff", fontFamily: "'JetBrains Mono', monospace" }}>
+                  {chilizConfig.usdc.slice(0, 8)}…{chilizConfig.usdc.slice(-6)}
+                </span>
+                . Acquire test USDC before betting.
+              </div>
+            )}
+
+            {swapPathMissing && (
+              <div
+                className="px-3 py-2 rounded text-[11px]"
+                style={{
+                  background: "rgba(232,0,29,0.08)",
+                  border: "1px solid rgba(232,0,29,0.3)",
+                  color: "#E8001D",
+                  fontFamily: "'Barlow', sans-serif",
+                }}
+              >
+                No FanX/Kayen liquidity for {tokenLabel(token)} → USDC. Pick another token.
               </div>
             )}
 
@@ -405,37 +634,43 @@ export function MarketBetDialog({
 
             <button
               onClick={handleSubmit}
-              disabled={!canSubmit}
+              disabled={!canSubmit && !needsApproval}
               className="w-full py-3 rounded text-[12px] font-bold tracking-[0.1em] uppercase transition-colors duration-150"
               style={{
-                background: canSubmit ? "#E8001D" : "#1E1E1E",
-                border: `1px solid ${canSubmit ? "#E8001D" : "#2A2A2A"}`,
-                color: canSubmit ? "#fff" : "#666",
-                cursor: canSubmit ? "pointer" : "not-allowed",
+                background: canSubmit || needsApproval ? "#E8001D" : "#1E1E1E",
+                border: `1px solid ${canSubmit || needsApproval ? "#E8001D" : "#2A2A2A"}`,
+                color: canSubmit || needsApproval ? "#fff" : "#666",
+                cursor: canSubmit || needsApproval ? "pointer" : "not-allowed",
                 fontFamily: "'Barlow', sans-serif",
               }}
               onMouseEnter={(e) => {
-                if (!canSubmit) return;
+                if (!(canSubmit || needsApproval)) return;
                 (e.currentTarget as HTMLButtonElement).style.background = "#B0001A";
               }}
               onMouseLeave={(e) => {
-                if (!canSubmit) return;
+                if (!(canSubmit || needsApproval)) return;
                 (e.currentTarget as HTMLButtonElement).style.background = "#E8001D";
               }}
             >
               {isApprovePending
                 ? "Confirm approval…"
                 : isApproveConfirming
-                  ? "Approving USDC…"
+                  ? `Approving ${tokenLabel(token)}…`
                   : isPending
                     ? "Confirm in wallet…"
                     : isConfirming
                       ? "Placing bet…"
                       : !walletAddress
                         ? "Connect wallet"
-                        : needsApproval
-                          ? `Approve ${BET_TOKEN_SYMBOL}`
-                          : "Place bet"}
+                        : usdcZeroBalance
+                          ? "No USDC in wallet"
+                          : swapPathMissing
+                            ? "Swap path unavailable"
+                            : insufficientBalance
+                              ? `Insufficient ${tokenLabel(token)}`
+                              : needsApproval
+                                ? `Approve ${tokenLabel(token)}`
+                                : "Place bet"}
             </button>
           </div>
         )}

@@ -238,7 +238,6 @@ FORGE_CMD="forge script $SCRIPT \
     --private-key $PRIVATE_KEY \
     --broadcast \
     --slow \
-    --legacy \
     $FORGE_FLAGS \
     -vvvv"
 

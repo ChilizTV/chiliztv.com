@@ -1,12 +1,20 @@
+# Build the production frontend + backend images. Run from the repo root:
+#
+#   docker compose -f compose/build.yaml build
+#
+# `context: ..` resolves relative to this file, so it points at the repo
+# root where the multi-stage Dockerfile lives.
 services:
   frontend:
     image: chiliztv.com/frontend:0.1.0
     build:
-      context: .
+      context: ..
+      dockerfile: Dockerfile
       target: frontend
 
   backend:
     image: chiliztv.com/backend:0.1.0
     build:
-      context: .
+      context: ..
+      dockerfile: Dockerfile
       target: backend

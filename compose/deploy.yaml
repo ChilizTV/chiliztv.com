@@ -33,5 +33,7 @@ services:
     image: chiliztv.com/backend:0.1.0
     labels:
       traefik.enable: true
-      traefik.http.routers.frontend.rule: Host(`backend.chiliztv.com`)
-      traefik.http.routers.frontend.entrypoints: websecure
+      # Distinct router name — both services previously labelled their router
+      # `frontend`, which made traefik silently drop one of them.
+      traefik.http.routers.backend.rule: Host(`backend.chiliztv.com`)
+      traefik.http.routers.backend.entrypoints: websecure

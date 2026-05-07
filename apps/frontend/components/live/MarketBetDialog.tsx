@@ -15,6 +15,10 @@ import { useKayenQuote } from "@/hooks/useKayenQuote";
 import { usePoolDecimals } from "@/hooks/usePoolDecimals";
 import { chilizConfig } from "@/config/chiliz.config";
 import { NetworkGuard } from "@/components/web3/NetworkGuard";
+import {
+  useBettingMatchReadQuoteNetExposure,
+  useLiquidityPoolReadFreeBalance,
+} from "@/lib/contracts/generated";
 import type { MarketSelection } from "./MatchMarketsList";
 
 interface MarketBetDialogProps {
@@ -214,6 +218,45 @@ export function MarketBetDialog({
     return (quotedUsdcOut * slippageMul) / BigInt(10_000);
   }, [token.kind, quotedUsdcOut, slippageBps]);
 
+  // ── Pre-bet liquidity check ────────────────────────────────────────────
+  // The pool reverts on `recordBet` if `totalLiabilities + netExposure` would
+  // exceed the USDC balance. Catching this here keeps users from getting an
+  // unhelpful "gas estimation failed" pop-up from MetaMask.
+  //
+  // The expected stake the pool will see is:
+  //   - USDC path: `parsedAmount` directly.
+  //   - Non-USDC : the worst-case swap output we'd accept = `amountOutMin`.
+  //                Using amountOutMin (post-slippage) instead of the quote keeps
+  //                the check conservative — if we'd already revert at min-out
+  //                liquidity, we definitely shouldn't submit.
+  const expectedStakeUsdc: bigint =
+    token.kind === "USDC"
+      ? parsedAmount
+      : amountOutMin > BigInt(0)
+        ? amountOutMin
+        : BigInt(0);
+
+  const { data: quoteNetExposure } = useBettingMatchReadQuoteNetExposure({
+    address: contractAddress,
+    args: expectedStakeUsdc > BigInt(0)
+      ? [BigInt(selection?.marketId ?? 0), expectedStakeUsdc]
+      : undefined,
+    chainId: chilizConfig.chainId,
+    query: { enabled: !!selection && expectedStakeUsdc > BigInt(0) },
+  });
+
+  const { data: poolFreeBalance } = useLiquidityPoolReadFreeBalance({
+    address: chilizConfig.liquidityPool,
+    chainId: chilizConfig.chainId,
+  });
+
+  // True when the netExposure this bet would reserve exceeds what the pool
+  // has free. Surface a friendly error before tx submission.
+  const insufficientLiquidity: boolean =
+    quoteNetExposure !== undefined &&
+    poolFreeBalance !== undefined &&
+    (quoteNetExposure as bigint) > (poolFreeBalance as bigint);
+
   // ── Status flags ────────────────────────────────────────────────────────
   const { isPending, isConfirming, isSuccess, txHash, error: txError } = betState;
   const isApproving = isApprovePending || isApproveConfirming;
@@ -256,6 +299,7 @@ export function MarketBetDialog({
     isMarketOpen &&
     !isLoading &&
     !insufficientBalance &&
+    !insufficientLiquidity &&
     !swapPathMissing &&
     !usdcZeroBalance &&
     !!walletAddress;
@@ -618,6 +662,32 @@ export function MarketBetDialog({
               </div>
             )}
 
+            {insufficientLiquidity && (
+              <div
+                className="px-3 py-2 rounded text-[11px]"
+                style={{
+                  background: "rgba(245,197,24,0.08)",
+                  border: "1px solid rgba(245,197,24,0.3)",
+                  color: "#F5C518",
+                  fontFamily: "'Barlow', sans-serif",
+                }}
+              >
+                Pool liquidity is too low to back this bet right now. Reduce your stake or come back when the pool has been topped up.
+                {poolFreeBalance !== undefined && (
+                  <span
+                    style={{
+                      display: "block",
+                      marginTop: 2,
+                      color: "#888",
+                      fontFamily: "'JetBrains Mono', monospace",
+                    }}
+                  >
+                    Free pool balance: {formatUsdc(poolFreeBalance as bigint, usdcDecimals)} USDC
+                  </span>
+                )}
+              </div>
+            )}
+
             {errorMessage && (
               <div
                 className="px-3 py-2 rounded text-[11px]"
@@ -666,11 +736,13 @@ export function MarketBetDialog({
                           ? "No USDC in wallet"
                           : swapPathMissing
                             ? "Swap path unavailable"
-                            : insufficientBalance
-                              ? `Insufficient ${tokenLabel(token)}`
-                              : needsApproval
-                                ? `Approve ${tokenLabel(token)}`
-                                : "Place bet"}
+                            : insufficientLiquidity
+                              ? "Pool liquidity too low"
+                              : insufficientBalance
+                                ? `Insufficient ${tokenLabel(token)}`
+                                : needsApproval
+                                  ? `Approve ${tokenLabel(token)}`
+                                  : "Place bet"}
             </button>
           </div>
         )}

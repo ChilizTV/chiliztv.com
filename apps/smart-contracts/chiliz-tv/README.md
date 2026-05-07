@@ -655,7 +655,7 @@ cast send $STREAM_FACTORY \
 | **Admin key** | `DEFAULT_ADMIN_ROLE` + `PAUSER_ROLE` | Authorize/revoke matches, `setProtocolFeeBps`, `setMaxLiabilityPerMarketBps`, `setMaxLiabilityPerMatchBps`, `setMaxBetAmount`, `setDepositCooldownSeconds`, `pause` / `unpause`, UUPS upgrades | Rotate `treasury`, touch `accruedTreasury`, withdraw USDC |
 | **Treasury Safe** | `treasury` state variable (NOT a role) | `proposeTreasury` / `cancelTreasuryProposal` / `acceptTreasury` / `withdrawTreasury` | Authorize matches, set fees, pause, upgrade |
 
-**Loss split (hardcoded 50/50):** every losing net-stake at settlement splits — half to `accruedTreasury` (pull-claim for the Safe), half compounded into LP NAV.
+**Loss split (configurable, default 40% treasury / 60% LP):** every losing net-stake at settlement splits per `LiquidityPool.treasuryShareBps` (initialised to 4_000, capped at `TREASURY_SHARE_BPS_MAX = 5_000`). Treasury share accrues to `accruedTreasury` as a pull-claim for the Safe; remainder compounds into LP NAV. Bettors pay no placement fee — house edge comes from this loss split alone.
 
 **Treasury rotation is 2-step:** current Safe calls `proposeTreasury(newSafe)`; the incoming Safe must call `acceptTreasury()` from its own address. Protects against fat-finger rotations — only path for rotation, admin CANNOT rotate.
 
@@ -722,4 +722,4 @@ For technical questions or integration support, contact the ChilizTV development
 
 ---
 
-**Last Updated**: 2026-04-22 — added LiquidityPool 50/50 loss split, pull-based treasury withdrawal, 2-step treasury rotation, admin/treasury role separation, ERC-4626 inflation mitigation, `maxBetAmount`, `maxAllowedOdds`, utilization views.
+**Last Updated**: 2026-05-07 — corrected loss-split documentation to reflect deployed default (40% treasury / 60% LP, configurable via `treasuryShareBps`, hard-capped at 50%). All other items unchanged: pull-based treasury withdrawal, 2-step treasury rotation, admin/treasury role separation, ERC-4626 inflation mitigation, `maxBetAmount`, `maxAllowedOdds`, utilization views.

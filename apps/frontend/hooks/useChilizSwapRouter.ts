@@ -10,6 +10,12 @@ import {
     useChilizSwapRouterWriteDepositLiquidityWithUsdc,
     useChilizSwapRouterWriteDepositLiquidityWithChz,
     useChilizSwapRouterWriteDepositLiquidityWithToken,
+    useChilizSwapRouterWriteDonateWithUsdc,
+    useChilizSwapRouterWriteDonateWithChz,
+    useChilizSwapRouterWriteDonateWithToken,
+    useChilizSwapRouterWriteSubscribeWithUsdc,
+    useChilizSwapRouterWriteSubscribeWithChz,
+    useChilizSwapRouterWriteSubscribeWithToken,
 } from '@/lib/contracts/generated';
 import { chilizConfig } from '@/config/chiliz.config';
 
@@ -65,6 +71,16 @@ export function useChilizSwapRouter() {
     const depositUsdc = useChilizSwapRouterWriteDepositLiquidityWithUsdc();
     const depositChz = useChilizSwapRouterWriteDepositLiquidityWithChz();
     const depositToken = useChilizSwapRouterWriteDepositLiquidityWithToken();
+
+    // ── Donation entrypoints ──────────────────────────────────────────────
+    const donateUsdc = useChilizSwapRouterWriteDonateWithUsdc();
+    const donateChz = useChilizSwapRouterWriteDonateWithChz();
+    const donateToken = useChilizSwapRouterWriteDonateWithToken();
+
+    // ── Subscription entrypoints ──────────────────────────────────────────
+    const subscribeUsdc = useChilizSwapRouterWriteSubscribeWithUsdc();
+    const subscribeChz = useChilizSwapRouterWriteSubscribeWithChz();
+    const subscribeToken = useChilizSwapRouterWriteSubscribeWithToken();
 
     // ── Bet ─────────────────────────────────────────────────────────────────
     const placeBet = useCallback(
@@ -138,6 +154,78 @@ export function useChilizSwapRouter() {
     const depositChzState = useTxState(depositChz);
     const depositTokenState = useTxState(depositToken);
 
+    // ── Donate ──────────────────────────────────────────────────────────────
+    const donate = useCallback(
+        (params: {
+            token: SwapToken;
+            streamer: Address;
+            message: string;
+            amount: bigint;        // grossAmount in token's atomic units (USDC: 6dp, fan token / CHZ: 18dp)
+            amountOutMin: bigint;  // minimum USDC the swap must produce; 0 for USDC path
+            deadline: bigint;      // unix seconds; ignored on USDC path
+        }) => {
+            const { token, streamer, message, amount, amountOutMin, deadline } = params;
+            if (token === 'USDC') {
+                donateUsdc.writeContract({
+                    address: ROUTER_ADDRESS,
+                    args: [streamer, message, amount],
+                });
+            } else if (token === 'CHZ') {
+                donateChz.writeContract({
+                    address: ROUTER_ADDRESS,
+                    args: [streamer, message, amountOutMin, deadline],
+                    value: amount,
+                });
+            } else {
+                donateToken.writeContract({
+                    address: ROUTER_ADDRESS,
+                    args: [token, amount, streamer, message, amountOutMin, deadline],
+                });
+            }
+        },
+        [donateUsdc, donateChz, donateToken],
+    );
+
+    const donateUsdcState = useTxState(donateUsdc);
+    const donateChzState = useTxState(donateChz);
+    const donateTokenState = useTxState(donateToken);
+
+    // ── Subscribe ───────────────────────────────────────────────────────────
+    const subscribe = useCallback(
+        (params: {
+            token: SwapToken;
+            streamer: Address;
+            duration: bigint;      // seconds
+            amount: bigint;        // grossAmount in token's atomic units
+            amountOutMin: bigint;  // minimum USDC the swap must produce; 0 for USDC path
+            deadline: bigint;      // unix seconds; ignored on USDC path
+        }) => {
+            const { token, streamer, duration, amount, amountOutMin, deadline } = params;
+            if (token === 'USDC') {
+                subscribeUsdc.writeContract({
+                    address: ROUTER_ADDRESS,
+                    args: [streamer, duration, amount],
+                });
+            } else if (token === 'CHZ') {
+                subscribeChz.writeContract({
+                    address: ROUTER_ADDRESS,
+                    args: [streamer, duration, amountOutMin, deadline],
+                    value: amount,
+                });
+            } else {
+                subscribeToken.writeContract({
+                    address: ROUTER_ADDRESS,
+                    args: [token, amount, streamer, duration, amountOutMin, deadline],
+                });
+            }
+        },
+        [subscribeUsdc, subscribeChz, subscribeToken],
+    );
+
+    const subscribeUsdcState = useTxState(subscribeUsdc);
+    const subscribeChzState = useTxState(subscribeChz);
+    const subscribeTokenState = useTxState(subscribeToken);
+
     return {
         // Bet
         placeBet,
@@ -146,6 +234,14 @@ export function useChilizSwapRouter() {
         // Deposit
         depositLiquidity,
         depositState: pickActive(depositUsdcState, depositChzState, depositTokenState),
+
+        // Donate
+        donate,
+        donateState: pickActive(donateUsdcState, donateChzState, donateTokenState),
+
+        // Subscribe
+        subscribe,
+        subscribeState: pickActive(subscribeUsdcState, subscribeChzState, subscribeTokenState),
 
         // Address constant for callers that need to set ERC20 allowance on the router
         routerAddress: ROUTER_ADDRESS,

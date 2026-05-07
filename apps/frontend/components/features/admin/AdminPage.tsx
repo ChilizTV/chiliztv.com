@@ -21,6 +21,7 @@ import BettingMatchJSON from "@/artifacts/BettingMatch.json";
 import StreamWalletFactoryJSON from "@/artifacts/StreamWalletFactory.json";
 import StreamWalletJSON from "@/artifacts/StreamWallet.json";
 import LiquidityPoolJSON from "@/artifacts/LiquidityPool.json";
+import ChilizSwapRouterJSON from "@/artifacts/ChilizSwapRouter.json";
 
 // ─── ABIs ─────────────────────────────────────────────────────────────────────
 
@@ -29,6 +30,7 @@ const MATCH_ABI = BettingMatchJSON.abi as Abi;
 const STREAM_FACTORY_ABI = StreamWalletFactoryJSON.abi as Abi;
 const STREAM_WALLET_ABI = StreamWalletJSON.abi as Abi;
 const POOL_ABI = LiquidityPoolJSON.abi as Abi;
+const SWAP_ROUTER_ABI = ChilizSwapRouterJSON.abi as Abi;
 
 // ─── Function definitions ─────────────────────────────────────────────────────
 
@@ -1033,9 +1035,217 @@ function LiquidityPoolPanel() {
   );
 }
 
+// ─── ChilizSwapRouter ─────────────────────────────────────────────────────────
+// Single FanX-DEX entrypoint for every multi-asset action: bets, donations,
+// subscriptions, LP deposits. Owner-only setters wire it to the factory /
+// stream wallet factory / pool. The Raw ABI catch-all keeps these reachable
+// even before we surface them in a curated panel.
+const SWAP_ROUTER_READ: AbiFn[] = [
+  { name: "owner",                inputs: [], stateMutability: "view", description: "Router owner (admin key)" },
+  { name: "treasury",             inputs: [], stateMutability: "view", description: "Streaming-fee recipient" },
+  { name: "platformFeeBps",       inputs: [], stateMutability: "view", description: "Streaming platform fee in bps (5% = 500)" },
+  { name: "usdc",                 inputs: [], stateMutability: "view", description: "USDC settlement asset" },
+  { name: "wchz",                 inputs: [], stateMutability: "view", description: "Wrapped CHZ used by the CHZ swap path" },
+  { name: "masterRouter",         inputs: [], stateMutability: "view", description: "Kayen MasterRouter (native-CHZ swaps)" },
+  { name: "tokenRouter",          inputs: [], stateMutability: "view", description: "Kayen Router (ERC20-to-ERC20 swaps)" },
+  { name: "bettingMatchFactory",  inputs: [], stateMutability: "view", description: "Validates bettingMatch addresses on bet path" },
+  { name: "streamWalletFactory",  inputs: [], stateMutability: "view", description: "Resolves streamer wallets for streaming path" },
+  { name: "liquidityPool",        inputs: [], stateMutability: "view", description: "Pool wired for depositLiquidityWith* entrypoints" },
+];
+
+const SWAP_ROUTER_WRITE: AbiFn[] = [
+  // ── Wiring (onlyOwner) ─────────────────────────────────────────────────────
+  {
+    name: "setMatchFactory",
+    inputs: [{ name: "_factory", type: "address" }],
+    stateMutability: "nonpayable",
+    description: "Register the BettingMatchFactory; required before any placeBetWith* call.",
+  },
+  {
+    name: "setStreamWalletFactory",
+    inputs: [{ name: "_factory", type: "address" }],
+    stateMutability: "nonpayable",
+    description: "Register the StreamWalletFactory; reverts if factory's swapRouter() is not this contract.",
+  },
+  {
+    name: "setLiquidityPool",
+    inputs: [{ name: "_pool", type: "address" }],
+    stateMutability: "nonpayable",
+    description: "Register the LiquidityPool; required before any depositLiquidityWith* call. Validates pool.asset() == USDC.",
+  },
+  {
+    name: "setTreasury",
+    inputs: [{ name: "_treasury", type: "address" }],
+    stateMutability: "nonpayable",
+    description: "Update streaming-fee recipient.",
+  },
+  {
+    name: "setPlatformFeeBps",
+    inputs: [{ name: "_feeBps", type: "uint16" }],
+    stateMutability: "nonpayable",
+    description: "Update streaming platform fee in bps (max 10_000).",
+    hints: { _feeBps: "BPS — 500 = 5%, max 10000" },
+  },
+
+  // ── Bet entrypoints ────────────────────────────────────────────────────────
+  {
+    name: "placeBetWithUSDC",
+    inputs: [
+      { name: "bettingMatch", type: "address" },
+      { name: "marketId", type: "uint256" },
+      { name: "selection", type: "uint64" },
+      { name: "amount", type: "uint256" },
+    ],
+    stateMutability: "nonpayable",
+    description: "Direct USDC bet through the router. Caller must approve `amount` USDC to the router first.",
+    hints: { amount: "USDC raw (6 decimals on mainnet, 18 on Spicy testnet)" },
+  },
+  {
+    name: "placeBetWithCHZ",
+    inputs: [
+      { name: "bettingMatch", type: "address" },
+      { name: "marketId", type: "uint256" },
+      { name: "selection", type: "uint64" },
+      { name: "amountOutMin", type: "uint256" },
+      { name: "deadline", type: "uint256" },
+    ],
+    stateMutability: "payable",
+    description: "Native CHZ → USDC → bet. Send CHZ via msg.value.",
+  },
+  {
+    name: "placeBetWithToken",
+    inputs: [
+      { name: "token", type: "address" },
+      { name: "amount", type: "uint256" },
+      { name: "bettingMatch", type: "address" },
+      { name: "marketId", type: "uint256" },
+      { name: "selection", type: "uint64" },
+      { name: "amountOutMin", type: "uint256" },
+      { name: "deadline", type: "uint256" },
+    ],
+    stateMutability: "nonpayable",
+    description: "ERC20 → USDC → bet via Kayen tokenRouter. Caller must approve `amount` of `token` to the router first.",
+  },
+
+  // ── Streaming entrypoints ──────────────────────────────────────────────────
+  {
+    name: "donateWithUSDC",
+    inputs: [
+      { name: "streamer", type: "address" },
+      { name: "message", type: "string" },
+      { name: "amount", type: "uint256" },
+    ],
+    stateMutability: "nonpayable",
+    description: "Direct USDC donation; splits platform fee to treasury, rest to streamer.",
+  },
+  {
+    name: "donateWithCHZ",
+    inputs: [
+      { name: "streamer", type: "address" },
+      { name: "message", type: "string" },
+      { name: "amountOutMin", type: "uint256" },
+      { name: "deadline", type: "uint256" },
+    ],
+    stateMutability: "payable",
+    description: "Native CHZ → USDC → donation.",
+  },
+  {
+    name: "donateWithToken",
+    inputs: [
+      { name: "token", type: "address" },
+      { name: "amount", type: "uint256" },
+      { name: "streamer", type: "address" },
+      { name: "message", type: "string" },
+      { name: "amountOutMin", type: "uint256" },
+      { name: "deadline", type: "uint256" },
+    ],
+    stateMutability: "nonpayable",
+    description: "ERC20 → USDC → donation via Kayen tokenRouter.",
+  },
+  {
+    name: "subscribeWithUSDC",
+    inputs: [
+      { name: "streamer", type: "address" },
+      { name: "duration", type: "uint256" },
+      { name: "amount", type: "uint256" },
+    ],
+    stateMutability: "nonpayable",
+    description: "Direct USDC subscription. `duration` in seconds.",
+    hints: { duration: "seconds — 2592000 = 30 days" },
+  },
+  {
+    name: "subscribeWithCHZ",
+    inputs: [
+      { name: "streamer", type: "address" },
+      { name: "duration", type: "uint256" },
+      { name: "amountOutMin", type: "uint256" },
+      { name: "deadline", type: "uint256" },
+    ],
+    stateMutability: "payable",
+    description: "Native CHZ → USDC → subscription.",
+  },
+  {
+    name: "subscribeWithToken",
+    inputs: [
+      { name: "token", type: "address" },
+      { name: "amount", type: "uint256" },
+      { name: "streamer", type: "address" },
+      { name: "duration", type: "uint256" },
+      { name: "amountOutMin", type: "uint256" },
+      { name: "deadline", type: "uint256" },
+    ],
+    stateMutability: "nonpayable",
+    description: "ERC20 → USDC → subscription via Kayen tokenRouter.",
+  },
+
+  // ── LP entrypoints ─────────────────────────────────────────────────────────
+  {
+    name: "depositLiquidityWithUSDC",
+    inputs: [
+      { name: "amount", type: "uint256" },
+      { name: "receiver", type: "address" },
+    ],
+    stateMutability: "nonpayable",
+    description: "Deposit USDC straight into the pool, mint ctvLP shares to `receiver`.",
+  },
+  {
+    name: "depositLiquidityWithCHZ",
+    inputs: [
+      { name: "amountOutMin", type: "uint256" },
+      { name: "deadline", type: "uint256" },
+      { name: "receiver", type: "address" },
+    ],
+    stateMutability: "payable",
+    description: "Native CHZ → USDC → ctvLP shares to `receiver`.",
+  },
+  {
+    name: "depositLiquidityWithToken",
+    inputs: [
+      { name: "token", type: "address" },
+      { name: "amount", type: "uint256" },
+      { name: "amountOutMin", type: "uint256" },
+      { name: "deadline", type: "uint256" },
+      { name: "receiver", type: "address" },
+    ],
+    stateMutability: "nonpayable",
+    description: "ERC20 → USDC → ctvLP shares to `receiver` (via Kayen).",
+  },
+];
+
+function ChilizSwapRouterPanel() {
+  const addr = chilizConfig.chilizSwapRouter;
+  return (
+    <div>
+      <AddressBar label="ChilizSwapRouter" address={addr} />
+      <FunctionGroup title="View Functions" badge="READ" functions={SWAP_ROUTER_READ} abi={SWAP_ROUTER_ABI} address={addr} type="read" />
+      <FunctionGroup title="State-Changing Functions" badge="WRITE" functions={SWAP_ROUTER_WRITE} abi={SWAP_ROUTER_ABI} address={addr} type="write" />
+    </div>
+  );
+}
+
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
-type Tab = "betting-factory" | "betting-match" | "stream-factory" | "stream-wallet" | "liquidity-pool";
+type Tab = "betting-factory" | "betting-match" | "stream-factory" | "stream-wallet" | "liquidity-pool" | "swap-router";
 
 const TABS: { key: Tab; label: string }[] = [
   { key: "betting-factory", label: "Betting Factory" },
@@ -1043,6 +1253,7 @@ const TABS: { key: Tab; label: string }[] = [
   { key: "stream-factory",  label: "Stream Factory" },
   { key: "stream-wallet",   label: "Stream Wallet" },
   { key: "liquidity-pool",  label: "Liquidity Pool" },
+  { key: "swap-router",     label: "Swap Router" },
 ];
 
 export function AdminPage() {
@@ -1121,6 +1332,7 @@ export function AdminPage() {
           {activeTab === "stream-factory"  && <StreamFactoryPanel />}
           {activeTab === "stream-wallet"   && <StreamWalletPanel />}
           {activeTab === "liquidity-pool"  && <LiquidityPoolPanel />}
+          {activeTab === "swap-router"     && <ChilizSwapRouterPanel />}
         </div>
       </div>
     </div>

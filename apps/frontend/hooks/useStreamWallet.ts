@@ -1,7 +1,6 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useCallback } from 'react';
 import { useDynamicContext } from '@dynamic-labs/sdk-react-core';
-import { parseEther, formatEther, type Address } from 'viem';
-import { useWaitForTransactionReceipt } from 'wagmi';
+import { formatUnits, type Address } from 'viem';
 import {
     useStreamWalletFactoryReadHasWallet,
     useStreamWalletFactoryReadGetWallet,
@@ -12,15 +11,12 @@ import {
     useStreamWalletReadTotalSubscribers,
     useStreamWalletReadIsSubscribed,
     useStreamWalletReadGetSubscription,
-    useStreamWalletFactoryWriteDonateToStream,
-    useStreamWalletFactoryWriteSubscribeToStream
 } from '@/lib/contracts/generated';
 import { useStreamerDonations, useStreamerSubscriptions } from '@/hooks/api';
-import type { Donation, Subscription } from '@/models/stream-wallet.model';
 import { chilizConfig } from '@/config/chiliz.config';
+import { usePoolDecimals } from '@/hooks/usePoolDecimals';
 
-const FACTORY_ADDRESS = (process.env.NEXT_PUBLIC_STREAM_WALLET_FACTORY_ADDRESS ||
-    '0x7310cE3bD564fA63587a388b87a8C973a0BA3d7B') as `0x${string}`;
+const FACTORY_ADDRESS = chilizConfig.streamWalletFactory;
 
 // Pin reads to the deployed chain (memory: generated read hooks silently
 // never fire when chainId is omitted and the wallet is on a different chain).
@@ -33,42 +29,56 @@ interface UseStreamWalletProps {
 }
 
 interface Statistics {
+    /** USDC, formatted to a human string (uses pool's true decimals). */
     totalRevenue: string;
     totalDonations: number;
     totalSubscribers: number;
+    /** USDC, formatted to a human string. */
     totalWithdrawn: string;
+    /** USDC, formatted to a human string. */
     availableBalance: string;
+    /** Display percent (e.g. 5 for 5%). */
     platformFeeBps: number;
 }
 
 interface SubscriptionDetails {
     isSubscribed: boolean;
+    /** USDC subscription cost, formatted. */
     amount: string;
+    /** Localised expiry date string. */
     expiryTime: string;
     active: boolean;
 }
 
-interface DonationState {
-    isPending: boolean;
-    isConfirming: boolean;
-    isSuccess: boolean;
-    txHash?: `0x${string}`;
-}
-
-interface SubscriptionState {
-    isPending: boolean;
-    isConfirming: boolean;
-    isSuccess: boolean;
-    txHash?: `0x${string}`;
-}
-
+/**
+ * Read-only view over a streamer's StreamWallet.
+ *
+ * NOTE: Donation / subscription writes are NOT exposed here anymore. They go
+ * through `useChilizSwapRouter` (donate / subscribe), which supports CHZ /
+ * USDC / fan-token paths via the FanX swap. The factory's
+ * `donateToStream` / `subscribeToStream` are fan-token-only and were
+ * mis-wired to placeholder zero addresses in earlier revisions of this hook.
+ */
 export function useStreamWallet({ streamerAddress }: UseStreamWalletProps) {
     const { primaryWallet } = useDynamicContext();
     const walletAddress = primaryWallet?.address as `0x${string}` | undefined;
 
+    // The pool and the StreamWallet both account in the pool's USDC asset, so
+    // we read the on-chain decimals once from the pool. Chiliz testnet USDC
+    // happens to be 18-decimal; mainnet (Circle) USDC is 6-decimal.
+    const { assetDecimals } = usePoolDecimals();
+
     // Backend data using React Query hooks
-    const { data: donationsData, isLoading: isLoadingDonations, refetch: refetchDonations } = useStreamerDonations(streamerAddress || "");
-    const { data: subscriptionsData, isLoading: isLoadingSubscriptions, refetch: refetchSubscriptions } = useStreamerSubscriptions(streamerAddress || "");
+    const {
+        data: donationsData,
+        isLoading: isLoadingDonations,
+        refetch: refetchDonations,
+    } = useStreamerDonations(streamerAddress || '');
+    const {
+        data: subscriptionsData,
+        isLoading: isLoadingSubscriptions,
+        refetch: refetchSubscriptions,
+    } = useStreamerSubscriptions(streamerAddress || '');
 
     const donations = donationsData?.donations || [];
     const subscriptions = subscriptionsData?.subscriptions || [];
@@ -128,39 +138,7 @@ export function useStreamWallet({ streamerAddress }: UseStreamWalletProps) {
     });
 
     // ============================================================
-    // Blockchain writes (using generated hooks)
-    // ============================================================
-
-    const {
-        writeContract: donateWrite,
-        isPending: isDonatePending,
-        isSuccess: isDonateSuccess,
-        data: donateTxHash,
-        error: donateError
-    } = useStreamWalletFactoryWriteDonateToStream();
-
-    const {
-        writeContract: subscribeWrite,
-        isPending: isSubscribePending,
-        isSuccess: isSubscribeSuccess,
-        data: subscribeTxHash,
-        error: subscribeError
-    } = useStreamWalletFactoryWriteSubscribeToStream();
-
-    // ============================================================
-    // Transaction confirmations
-    // ============================================================
-
-    const { isLoading: isDonateConfirming } = useWaitForTransactionReceipt({
-        hash: donateTxHash,
-    });
-
-    const { isLoading: isSubscribeConfirming } = useWaitForTransactionReceipt({
-        hash: subscribeTxHash,
-    });
-
-    // ============================================================
-    // Refetch backend data
+    // Refetch
     // ============================================================
 
     const fetchBackendData = useCallback(() => {
@@ -168,163 +146,52 @@ export function useStreamWallet({ streamerAddress }: UseStreamWalletProps) {
         refetchSubscriptions();
     }, [refetchDonations, refetchSubscriptions]);
 
-    // Handle errors from write hooks
-    useEffect(() => {
-        if (donateError) {
-            console.error('❌ Donate error:', donateError);
-            const message = donateError.message || 'Failed to send donation';
-            if (message.includes('User rejected') || message.includes('rejected')) {
-                alert('Transaction was rejected');
-            } else {
-                alert(`Error: ${message}`);
-            }
-        }
-    }, [donateError]);
-
-    useEffect(() => {
-        if (subscribeError) {
-            console.error('❌ Subscribe error:', subscribeError);
-            const message = subscribeError.message || 'Failed to subscribe';
-            if (message.includes('User rejected') || message.includes('rejected')) {
-                alert('Transaction was rejected');
-            } else {
-                alert(`Error: ${message}`);
-            }
-        }
-    }, [subscribeError]);
-
-    // Refetch after successful transactions
-    useEffect(() => {
-        if (isDonateSuccess && donateTxHash) {
-            // Refetch wallet info in case it was just created
-            refetchHasWallet();
-            refetchWalletAddress();
-            // Wait a bit for indexing then refetch backend data
-            setTimeout(() => {
-                fetchBackendData();
-            }, 3000);
-        }
-    }, [isDonateSuccess, donateTxHash, refetchHasWallet, refetchWalletAddress, fetchBackendData]);
-
-    useEffect(() => {
-        if (isSubscribeSuccess && subscribeTxHash) {
-            refetchIsSubscribed();
-            refetchSubscription();
-            // Wait a bit for indexing then refetch
-            setTimeout(() => {
-                fetchBackendData();
-            }, 3000);
-        }
-    }, [isSubscribeSuccess, subscribeTxHash, refetchIsSubscribed, refetchSubscription, fetchBackendData]);
+    const refetchAll = useCallback(() => {
+        refetchHasWallet();
+        refetchWalletAddress();
+        refetchIsSubscribed();
+        refetchSubscription();
+        fetchBackendData();
+    }, [
+        refetchHasWallet,
+        refetchWalletAddress,
+        refetchIsSubscribed,
+        refetchSubscription,
+        fetchBackendData,
+    ]);
 
     // ============================================================
     // Statistics (combine blockchain + backend)
     // ============================================================
 
+    const fmtUsdc = (v: bigint | undefined | null): string =>
+        v !== undefined && v !== null && assetDecimals !== undefined ? formatUnits(v, assetDecimals) : '0';
+
     const statistics: Statistics = {
-        totalRevenue: totalRevenue ? formatEther(totalRevenue) : '0',
+        totalRevenue: fmtUsdc(totalRevenue as bigint | undefined),
         totalDonations: donations.length,
         totalSubscribers: totalSubscribers ? Number(totalSubscribers) : subscriptions.length,
-        totalWithdrawn: totalWithdrawn ? formatEther(totalWithdrawn) : '0',
-        availableBalance: availableBalance ? formatEther(availableBalance) : '0',
-        platformFeeBps: platformFeeBps ? Number(platformFeeBps) / 100 : 5
+        totalWithdrawn: fmtUsdc(totalWithdrawn as bigint | undefined),
+        availableBalance: fmtUsdc(availableBalance as bigint | undefined),
+        platformFeeBps: platformFeeBps ? Number(platformFeeBps) / 100 : 5,
     };
-
-    // ============================================================
-    // Transaction functions (wrapped for error handling)
-    // ============================================================
-
-    // NOTE: donateToStream / subscribeToStream now route through the Kayen swap router and
-    // accept any ERC20 (converted to USDC). The legacy native-CHZ flow no longer exists.
-    // Until the donation UI is rewritten to collect token + slippage + deadline, these calls
-    // pass placeholder values and will revert. Treat as a stub.
-    const donate = useCallback(async (amount: string, message: string) => {
-        if (!streamerAddress) {
-            console.error('❌ Missing streamer address');
-            return;
-        }
-
-        if (!donateWrite) {
-            console.error('❌ Wallet not connected');
-            alert('Please connect your wallet');
-            return;
-        }
-
-        try {
-            const amountRaw = parseEther(amount);
-            const deadline = BigInt(Math.floor(Date.now() / 1000) + 60 * 10);
-            donateWrite({
-                address: FACTORY_ADDRESS,
-                args: [
-                    streamerAddress,
-                    message,
-                    amountRaw,
-                    BigInt(0), // amountOutMin — TODO: compute from price feed
-                    deadline,
-                    '0x0000000000000000000000000000000000000000' as `0x${string}`, // token — TODO: pass real ERC20
-                ],
-            });
-        } catch (error: any) {
-            console.error('❌ Error donating:', error);
-            if (error.message?.includes('User rejected')) {
-                alert('Transaction was rejected');
-            } else {
-                alert(`Error: ${error.message || 'Failed to send donation'}`);
-            }
-        }
-    }, [streamerAddress, donateWrite]);
-
-    const subscribe = useCallback(async (amount: string, durationDays: number) => {
-        if (!streamerAddress) {
-            console.error('❌ Missing streamer address');
-            return;
-        }
-
-        if (!subscribeWrite) {
-            console.error('❌ Wallet not connected');
-            alert('Please connect your wallet');
-            return;
-        }
-
-        try {
-            const durationSeconds = BigInt(durationDays * 24 * 60 * 60);
-            const amountRaw = parseEther(amount);
-            const deadline = BigInt(Math.floor(Date.now() / 1000) + 60 * 10);
-            subscribeWrite({
-                address: FACTORY_ADDRESS,
-                args: [
-                    streamerAddress,
-                    durationSeconds,
-                    amountRaw,
-                    BigInt(0), // amountOutMin — TODO
-                    deadline,
-                    '0x0000000000000000000000000000000000000000' as `0x${string}`, // token — TODO
-                ],
-            });
-        } catch (error: any) {
-            console.error('❌ Error subscribing:', error);
-            if (error.message?.includes('User rejected')) {
-                alert('Transaction was rejected');
-            } else {
-                alert(`Error: ${error.message || 'Failed to subscribe'}`);
-            }
-        }
-    }, [streamerAddress, subscribeWrite]);
 
     // ============================================================
     // Subscription details
     // ============================================================
 
-    const subscriptionDetails: SubscriptionDetails | null = subscription ? {
-        isSubscribed: !!isSubscribed && subscription.active && Number(subscription.expiryTime) > Date.now() / 1000,
-        amount: formatEther(subscription.amount),
-        expiryTime: new Date(Number(subscription.expiryTime) * 1000).toLocaleDateString(),
-        active: subscription.active
-    } : null;
-
-    // ============================================================
-    // Return hook interface
-    // ============================================================
+    const sub = subscription as
+        | { amount: bigint; expiryTime: bigint; active: boolean }
+        | undefined;
+    const subscriptionDetails: SubscriptionDetails | null = sub
+        ? {
+              isSubscribed:
+                  !!isSubscribed && sub.active && Number(sub.expiryTime) > Date.now() / 1000,
+              amount: fmtUsdc(sub.amount),
+              expiryTime: new Date(Number(sub.expiryTime) * 1000).toLocaleDateString(),
+              active: sub.active,
+          }
+        : null;
 
     return {
         // Wallet info
@@ -339,26 +206,10 @@ export function useStreamWallet({ streamerAddress }: UseStreamWalletProps) {
         donations,
         subscriptions,
 
-        // Donation
-        donate,
-        donationState: {
-            isPending: isDonatePending,
-            isConfirming: isDonateConfirming,
-            isSuccess: isDonateSuccess,
-            txHash: donateTxHash
-        } as DonationState,
-
-        // Subscription
-        subscribe,
-        subscriptionState: {
-            isPending: isSubscribePending,
-            isConfirming: isSubscribeConfirming,
-            isSuccess: isSubscribeSuccess,
-            txHash: subscribeTxHash
-        } as SubscriptionState,
         subscription: subscriptionDetails,
 
         // Refetch
-        refetch: fetchBackendData
+        refetch: fetchBackendData,
+        refetchAll,
     };
 }

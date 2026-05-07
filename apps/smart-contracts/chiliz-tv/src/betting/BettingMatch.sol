@@ -510,9 +510,11 @@ abstract contract BettingMatch is
     /// @notice Resolve a market with the final result.
     /// @dev    Releases every losing selection's reserved net exposure on the
     ///         pool AND signals the losing net-stake total so the pool can
-    ///         accrue the treasury's 50% share. Winning-side reservations
-    ///         stay until each winner claims. Net-exposure bookkeeping
-    ///         parallels the payout bookkeeping (= `payout - stake`).
+    ///         accrue the treasury's share (default 40% — `treasuryShareBps`
+    ///         on `LiquidityPool`, capped at 50%). Remainder (default 60%)
+    ///         compounds into LP NAV. Winning-side reservations stay until
+    ///         each winner claims. Net-exposure bookkeeping parallels the
+    ///         payout bookkeeping (= `payout - stake`).
     function resolveMarket(uint256 marketId, uint64 result)
         external
         validMarket(marketId)

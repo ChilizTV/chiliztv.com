@@ -308,11 +308,18 @@ export function getTokenAddress(symbol: string): string | undefined {
 }
 
 if (typeof window !== 'undefined') {
+    // Surface the FULL set of addresses the frontend is reading from env so
+    // a stale `.env` (or a missing `.env.local`) is immediately visible — if
+    // any of these are 0x0000…, that env var didn't load.
     console.log(`🌐 Chiliz Network Configuration: ${networkType.toUpperCase()}`);
-    console.log(`   RPC URL: ${chilizConfig.rpcUrl}`);
-    console.log(`   Betting Contract (legacy): ${chilizConfig.bettingContract}`);
-    console.log(`   Betting Match Factory: ${chilizConfig.bettingMatchFactory}`);
-    console.log(`   Stream Wallet Factory: ${chilizConfig.streamWalletFactory}`);
-    console.log(`   Supported tokens: ${chilizConfig.tokens.length}`);
+    console.log(`   RPC URL                : ${chilizConfig.rpcUrl}`);
+    console.log(`   Chain ID               : ${chilizConfig.chainId}`);
+    console.log(`   BettingMatchFactory    : ${chilizConfig.bettingMatchFactory}`);
+    console.log(`   StreamWalletFactory    : ${chilizConfig.streamWalletFactory}`);
+    console.log(`   ChilizSwapRouter       : ${chilizConfig.chilizSwapRouter}`);
+    console.log(`   LiquidityPool (proxy)  : ${chilizConfig.liquidityPool}`);
+    console.log(`   USDC                   : ${chilizConfig.usdc}`);
+    console.log(`   WCHZ                   : ${chilizConfig.wchz}`);
+    console.log(`   Fan tokens             : ${chilizConfig.tokens.length}`);
 }
 

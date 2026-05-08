@@ -14,13 +14,9 @@ import {
   StartStreamCollapsible,
   MatchScoreDisplay,
 } from ".";
+import type { Address } from "viem";
 import { useMatch } from "@/hooks/api";
 import { LiveStream } from "@/models/stream.model";
-import { StreamStatus } from "@chiliztv/domain/streams/entities/Stream";
-import { Address } from "viem";
-import { isTestMatchId, TEST_MATCH } from "@/lib/test-fixtures/psgOmMatch";
-import { useBettingMatchFactoryReadGetAllMatches } from "@/lib/contracts/generated";
-import { chilizConfig } from "@/config/chiliz.config";
 
 interface LiveDetailsPageProps {
   readonly id: string;
@@ -29,31 +25,8 @@ interface LiveDetailsPageProps {
 export default function LiveDetailsPage({ id }: LiveDetailsPageProps) {
   const router = useRouter();
   const { primaryWallet, user } = useDynamicContext();
-  const isTestMatch = isTestMatchId(id);
-  const { data: matchDataFromApi, isLoading: loadingFromApi, error: queryError } = useMatch(id);
+  const { data: matchData, isLoading: loading, error: queryError } = useMatch(id);
 
-  // For the static test match (id 999999) we don't have a real on-chain
-  // BettingMatch — pull `factory.getAllMatches()[0]` so the live page can
-  // talk to whatever match was created last in /admin. Falls back to the
-  // fixture's hardcoded address if the factory has never deployed a match.
-  const { data: allMatches } = useBettingMatchFactoryReadGetAllMatches({
-    address: chilizConfig.bettingMatchFactory,
-    chainId: chilizConfig.chainId,
-    query: { enabled: isTestMatch },
-  });
-  const factoryFirstMatch = (allMatches as readonly Address[] | undefined)?.[0];
-
-  const matchData = isTestMatch
-    ? { ...TEST_MATCH, contractAddress: factoryFirstMatch ?? TEST_MATCH.contractAddress }
-    : matchDataFromApi;
-  const loading = isTestMatch ? false : loadingFromApi;
-
-  // eslint-disable-next-line no-console
-  console.log("[LiveDetailsPage]", {
-    id,
-    isTestMatch,
-    contractAddress: matchData?.contractAddress,
-  });
   const searchParams = useSearchParams();
   const initialStreamId = searchParams.get("streamId") ?? undefined;
 
@@ -69,29 +42,9 @@ export default function LiveDetailsPage({ id }: LiveDetailsPageProps) {
   const isStreamer = !!myStream && !!user?.userId;
   const chatStreamId = myStream?.id ?? selectedStream?.id;
 
-  const isTestMode =
-    process.env.NODE_ENV === "development" || process.env.NEXT_PUBLIC_NETWORK === "testnet";
-  const testStreamerAddress = process.env.NEXT_PUBLIC_TEST_STREAMER_ADDRESS as
-    | `0x${string}`
-    | undefined;
-  const mockStreamForTest: LiveStream | null =
-    isTestMode && testStreamerAddress
-      ? {
-          id: "test-mock",
-          matchId: parseInt(id) || 1,
-          streamerId: "test-streamer",
-          streamerName: "Test Streamer",
-          streamerWalletAddress: testStreamerAddress,
-          streamKey: "mock",
-          status: StreamStatus.LIVE,
-          isLive: true,
-          viewerCount: 0,
-          createdAt: new Date().toISOString(),
-        }
-      : null;
-
+  // Donation/subscription dialogs require a real on-chain streamer wallet.
   const streamForDonateSubscribe =
-    (selectedStream?.streamerWalletAddress ? selectedStream : null) ?? mockStreamForTest;
+    selectedStream?.streamerWalletAddress ? selectedStream : null;
 
   const handleStreamSelect = (stream: LiveStream) => setSelectedStream(stream);
 
@@ -121,7 +74,7 @@ export default function LiveDetailsPage({ id }: LiveDetailsPageProps) {
     );
   }
 
-  if ((queryError && !isTestMatch) || !matchData) {
+  if (queryError || !matchData) {
     return (
       <div
         className="flex items-center justify-center h-full"
@@ -135,7 +88,7 @@ export default function LiveDetailsPage({ id }: LiveDetailsPageProps) {
             No match found
           </p>
           <button
-            onClick={() => router.push("/live")}
+            onClick={() => router.push("/browse")}
             className="px-4 py-2 rounded text-[12px] font-bold tracking-[0.08em] uppercase transition-colors duration-150"
             style={{ background: "#E8001D", color: "#fff", fontFamily: "'Barlow', sans-serif" }}
           >

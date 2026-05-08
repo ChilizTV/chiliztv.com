@@ -73,11 +73,3 @@ export function getMatchTime(match: Match, now: Date = new Date()): string {
   return "TBD";
 }
 
-/**
- * @notice Generate mock viewer count for live matches
- * @dev Returns random number between 500K and 3.5M
- * @return Random viewer count
- */
-export function generateMockViewers(): number {
-  return Math.floor(Math.random() * 3000000) + 500000;
-}

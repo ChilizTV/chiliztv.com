@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:api.anthropic.com)",
+      "Bash(mkdir -p /tmp/chiliz-design)",
+      "Read(//tmp/**)",
+      "Bash(rm -rf ./*)",
+      "Bash(tar -xzf /Users/antonyloussararian/.claude/projects/-Users-antonyloussararian-Documents-Chiliz-hacking-chiliztv-com/a0fb1b83-5498-4063-935f-6b1a5ffdc728/tool-results/webfetch-1778207889253-sbhtmn.bin)"
+    ]
+  }
+}

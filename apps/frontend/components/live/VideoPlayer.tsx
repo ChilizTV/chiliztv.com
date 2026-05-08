@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Loader2, AlertCircle, Eye, Play, Volume2, VolumeX, VideoOff, Tv2 } from 'lucide-react';
 import Hls from 'hls.js';
@@ -36,9 +36,6 @@ export default function VideoPlayer({
     const [needsInteraction, setNeedsInteraction] = useState(false);
     const [liveViewerCount, setLiveViewerCount] = useState(stream?.viewerCount ?? 0);
 
-    // Stable session token shared across tabs via localStorage (prevents multi-tab overcounting)
-    const sessionTokenRef = useRef<string>('');
-    const heartbeatIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
     const thumbnailIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
     // Reset stream-ended state when switching streams
@@ -46,19 +43,36 @@ export default function VideoPlayer({
         setStreamEnded(false);
     }, [stream?.id]);
 
-    // Init session token (shared across tabs for same stream)
-    useEffect(() => {
-        if (!stream) return;
+    // Stable session token (shared across tabs for same stream via localStorage).
+    // Resolved synchronously during render so any downstream effect can rely on
+    // it without an init race. Empty string means "not ready yet".
+    const sessionToken = useMemo(() => {
+        if (!stream?.id) return '';
+        if (typeof window === 'undefined') return '';
         const key = `viewer_session_${stream.id}`;
-        const existing = localStorage.getItem(key);
-        if (existing) {
-            sessionTokenRef.current = existing;
-        } else {
-            const token = crypto.randomUUID();
-            localStorage.setItem(key, token);
-            sessionTokenRef.current = token;
-        }
+        const existing = window.localStorage.getItem(key);
+        if (existing) return existing;
+        const token = window.crypto.randomUUID();
+        window.localStorage.setItem(key, token);
+        return token;
     }, [stream?.id]);
+
+    // Viewer presence — fires the moment the player mounts with a valid stream,
+    // independent of the HLS pipeline. Even if the manifest is slow or errors,
+    // the user is on the page and counts as a viewer. Heartbeat every 30s
+    // (stale threshold backend-side is 45s) keeps the session alive.
+    useEffect(() => {
+        if (!stream?.id || !sessionToken) return;
+        const streamId = stream.id;
+        streamViewerService.joinStream(streamId, sessionToken);
+        const heartbeatId = setInterval(() => {
+            streamViewerService.joinStream(streamId, sessionToken);
+        }, 30_000);
+        return () => {
+            clearInterval(heartbeatId);
+            streamViewerService.leaveStream(streamId, sessionToken);
+        };
+    }, [stream?.id, sessionToken]);
 
     // Supabase Realtime — single channel for viewer_count updates
     useEffect(() => {
@@ -176,13 +190,9 @@ export default function VideoPlayer({
                     });
                 }
 
-                // Join viewer session + start heartbeat
-                if (sessionTokenRef.current) {
-                    streamViewerService.joinStream(stream.id, sessionTokenRef.current);
-                    heartbeatIntervalRef.current = setInterval(() => {
-                        streamViewerService.joinStream(stream.id, sessionTokenRef.current);
-                    }, 30_000);
-                }
+                // (Viewer session + heartbeat are handled by a dedicated effect
+                //  upstream — keyed on stream.id + sessionToken — so they fire
+                //  even when the HLS manifest is slow or errors.)
 
                 // Start thumbnail capture after 3s (stream stabilised)
                 setTimeout(() => {
@@ -258,11 +268,8 @@ export default function VideoPlayer({
 
         return () => {
             cancelled = true;
-            // Leave viewer session
-            if (sessionTokenRef.current && stream) {
-                streamViewerService.leaveStream(stream.id, sessionTokenRef.current);
-            }
-            if (heartbeatIntervalRef.current) { clearInterval(heartbeatIntervalRef.current); heartbeatIntervalRef.current = null; }
+            // (leaveStream + heartbeat clearance happen in the dedicated
+            //  viewer-presence effect.)
             if (thumbnailIntervalRef.current) { clearInterval(thumbnailIntervalRef.current); thumbnailIntervalRef.current = null; }
             try {
                 if (hlsRef.current) {
@@ -277,7 +284,12 @@ export default function VideoPlayer({
                 initialVideoElement.load();
             }
         };
-    }, [stream, autoplay]);
+        // Keyed on `stream?.id` (not the whole `stream` object) so that
+        // parent re-renders that emit a fresh-but-equivalent stream reference
+        // don't tear down the HLS pipeline (which would also churn the
+        // viewer session and lose any in-flight thumbnail capture).
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [stream?.id, autoplay]);
 
     if (!stream) {
         return (

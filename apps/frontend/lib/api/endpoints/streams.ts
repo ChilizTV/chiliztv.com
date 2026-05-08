@@ -80,13 +80,21 @@ export const streamsApi = {
   },
 
   /**
-   * @notice Uploads a stream thumbnail
+   * @notice Uploads a stream thumbnail.
+   *
+   * Critical: the shared apiClient has a default `Content-Type:
+   * application/json` and we must NOT keep it for this multipart upload.
+   * Setting `Content-Type` to `undefined` lets axios strip the default,
+   * detect that `data` is FormData, and let the browser compute the full
+   * `multipart/form-data; boundary=----…` header itself. Without this,
+   * multer on the backend can't parse the body and `req.file` ends up
+   * undefined → the request silently 400s and nothing lands in the bucket.
    */
   uploadThumbnail: async (streamId: string, file: Blob): Promise<void> => {
     const form = new FormData();
     form.append('file', file, 'thumbnail.jpg');
     await apiClient.put(`/stream/${streamId}/thumbnail`, form, {
-      headers: { 'Content-Type': 'multipart/form-data' },
+      headers: { 'Content-Type': undefined },
     } as never);
   },
 };

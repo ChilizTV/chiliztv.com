@@ -80,8 +80,11 @@ export class StreamViewerService {
     async uploadThumbnail(streamId: string, file: Blob): Promise<void> {
         try {
             await streamsApi.uploadThumbnail(streamId, file);
-        } catch {
-            // Non-blocking
+        } catch (error) {
+            // Non-blocking, but surface in devtools — silent failures here
+            // mask multer / bucket / RLS issues that are otherwise invisible
+            // (no UI for thumbnail upload status).
+            console.warn('[Thumbnail] upload failed', error);
         }
     }
 

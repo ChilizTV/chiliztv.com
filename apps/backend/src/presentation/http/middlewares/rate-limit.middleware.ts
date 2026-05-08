@@ -4,6 +4,13 @@ import { env } from '../../../infrastructure/config/environment';
 const isDevelopment = env.NODE_ENV === 'development';
 
 /**
+ * TEMPORARY KILL SWITCH — flip to `true` to short-circuit every limiter
+ * below via `skip: () => true`. Windows / max values are kept intact so the
+ * revert is one line.
+ */
+const RATE_LIMIT_DISABLED = false;
+
+/**
  * Global rate limiter - applies to all routes
  * 1000 requests per 15 minutes per IP
  */
@@ -19,7 +26,7 @@ export const globalLimiter = rateLimit({
   },
   standardHeaders: true,
   legacyHeaders: false,
-  skip: (req) => req.path === '/health', // Don't rate limit health checks
+  skip: (req) => RATE_LIMIT_DISABLED || req.path === '/health',
 });
 
 /**
@@ -39,6 +46,7 @@ export const authLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   skipSuccessfulRequests: true, // Don't count successful auth attempts
+  skip: () => RATE_LIMIT_DISABLED,
 });
 
 /**
@@ -57,6 +65,7 @@ export const predictionsLimiter = rateLimit({
   },
   standardHeaders: true,
   legacyHeaders: false,
+  skip: () => RATE_LIMIT_DISABLED,
 });
 
 /**
@@ -75,6 +84,7 @@ export const chatLimiter = rateLimit({
   },
   standardHeaders: true,
   legacyHeaders: false,
+  skip: () => RATE_LIMIT_DISABLED,
 });
 
 /**
@@ -93,4 +103,5 @@ export const streamCreationLimiter = rateLimit({
   },
   standardHeaders: true,
   legacyHeaders: false,
+  skip: () => RATE_LIMIT_DISABLED,
 });

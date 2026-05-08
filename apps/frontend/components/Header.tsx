@@ -5,7 +5,7 @@ import { Button } from "./ui/button";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { Compass, Menu, Settings, Trophy, TvIcon, User, X } from "lucide-react";
+import { Compass, Menu, Settings, Trophy, User, X } from "lucide-react";
 import { useDynamicContext, DynamicConnectButton } from "@dynamic-labs/sdk-react-core";
 
 export function Header() {
@@ -55,21 +55,6 @@ export function Header() {
                             <Compass />
                             <span className="text-white/70 hover:text-white transition-colors cursor-pointer">
                                 Discover
-                            </span>
-                        </button>
-                        <button
-                            className="flex items-center gap-2 text-white/70 hover:text-white transition-colors cursor-pointer"
-                            onClick={() => router.push("/live")}
-                            tabIndex={0}
-                            onKeyDown={(e) => {
-                                if (e.key === "Enter" || e.key === " ") {
-                                    router.push("/live");
-                                }
-                            }}
-                        >
-                            <TvIcon />
-                            <span className="text-white/70 hover:text-white transition-colors cursor-pointer">
-                                Browse Matches
                             </span>
                         </button>
                         <button
@@ -160,15 +145,6 @@ export function Header() {
                                 className="text-white/80 hover:text-white text-left"
                             >
                                 Discover
-                            </button>
-                            <button
-                                onClick={() => {
-                                    router.push("/live");
-                                    setMenuOpen(false);
-                                }}
-                                className="text-white/80 hover:text-white text-left"
-                            >
-                                Live Matches
                             </button>
                             <button
                                 onClick={() => {

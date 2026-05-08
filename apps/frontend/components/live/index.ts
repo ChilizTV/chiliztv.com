@@ -2,7 +2,6 @@ export { AboutLiveSection } from './AboutLiveSection';
 export { BrowseLivesCollapsible } from './BrowseLivesCollapsible';
 export { default as ChatBox } from './Chats';
 export { default as LiveDetailsPage } from './LiveDetailsPage';
-export { default as LiveMatches } from './LiveMatches';
 export { MatchScoreDisplay } from './MatchScoreDisplay';
 export { StartStreamCollapsible } from './StartStreamCollapsible';
 export { default as StreamManager } from './StreamManager';

@@ -5,6 +5,8 @@ import { Abi } from 'viem';
 // Import your contract ABIs from artifacts
 import BettingMatchJSON from "./artifacts/BettingMatch.json";
 import BettingMatchFactoryJSON from "./artifacts/BettingMatchFactory.json";
+import FootballMatchJSON from "./artifacts/FootballMatch.json";
+import BasketballMatchJSON from "./artifacts/BasketballMatch.json";
 import StreamWalletJSON from "./artifacts/StreamWallet.json";
 import StreamWalletFactoryJSON from "./artifacts/StreamWalletFactory.json";
 import LiquidityPoolJSON from "./artifacts/LiquidityPool.json";
@@ -23,6 +25,14 @@ export default defineConfig({
     {
       name: 'BettingMatchFactory',
       abi: BettingMatchFactoryJSON.abi as Abi
+    },
+    {
+      name: 'FootballMatch',
+      abi: FootballMatchJSON.abi as Abi
+    },
+    {
+      name: 'BasketballMatch',
+      abi: BasketballMatchJSON.abi as Abi
     },
     {
       name: 'StreamWallet',

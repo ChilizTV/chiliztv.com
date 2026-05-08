@@ -1,7 +1,7 @@
 "use client";
 
 import { useDynamicContext } from "@dynamic-labs/sdk-react-core";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { ChatPanel } from "./chat";
@@ -16,16 +16,89 @@ import {
 } from ".";
 import type { Address } from "viem";
 import { useMatch } from "@/hooks/api";
+import {
+  useBettingMatchFactoryReadGetAllMatches,
+  useBettingMatchFactoryReadGetSportType,
+  useBettingMatchReadMatchName,
+} from "@/lib/contracts/generated";
+import { chilizConfig } from "@/config/chiliz.config";
 import { LiveStream } from "@/models/stream.model";
+import type { Match } from "@/types/api.types";
 
 interface LiveDetailsPageProps {
   readonly id: string;
 }
 
+const TEST_MATCH_ID = "999999";
+
 export default function LiveDetailsPage({ id }: LiveDetailsPageProps) {
   const router = useRouter();
   const { primaryWallet, user } = useDynamicContext();
-  const { data: matchData, isLoading: loading, error: queryError } = useMatch(id);
+
+  const isTestMatch = id === TEST_MATCH_ID;
+
+  // ── Backend-API path (real matches) ──────────────────────────────────────
+  // Disabled for the test match so we don't bubble up a 404 on /live/999999.
+  const {
+    data: matchDataFromApi,
+    isLoading: loadingFromApi,
+    error: queryError,
+  } = useMatch(isTestMatch ? "" : id);
+
+  // ── On-chain path (test match: bind to the latest factory deployment) ────
+  // Reads run only when isTestMatch — `enabled` keeps useQuery quiet on the
+  // happy backend path.
+  const { data: allMatches } = useBettingMatchFactoryReadGetAllMatches({
+    address: chilizConfig.bettingMatchFactory,
+    chainId: chilizConfig.chainId,
+    query: { enabled: isTestMatch },
+  });
+  const latestProxy = (allMatches as readonly Address[] | undefined)?.at(-1);
+
+  const { data: onChainMatchName } = useBettingMatchReadMatchName({
+    address: latestProxy,
+    chainId: chilizConfig.chainId,
+    query: { enabled: isTestMatch && !!latestProxy },
+  });
+
+  const { data: onChainSportType } = useBettingMatchFactoryReadGetSportType({
+    address: chilizConfig.bettingMatchFactory,
+    chainId: chilizConfig.chainId,
+    args: latestProxy ? [latestProxy] : undefined,
+    query: { enabled: isTestMatch && !!latestProxy },
+  });
+
+  // Project on-chain reads onto the same `Match` shape friend's UI expects.
+  // Best-effort name split on " vs " / " - " for home/away display; falls
+  // back to the raw match name if no separator is present.
+  const onChainMatchData = useMemo<Match | undefined>(() => {
+    if (!isTestMatch || !latestProxy || !onChainMatchName) return undefined;
+    const { home, away } = splitTeamNames(onChainMatchName as string);
+    const sport = sportLabel(onChainSportType);
+    return {
+      id: 999999,
+      homeTeam: home,
+      awayTeam: away,
+      league: sport,
+      status: "TEST",
+      startTime: new Date().toISOString(),
+      contractAddress: latestProxy,
+    };
+  }, [isTestMatch, latestProxy, onChainMatchName, onChainSportType]);
+
+  const matchData = isTestMatch ? onChainMatchData : matchDataFromApi;
+  const loading = isTestMatch
+    ? !!latestProxy && !onChainMatchName // waiting on the proxy reads
+    : loadingFromApi;
+  const noMatchDeployedYet = isTestMatch && allMatches !== undefined && !latestProxy;
+
+  // eslint-disable-next-line no-console
+  console.log("[LiveDetailsPage]", {
+    id,
+    isTestMatch,
+    latestProxy,
+    contractAddress: matchData?.contractAddress,
+  });
 
   const searchParams = useSearchParams();
   const initialStreamId = searchParams.get("streamId") ?? undefined;
@@ -74,7 +147,35 @@ export default function LiveDetailsPage({ id }: LiveDetailsPageProps) {
     );
   }
 
-  if (queryError || !matchData) {
+  if (noMatchDeployedYet) {
+    return (
+      <div
+        className="flex items-center justify-center h-full"
+        style={{ background: "#0A0A0A", color: "#fff" }}
+      >
+        <div className="text-center max-w-md px-6">
+          <p
+            className="mb-3 text-[14px] tracking-[0.08em] uppercase"
+            style={{ color: "#E8001D", fontFamily: "'Barlow', sans-serif" }}
+          >
+            No on-chain match deployed yet
+          </p>
+          <p className="mb-4 text-[12px]" style={{ color: "#888" }}>
+            /live/999999 binds to <code>factory.getAllMatches().at(-1)</code>. Create a match in <code>/admin</code> first.
+          </p>
+          <button
+            onClick={() => router.push("/admin")}
+            className="px-4 py-2 rounded text-[12px] font-bold tracking-[0.08em] uppercase"
+            style={{ background: "#E8001D", color: "#fff", fontFamily: "'Barlow', sans-serif" }}
+          >
+            Open /admin
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if ((queryError && !isTestMatch) || !matchData) {
     return (
       <div
         className="flex items-center justify-center h-full"
@@ -285,4 +386,24 @@ export default function LiveDetailsPage({ id }: LiveDetailsPageProps) {
       )}
     </div>
   );
+}
+
+function splitTeamNames(name: string): { home: string; away: string } {
+  const trimmed = name.trim();
+  for (const sep of [" vs ", " VS ", " v ", " - ", " — "]) {
+    const idx = trimmed.indexOf(sep);
+    if (idx > 0) {
+      return { home: trimmed.slice(0, idx).trim(), away: trimmed.slice(idx + sep.length).trim() };
+    }
+  }
+  return { home: trimmed, away: "—" };
+}
+
+// `factory.getSportType` returns the SportType enum (uint8): 0 = FOOTBALL, 1 = BASKETBALL.
+// Codegen typed it as bigint, but readContract sometimes returns a plain number — accept both.
+function sportLabel(sportType: unknown): string {
+  const n = typeof sportType === "bigint" ? Number(sportType) : sportType;
+  if (n === 0) return "FOOTBALL (test)";
+  if (n === 1) return "BASKETBALL (test)";
+  return "TEST";
 }

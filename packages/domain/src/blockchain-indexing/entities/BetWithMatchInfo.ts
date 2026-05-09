@@ -16,4 +16,14 @@ export interface BetWithMatchInfo {
         readonly leagueName: string | null;
         readonly matchDate: Date;
     } | null;
+    /**
+     * Market context joined from the `MarketCreated` event indexed for
+     * `(contract_address, market_id)`. Lets the front render
+     * "Over 2.5 goals" instead of `Selection #1`. Null when the event
+     * predates the indexer or the lookup fails.
+     */
+    readonly marketContext: {
+        readonly marketType: string;
+        readonly line: number | null;
+    } | null;
 }

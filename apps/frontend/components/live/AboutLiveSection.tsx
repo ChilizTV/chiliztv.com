@@ -4,10 +4,11 @@ import { useState } from "react";
 import { Heart, Gift, Star } from "lucide-react";
 import type { Address } from "viem";
 import { useIsFollowing, useFollowMutation, useUnfollowMutation } from "@/hooks/api";
+import { useMyBetsOnMatch } from "@/components/features/dashboard/hooks/useMyBetsOnMatch";
 import { MatchMarketsList } from "./MatchMarketsList";
-import { StreamerSchedule, type ScheduledStream } from "./StreamerSchedule";
+import { MyBetsOnMatch } from "./MyBetsOnMatch";
 
-type Tab = "markets" | "schedule";
+type Tab = "markets" | "mybets";
 
 interface AboutLiveSectionProps {
   streamerId?: string;
@@ -18,7 +19,8 @@ interface AboutLiveSectionProps {
   walletAddress?: string;
   homeTeam?: string;
   awayTeam?: string;
-  streamerSchedule?: ScheduledStream[];
+  /** Per-market odds (DB JSONB) — drives the cells + gates the bet when missing. */
+  matchOdds?: import('@/types/api.types').MatchOdds;
   onDonate?: () => void;
   onSubscribe?: () => void;
   /** When true, donate/subscribe affordances are hidden (own stream / no streamer). */
@@ -34,12 +36,20 @@ export function AboutLiveSection({
   walletAddress,
   homeTeam,
   awayTeam,
-  streamerSchedule,
+  matchOdds,
   onDonate,
   onSubscribe,
   hideStreamerActions = false,
 }: AboutLiveSectionProps) {
   const [activeTab, setActiveTab] = useState<Tab>("markets");
+
+  // Drives the "My Bet (count)" tab label so the user spots their position
+  // without opening the tab first. Same hook is consumed inside the panel.
+  const { bets } = useMyBetsOnMatch({
+    user: walletAddress,
+    contractAddress: bettingContractAddress,
+  });
+  const myBetsCount = bets.length;
 
   const canFollow = !!currentUserId && !!streamerId && currentUserId !== streamerId;
 
@@ -65,7 +75,10 @@ export function AboutLiveSection({
 
   const tabs: { key: Tab; label: string }[] = [
     { key: "markets", label: "Markets" },
-    { key: "schedule", label: "Schedule" },
+    {
+      key: "mybets",
+      label: `My Bet${myBetsCount > 1 ? "s" : ""}${myBetsCount > 0 ? ` (${myBetsCount})` : ""}`,
+    },
   ];
 
   return (
@@ -201,12 +214,13 @@ export function AboutLiveSection({
             walletAddress={walletAddress}
             homeTeam={homeTeam}
             awayTeam={awayTeam}
+            matchOdds={matchOdds}
           />
         ) : (
-          <StreamerSchedule
-            streamerId={streamerId}
-            streamerName={streamerName}
-            schedule={streamerSchedule}
+          <MyBetsOnMatch
+            contractAddress={bettingContractAddress}
+            walletAddress={walletAddress}
+            onPickMarket={() => setActiveTab("markets")}
           />
         )}
       </div>

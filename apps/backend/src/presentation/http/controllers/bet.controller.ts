@@ -10,7 +10,7 @@ const DEFAULT_LIMIT = 50;
 const MAX_LIMIT = 200;
 
 function serializeBet(entry: BetWithMatchInfo): Record<string, unknown> {
-    const { bet, match } = entry;
+    const { bet, match, marketContext } = entry;
     return {
         txHash: bet.coordinates.transactionHash,
         logIndex: bet.coordinates.logIndex,
@@ -32,6 +32,11 @@ function serializeBet(entry: BetWithMatchInfo): Record<string, unknown> {
         resolvedAt: bet.resolvedAt?.toISOString() ?? null,
         claimedAt: bet.claimedAt?.toISOString() ?? null,
         refundedAt: bet.refundedAt?.toISOString() ?? null,
+        // Market context (Lot 5) — short-name string ("WINNER", "GOALS_TOTAL"…)
+        // and tenths-of-goal `line` (25 = 2.5). Null when MarketCreated event
+        // wasn't indexed for this market — front falls back to `Selection #N`.
+        marketType: marketContext?.marketType ?? null,
+        line: marketContext?.line ?? null,
         match: match
             ? {
                   apiFootballId: match.apiFootballId,

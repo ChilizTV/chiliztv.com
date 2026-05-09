@@ -23,10 +23,19 @@ export interface MatchProps {
   updatedAt: Date;
 }
 
+/**
+ * Per-market odds posted by the admin. Each top-level key matches a
+ * `bytes32` market hash on-chain. Optional — missing key = no odds posted,
+ * the front must disable betting on that market.
+ *
+ * `goalsTotal.line` is in goals (e.g. 2.5), not contract tenths.
+ */
 export interface MatchOdds {
-  homeWin: number;
-  draw: number;
-  awayWin: number;
+  winner?: { homeWin: number; draw: number; awayWin: number };
+  halftime?: { homeWin: number; draw: number; awayWin: number };
+  goalsTotal?: { line: number; over: number; under: number };
+  bothScore?: { yes: number; no: number };
+  firstScorer?: { home: number; away: number; none: number };
 }
 
 export class Match {

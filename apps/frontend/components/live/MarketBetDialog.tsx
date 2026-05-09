@@ -3,12 +3,10 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { erc20Abi, formatUnits, maxUint256, parseUnits, type Address } from "viem";
 import { useBalance, useReadContract, useWaitForTransactionReceipt, useWriteContract } from "wagmi";
-import { TrendingUp, ExternalLink, CheckCircle2, ChevronDown } from "lucide-react";
 import { toast } from "sonner";
 import {
   Dialog,
   DialogContent,
-  DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useChilizSwapRouter } from "@/hooks/useChilizSwapRouter";
@@ -18,10 +16,32 @@ import { chilizConfig } from "@/config/chiliz.config";
 import { decodeContractError } from "@/lib/contracts/errors";
 import { NetworkGuard } from "@/components/web3/NetworkGuard";
 import {
+  useBettingMatchReadGetCurrentOdds,
   useBettingMatchReadQuoteNetExposure,
   useBettingMatchWatchBetPlaced,
+  useBettingMatchFactoryReadGetSportType,
   useLiquidityPoolReadFreeBalance,
+  useLiquidityPoolReadMaxBetAmount,
+  useChilizSwapRouterSimulatePlaceBetWithUsdc,
+  useChilizSwapRouterSimulatePlaceBetWithChz,
+  useChilizSwapRouterSimulatePlaceBetWithToken,
 } from "@/lib/contracts/generated";
+import {
+  fmtSelectionByMarket,
+  getMarketSpec,
+  isFootballMatch,
+  MarketState,
+} from "@/lib/contracts/markets";
+import { BdEyebrow } from "./dialog/BdEyebrow";
+import { StepIndicator, BET_DIALOG_STEPS } from "./dialog/StepIndicator";
+import { ErrorBanner } from "./dialog/ErrorBanner";
+import { DialogFooter } from "./dialog/DialogFooter";
+import { BetSelectionStep } from "./dialog/BetSelectionStep";
+import { BetStakeStep } from "./dialog/BetStakeStep";
+import { BetReviewStep } from "./dialog/BetReviewStep";
+import { BetSuccessStep } from "./dialog/BetSuccessStep";
+import { UnsupportedSportPanel } from "./UnsupportedSportPanel";
+import type { BetTokenOption } from "./dialog/TokenSelectModal";
 import type { MarketSelection } from "./MatchMarketsList";
 
 interface MarketBetDialogProps {
@@ -34,36 +54,39 @@ interface MarketBetDialogProps {
   awayTeam?: string;
 }
 
-interface Outcome {
-  selection: number;
-  label: string;
-  hint?: string;
-}
-
 type BetToken =
   | { kind: "USDC" }
   | { kind: "CHZ" }
   | { kind: "ERC20"; address: Address; symbol: string; name: string };
 
-const PERCENTS = [25, 50, 75, 100] as const;
+type Phase = "pick" | "stake" | "review" | "success";
+
 const NATIVE_DECIMALS = 18;
 const FAN_TOKEN_DECIMALS = 18;
 const DEADLINE_MIN = 20; // minutes
 const DEFAULT_SLIPPAGE_BPS = 50; // 0.5%
-// MIN_NET_STAKE on the match is 0.1 USDC. We keep a small UX-side floor of 1
-// of the input token to avoid quoting tiny amounts that round to zero.
-const MIN_INPUT = 1;
-
-function tokenDecimals(t: BetToken, usdcDecimals: number | undefined): number | undefined {
-  if (t.kind === "USDC") return usdcDecimals;
-  if (t.kind === "CHZ") return NATIVE_DECIMALS;
-  return FAN_TOKEN_DECIMALS;
-}
+const SLIPPAGE_PRESETS_BPS = [10, 50, 100] as const;
+const PROTOCOL_FEE_BPS = 250; // 2.5% on win — matches the design copy.
 
 function tokenLabel(t: BetToken): string {
   if (t.kind === "USDC") return "USDC";
   if (t.kind === "CHZ") return "CHZ";
   return t.symbol;
+}
+function tokenDecimals(t: BetToken, usdcDecimals: number | undefined): number | undefined {
+  if (t.kind === "USDC") return usdcDecimals;
+  if (t.kind === "CHZ") return NATIVE_DECIMALS;
+  return FAN_TOKEN_DECIMALS;
+}
+function tokenLogoBg(kind: BetToken["kind"]): string {
+  if (kind === "USDC") return "#2775CA";
+  if (kind === "CHZ") return "#E8001D";
+  return "#1E1E1E";
+}
+function tokenLogoTxt(kind: BetToken["kind"]): string | undefined {
+  if (kind === "USDC") return "$";
+  if (kind === "CHZ") return "C";
+  return undefined;
 }
 
 function formatUsdc(value: bigint | undefined, decimals: number | undefined, fractionDigits = 2): string {
@@ -75,41 +98,10 @@ function formatUsdc(value: bigint | undefined, decimals: number | undefined, fra
   });
 }
 
-function getOutcomes(
-  marketTypeKey: string,
-  line: number,
-  homeTeam?: string,
-  awayTeam?: string,
-): Outcome[] {
-  switch (marketTypeKey) {
-    case "winner":
-    case "halftime":
-      return [
-        { selection: 0, label: homeTeam ?? "Home", hint: "Home win" },
-        { selection: 1, label: "Draw", hint: "Tie" },
-        { selection: 2, label: awayTeam ?? "Away", hint: "Away win" },
-      ];
-    case "goalstotal": {
-      const ln = (line / 10).toFixed(1);
-      return [
-        { selection: 0, label: `Over ${ln}`, hint: "More goals" },
-        { selection: 1, label: `Under ${ln}`, hint: "Fewer goals" },
-      ];
-    }
-    case "bothscore":
-      return [
-        { selection: 0, label: "Yes", hint: "Both teams score" },
-        { selection: 1, label: "No", hint: "At least one shut out" },
-      ];
-    case "firstscorer":
-      return [
-        { selection: 0, label: homeTeam ?? "Home", hint: "Scores first" },
-        { selection: 1, label: awayTeam ?? "Away", hint: "Scores first" },
-        { selection: 2, label: "No Goal", hint: "0-0 at full time" },
-      ];
-    default:
-      return [];
-  }
+function fmtUsd(n: number | null, dp = 2): string {
+  if (n === null || Number.isNaN(n)) return "—";
+  const sign = n < 0 ? "-" : "";
+  return sign + "$" + Math.abs(n).toFixed(dp).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 }
 
 export function MarketBetDialog({
@@ -121,34 +113,84 @@ export function MarketBetDialog({
   homeTeam,
   awayTeam,
 }: MarketBetDialogProps) {
+  // ── State machine ───────────────────────────────────────────────────────
+  const [phase, setPhase] = useState<Phase>("pick");
   const [selectedOutcome, setSelectedOutcome] = useState<number | null>(null);
   const [amount, setAmount] = useState("");
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [token, setToken] = useState<BetToken>({ kind: "USDC" });
-  const [showTokenList, setShowTokenList] = useState(false);
   const [slippageBps, setSlippageBps] = useState<number>(DEFAULT_SLIPPAGE_BPS);
+  const [bannerError, setBannerError] = useState<string | null>(null);
 
+  // ── Sport-type guard ────────────────────────────────────────────────────
+  const { data: sportType } = useBettingMatchFactoryReadGetSportType({
+    address: chilizConfig.bettingMatchFactory,
+    args: contractAddress ? [contractAddress] : undefined,
+    chainId: chilizConfig.chainId,
+    query: { enabled: !!contractAddress && open },
+  });
+  const isFootball = sportType === undefined ? true : isFootballMatch(sportType);
+
+  // ── Catalog lookup ──────────────────────────────────────────────────────
+  const marketSpec = useMemo(
+    () => (selection ? getMarketSpec(selection.marketTypeHash) : null),
+    [selection],
+  );
   const outcomes = useMemo(
-    () => (selection ? getOutcomes(selection.marketTypeKey, selection.line, homeTeam, awayTeam) : []),
-    [selection, homeTeam, awayTeam],
+    () => (marketSpec && selection
+      ? marketSpec.getOutcomes(selection.line, homeTeam, awayTeam)
+      : []),
+    [marketSpec, selection, homeTeam, awayTeam],
   );
 
-  // Multi-asset bet entrypoint. All bets settle in USDC inside the pool;
-  // the router handles the FanX swap when needed.
+  // Pre-fill outcome when a Predict cell on the list passed `defaultSelection`.
+  useEffect(() => {
+    if (!open || !selection) return;
+    const ds = selection.defaultSelection;
+    if (ds === undefined) return;
+    if (outcomes.some((o) => o.selection === ds)) {
+      setSelectedOutcome(ds);
+      setPhase("stake");
+    }
+  }, [open, selection, outcomes]);
+
+  // Reset state every time the dialog closes / market changes.
+  useEffect(() => {
+    if (!open) {
+      setPhase("pick");
+      setSelectedOutcome(null);
+      setAmount("");
+      setToken({ kind: "USDC" });
+      setSlippageBps(DEFAULT_SLIPPAGE_BPS);
+      setBannerError(null);
+    }
+  }, [open, selection?.marketId]);
+
+  // Catalog miss (e.g. CORRECT_SCORE leaked in via deep link) → toast + close.
+  useEffect(() => {
+    if (!open || !selection) return;
+    if (!isFootball) return;
+    if (!marketSpec) {
+      toast.warning("Market not available", {
+        description: "This market type isn't supported in the betting UI yet.",
+      });
+      onClose();
+    }
+  }, [open, selection, marketSpec, isFootball, onClose]);
+
+  // ── Tx wiring (existing path) ──────────────────────────────────────────
   const { placeBet, betState, routerAddress } = useChilizSwapRouter();
   const { assetDecimals: usdcDecimals } = usePoolDecimals();
 
   const decimals = tokenDecimals(token, usdcDecimals);
   const numericAmount = Number(amount);
-  const isValidAmount = !Number.isNaN(numericAmount) && numericAmount >= MIN_INPUT;
+  const isValidAmount = !Number.isNaN(numericAmount) && numericAmount > 0;
   const parsedAmount: bigint =
     isValidAmount && decimals !== undefined ? parseUnits(amount, decimals) : BigInt(0);
 
-  // ── Token-specific balance + allowance ─────────────────────────────────
   const erc20Address: Address | undefined = useMemo(() => {
     if (token.kind === "USDC") return chilizConfig.usdc;
     if (token.kind === "ERC20") return token.address;
-    return undefined; // CHZ has no ERC20 address
+    return undefined;
   }, [token]);
 
   const { data: erc20Balance } = useBalance({
@@ -157,13 +199,11 @@ export function MarketBetDialog({
     chainId: chilizConfig.chainId,
     query: { enabled: !!walletAddress && !!erc20Address },
   });
-
   const { data: nativeBalance } = useBalance({
     address: token.kind === "CHZ" ? (walletAddress as Address | undefined) : undefined,
     chainId: chilizConfig.chainId,
     query: { enabled: token.kind === "CHZ" && !!walletAddress },
   });
-
   const balance: number = token.kind === "CHZ"
     ? (nativeBalance ? Number(nativeBalance.formatted) : 0)
     : (erc20Balance ? Number(erc20Balance.formatted) : 0);
@@ -180,40 +220,23 @@ export function MarketBetDialog({
   });
   const allowance = (allowanceData as bigint | undefined) ?? BigInt(0);
 
-  // ── Approval flow (ERC20 paths only) ────────────────────────────────────
-  const {
-    writeContract: writeApprove,
-    data: approveTxHash,
-    isPending: isApprovePending,
-    error: approveError,
-  } = useWriteContract();
+  const { writeContract: writeApprove, data: approveTxHash, isPending: isApprovePending, error: approveError } =
+    useWriteContract();
   const { isLoading: isApproveConfirming, isSuccess: isApproveSuccess } =
     useWaitForTransactionReceipt({ hash: approveTxHash });
-
   useEffect(() => {
     if (isApproveSuccess) refetchAllowance();
   }, [isApproveSuccess, refetchAllowance]);
 
-  // ── FanX/Kayen quote for non-USDC paths ────────────────────────────────
   const quoteTokenIn: Address | undefined =
     token.kind === "ERC20" ? token.address : token.kind === "CHZ" ? chilizConfig.wchz : undefined;
   const { amountOut: quotedUsdcOut, error: quoteError, isLoading: quoteLoading } = useKayenQuote(
     parsedAmount > BigInt(0) ? parsedAmount : undefined,
     quoteTokenIn,
   );
-
-  // Kayen has no path for the chosen non-USDC token — fail fast in the UI
-  // instead of letting MetaMask report "transaction network fees unavailable"
-  // when the swap reverts at gas estimation.
   const swapPathMissing =
-    token.kind !== "USDC" &&
-    parsedAmount > BigInt(0) &&
-    !quoteLoading &&
-    quoteError !== null;
-
-  // User picked USDC but holds none at the on-chain token address.
-  const usdcZeroBalance =
-    token.kind === "USDC" && balance <= 0;
+    token.kind !== "USDC" && parsedAmount > BigInt(0) && !quoteLoading && quoteError !== null;
+  const usdcZeroBalance = token.kind === "USDC" && balance <= 0;
 
   const amountOutMin: bigint = useMemo(() => {
     if (token.kind === "USDC" || quotedUsdcOut === undefined) return BigInt(0);
@@ -221,23 +244,8 @@ export function MarketBetDialog({
     return (quotedUsdcOut * slippageMul) / BigInt(10_000);
   }, [token.kind, quotedUsdcOut, slippageBps]);
 
-  // ── Pre-bet liquidity check ────────────────────────────────────────────
-  // The pool reverts on `recordBet` if `totalLiabilities + netExposure` would
-  // exceed the USDC balance. Catching this here keeps users from getting an
-  // unhelpful "gas estimation failed" pop-up from MetaMask.
-  //
-  // The expected stake the pool will see is:
-  //   - USDC path: `parsedAmount` directly.
-  //   - Non-USDC : the worst-case swap output we'd accept = `amountOutMin`.
-  //                Using amountOutMin (post-slippage) instead of the quote keeps
-  //                the check conservative — if we'd already revert at min-out
-  //                liquidity, we definitely shouldn't submit.
   const expectedStakeUsdc: bigint =
-    token.kind === "USDC"
-      ? parsedAmount
-      : amountOutMin > BigInt(0)
-        ? amountOutMin
-        : BigInt(0);
+    token.kind === "USDC" ? parsedAmount : amountOutMin > BigInt(0) ? amountOutMin : BigInt(0);
 
   const { data: quoteNetExposure } = useBettingMatchReadQuoteNetExposure({
     address: contractAddress,
@@ -247,133 +255,189 @@ export function MarketBetDialog({
     chainId: chilizConfig.chainId,
     query: { enabled: !!selection && expectedStakeUsdc > BigInt(0) },
   });
-
   const { data: poolFreeBalance } = useLiquidityPoolReadFreeBalance({
     address: chilizConfig.liquidityPool,
     chainId: chilizConfig.chainId,
   });
-
-  // True when the netExposure this bet would reserve exceeds what the pool
-  // has free. Surface a friendly error before tx submission.
   const insufficientLiquidity: boolean =
     quoteNetExposure !== undefined &&
     poolFreeBalance !== undefined &&
     (quoteNetExposure as bigint) > (poolFreeBalance as bigint);
 
-  // ── Status flags ────────────────────────────────────────────────────────
-  const { isPending, isConfirming, isSuccess, txHash, error: txError } = betState;
-  const isApproving = isApprovePending || isApproveConfirming;
-  const isLoading = isPending || isConfirming || isApproving;
-  const isMarketOpen = selection?.state === 1;
+  const insufficientBalance = parsedAmount > BigInt(0) && balance < numericAmount;
 
-  // Live confirmation: watch BetPlaced filtered to this user + market. Receipt
-  // success already proves the tx was mined, but the event watcher gives a
-  // belt-and-braces cross-check that the contract actually emitted the bet
-  // (and lets the indexer-driven my-bets page show the row immediately).
-  const [eventConfirmed, setEventConfirmed] = useState(false);
-  const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  useBettingMatchWatchBetPlaced({
+  // DB odds drive the picker. On-chain `currentOdds` is *only* read here as a
+  // gate: if the admin hasn't synced odds on-chain (`= 0`), the contract will
+  // revert at place-time with `OddsNotSet` regardless of what the DB says.
+  // Block the user before they sign and burn gas.
+  const { data: onChainOddsRaw } = useBettingMatchReadGetCurrentOdds({
     address: contractAddress,
+    args: selection ? [BigInt(selection.marketId)] : undefined,
     chainId: chilizConfig.chainId,
-    args: walletAddress && selection
-      ? { marketId: BigInt(selection.marketId), user: walletAddress as Address }
-      : undefined,
-    enabled: open && isSuccess && !eventConfirmed,
-    onLogs(logs) {
-      // The wagmi-generated watcher fires only for matching (user, marketId)
-      // logs thanks to the `args` filter — any hit is ours.
-      if (logs.length > 0) setEventConfirmed(true);
-    },
+    query: { enabled: !!selection && open, refetchInterval: 8_000 },
   });
+  const onChainOddsSet =
+    typeof onChainOddsRaw === "number" ? onChainOddsRaw > 0 : false;
 
-  // Auto-close: 1.5s after isSuccess so the user sees the success state and
-  // can click the explorer link, then dismiss. We don't wait for the event
-  // confirm to close (RPC public can drop subscriptions), but if the event
-  // arrives faster we close on it instead.
-  useEffect(() => {
-    if (!open) {
-      if (closeTimerRef.current) {
-        clearTimeout(closeTimerRef.current);
-        closeTimerRef.current = null;
-      }
-      setEventConfirmed(false);
-      return;
-    }
-    if (!isSuccess) return;
-    if (closeTimerRef.current) return;
-    const delayMs = eventConfirmed ? 1_200 : 4_000;
-    closeTimerRef.current = setTimeout(() => {
-      onClose();
-      closeTimerRef.current = null;
-    }, delayMs);
-    return () => {
-      if (closeTimerRef.current) {
-        clearTimeout(closeTimerRef.current);
-        closeTimerRef.current = null;
-      }
+  // Pool max-bet cap.
+  const { data: maxBetAmountRaw } = useLiquidityPoolReadMaxBetAmount({
+    address: chilizConfig.liquidityPool,
+    chainId: chilizConfig.chainId,
+  });
+  const maxBetAmountCapped =
+    typeof maxBetAmountRaw === "bigint" && maxBetAmountRaw > BigInt(0) ? maxBetAmountRaw : null;
+  const expectedStakeExceedsCap =
+    !!maxBetAmountCapped && expectedStakeUsdc > BigInt(0) && expectedStakeUsdc > maxBetAmountCapped;
+
+  // ── Tx flags ────────────────────────────────────────────────────────────
+  const { isPending, isConfirming, isSuccess, txHash, error: txError, isReverted, isUserRejected } = betState;
+  const isApproving = isApprovePending || isApproveConfirming;
+  const submitting = isPending || isConfirming || isApproving;
+  const isMarketOpen = selection?.state === MarketState.Open;
+
+  // Map the stake decimal stream into the token shape the design's StakeStep wants.
+  const fanTokens = (chilizConfig.tokens || []).filter((t) => !!t.tokenAddress);
+  const tokenOptions: ReadonlyArray<BetTokenOption & { kind: BetToken["kind"]; address?: Address }> = useMemo(() => {
+    const usdc: BetTokenOption & { kind: BetToken["kind"] } = {
+      kind: "USDC",
+      key: "USDC",
+      sym: "USDC",
+      name: "USD Coin",
+      balance: token.kind === "USDC" ? balance : 0,
+      decimals: usdcDecimals ?? 2,
+      needsSwap: false,
+      logoTxt: "$",
+      logoBg: "#2775CA",
     };
-  }, [open, isSuccess, eventConfirmed, onClose]);
+    const chz: BetTokenOption & { kind: BetToken["kind"] } = {
+      kind: "CHZ",
+      key: "CHZ",
+      sym: "CHZ",
+      name: "Chiliz",
+      balance: token.kind === "CHZ" ? balance : 0,
+      decimals: 4,
+      needsSwap: true,
+      logoTxt: "C",
+      logoBg: "#E8001D",
+    };
+    const erc20s = fanTokens.map((t) => ({
+      kind: "ERC20" as const,
+      address: t.tokenAddress as Address,
+      key: t.symbol,
+      sym: t.symbol,
+      name: t.name,
+      balance: token.kind === "ERC20" && token.address === t.tokenAddress ? balance : 0,
+      decimals: 4,
+      needsSwap: true,
+    }));
+    return [usdc, chz, ...erc20s];
+  }, [fanTokens, token, balance, usdcDecimals]);
 
-  // Sonner toast on success (rendered above the dialog by the global Toaster).
-  const toastFiredRef = useRef(false);
-  useEffect(() => {
-    if (isSuccess && !toastFiredRef.current) {
-      toast.success("Prediction placed", {
-        description: txHash ? `${txHash.slice(0, 10)}…${txHash.slice(-8)}` : undefined,
-      });
-      toastFiredRef.current = true;
-    }
-    if (!open) toastFiredRef.current = false;
-  }, [isSuccess, txHash, open]);
+  const currentTokenOption: BetTokenOption = useMemo(() => {
+    const sym = tokenLabel(token);
+    return {
+      key: sym,
+      sym,
+      name: token.kind === "USDC" ? "USD Coin" : token.kind === "CHZ" ? "Chiliz" : token.name,
+      balance,
+      decimals: token.kind === "USDC" ? usdcDecimals ?? 2 : 4,
+      needsSwap: token.kind !== "USDC",
+      logoTxt: tokenLogoTxt(token.kind),
+      logoBg: tokenLogoBg(token.kind),
+    };
+  }, [token, balance, usdcDecimals]);
 
-  // Reset form when dialog closes or market changes
-  useEffect(() => {
-    if (!open) {
-      setSelectedOutcome(null);
-      setAmount("");
-      setErrorMessage(null);
-      setShowTokenList(false);
-    }
-  }, [open, selection?.marketId]);
+  // ── Submit tx (approve OR placeBet) ─────────────────────────────────────
+  const needsApproval =
+    token.kind !== "CHZ" && parsedAmount > BigInt(0) && allowance < parsedAmount;
 
+  // Per-outcome DB odds. Source of truth for the picker, stake/review labels,
+  // and the `canPlaceBet` gate — no fake odds when the admin hasn't posted any.
+  const oddsBySelection = selection?.oddsBySelection ?? new Map<number, number>();
+  const oddsDecimal =
+    selectedOutcome !== null ? oddsBySelection.get(selectedOutcome) ?? null : null;
+  const hasAnyOdds = oddsBySelection.size > 0;
+
+  // ── Pre-flight simulation ──────────────────────────────────────────────
+  // Runs the same call viem will send and surfaces the contract's revert
+  // reason BEFORE the user signs. Each path has its own simulate hook.
+  const deadlineForSim = BigInt(Math.floor(Date.now() / 1000) + DEADLINE_MIN * 60);
+  const simEnabled =
+    !!walletAddress &&
+    !!selection &&
+    selectedOutcome !== null &&
+    parsedAmount > BigInt(0) &&
+    onChainOddsSet &&
+    isMarketOpen;
+
+  // ABI signatures (verified against ChilizSwapRouter):
+  //   placeBetWithUSDC(bettingMatch, marketId, selection, amount)
+  //   placeBetWithCHZ (bettingMatch, marketId, selection, amountOutMin, deadline)  payable
+  //   placeBetWithToken(token, amount, bettingMatch, marketId, selection, amountOutMin, deadline)
+  const usdcSim = useChilizSwapRouterSimulatePlaceBetWithUsdc({
+    address: routerAddress,
+    args: simEnabled && token.kind === "USDC"
+      ? [contractAddress, BigInt(selection!.marketId), BigInt(selectedOutcome!), parsedAmount]
+      : undefined,
+    chainId: chilizConfig.chainId,
+    query: { enabled: simEnabled && token.kind === "USDC" },
+  });
+  const chzSim = useChilizSwapRouterSimulatePlaceBetWithChz({
+    address: routerAddress,
+    args: simEnabled && token.kind === "CHZ"
+      ? [contractAddress, BigInt(selection!.marketId), BigInt(selectedOutcome!), amountOutMin, deadlineForSim]
+      : undefined,
+    value: simEnabled && token.kind === "CHZ" ? parsedAmount : undefined,
+    chainId: chilizConfig.chainId,
+    query: { enabled: simEnabled && token.kind === "CHZ" },
+  });
+  const tokenSim = useChilizSwapRouterSimulatePlaceBetWithToken({
+    address: routerAddress,
+    args: simEnabled && token.kind === "ERC20"
+      ? [token.address, parsedAmount, contractAddress, BigInt(selection!.marketId), BigInt(selectedOutcome!), amountOutMin, deadlineForSim]
+      : undefined,
+    chainId: chilizConfig.chainId,
+    query: { enabled: simEnabled && token.kind === "ERC20" && !needsApproval },
+  });
+  const simError =
+    token.kind === "USDC"
+      ? usdcSim.error
+      : token.kind === "CHZ"
+        ? chzSim.error
+        : tokenSim.error;
+  const simulationFailed = !!simError && !needsApproval;
+
+  // Surface the simulation revert reason directly into the banner so the user
+  // sees it before signing (rather than burning ~1 CHZ of gas).
   useEffect(() => {
-    const err = txError ?? approveError;
-    if (!err) {
-      setErrorMessage(null);
+    if (!simulationFailed || !simError) {
+      setBannerError(null);
       return;
     }
-    const decoded = decodeContractError(err);
-    setErrorMessage(decoded.description ? `${decoded.title} — ${decoded.description}` : decoded.title);
-  }, [txError, approveError]);
+    const decoded = decodeContractError(simError);
+    setBannerError(decoded.description ? `${decoded.title} — ${decoded.description}` : decoded.title);
+  }, [simulationFailed, simError]);
 
-  if (!selection) return null;
-
-  const needsApproval =
-    token.kind !== "CHZ" &&
-    parsedAmount > BigInt(0) &&
-    allowance < parsedAmount;
-
-  const insufficientBalance =
-    parsedAmount > BigInt(0) && balance < numericAmount;
-
-  const canSubmit =
+  const canPlaceBet =
     selectedOutcome !== null &&
+    oddsDecimal !== null &&
+    onChainOddsSet &&
     isValidAmount &&
     isMarketOpen &&
-    !isLoading &&
+    !submitting &&
     !insufficientBalance &&
     !insufficientLiquidity &&
     !swapPathMissing &&
     !usdcZeroBalance &&
+    !expectedStakeExceedsCap &&
+    !simulationFailed &&
     !!walletAddress;
 
-  const handleSubmit = () => {
-    if (!canSubmit || selectedOutcome === null || !walletAddress) return;
-    setErrorMessage(null);
+  const submit = () => {
+    if (!selection || selectedOutcome === null || !walletAddress) return;
+    setBannerError(null);
     try {
-      if (needsApproval) {
-        if (!erc20Address) return;
+      if (needsApproval && erc20Address) {
         writeApprove({
           abi: erc20Abi,
           address: erc20Address,
@@ -382,7 +446,6 @@ export function MarketBetDialog({
         });
         return;
       }
-
       const deadline = BigInt(Math.floor(Date.now() / 1000) + DEADLINE_MIN * 60);
       placeBet({
         token: token.kind === "USDC" ? "USDC" : token.kind === "CHZ" ? "CHZ" : token.address,
@@ -395,421 +458,298 @@ export function MarketBetDialog({
       });
     } catch (err) {
       const decoded = decodeContractError(err);
-      setErrorMessage(decoded.description ? `${decoded.title} — ${decoded.description}` : decoded.title);
+      setBannerError(decoded.description ? `${decoded.title} — ${decoded.description}` : decoded.title);
     }
   };
 
-  const setPercent = (pct: number) => {
-    if (balance <= 0) return;
-    const baseValue = (balance * pct) / 100;
-    // Reserve a small CHZ amount for gas when using "Max".
-    const value = token.kind === "CHZ" && pct === 100 ? Math.max(0, baseValue - 0.5) : baseValue;
-    setAmount(value.toFixed(4));
-  };
+  // ── Watch BetPlaced for indexer status ──────────────────────────────────
+  const [eventConfirmed, setEventConfirmed] = useState(false);
+  useBettingMatchWatchBetPlaced({
+    address: contractAddress,
+    chainId: chilizConfig.chainId,
+    args: walletAddress && selection
+      ? { marketId: BigInt(selection.marketId), user: walletAddress as Address }
+      : undefined,
+    enabled: open && isSuccess && !eventConfirmed,
+    onLogs(logs) {
+      if (logs.length > 0) setEventConfirmed(true);
+    },
+  });
+  useEffect(() => {
+    if (!open) setEventConfirmed(false);
+  }, [open]);
 
-  const fanTokens = (chilizConfig.tokens || []).filter((t) => !!t.tokenAddress);
-  const tokenOptions: BetToken[] = [
-    { kind: "USDC" },
-    { kind: "CHZ" },
-    ...fanTokens.map((t) => ({ kind: "ERC20" as const, address: t.tokenAddress as Address, symbol: t.symbol, name: t.name })),
-  ];
+  // Tx success → advance to success phase (one-shot).
+  const advancedRef = useRef(false);
+  useEffect(() => {
+    if (open && isSuccess && !advancedRef.current) {
+      advancedRef.current = true;
+      setPhase("success");
+      toast.success("Prediction placed", {
+        description: txHash ? `${txHash.slice(0, 10)}…${txHash.slice(-8)}` : undefined,
+      });
+    }
+    if (!open) advancedRef.current = false;
+  }, [open, isSuccess, txHash]);
+
+  // Surface tx / approve errors into the banner.
+  useEffect(() => {
+    const err = txError ?? approveError;
+    if (!err) return;
+    // Wallet popup rejected — flag explicitly so the user knows what happened.
+    if (isUserRejected) {
+      setBannerError("Transaction cancelled in your wallet. Try again when you're ready.");
+      return;
+    }
+    const decoded = decodeContractError(err);
+    setBannerError(decoded.description ? `${decoded.title} — ${decoded.description}` : decoded.title);
+  }, [txError, approveError, isUserRejected]);
+
+  // Receipt came back with status: 'reverted' — the tx mined but the contract
+  // refused. Surface a clear banner with a tx-hash link.
+  useEffect(() => {
+    if (!isReverted || !txHash) return;
+    setBannerError(
+      `Transaction failed on-chain (${txHash.slice(0, 10)}…${txHash.slice(-8)}). Gas was spent but no bet was placed — check the explorer for the revert reason.`,
+    );
+  }, [isReverted, txHash]);
+
+  // ── Derived display strings ─────────────────────────────────────────────
+  const stakeUsdcEquivNum = (() => {
+    if (token.kind === "USDC") return numericAmount > 0 ? numericAmount : null;
+    if (quotedUsdcOut !== undefined && usdcDecimals !== undefined) {
+      return Number(formatUnits(quotedUsdcOut, usdcDecimals));
+    }
+    return null;
+  })();
+  const grossPayoutUsdc =
+    stakeUsdcEquivNum !== null && oddsDecimal !== null ? stakeUsdcEquivNum * oddsDecimal : null;
+
+  const selectionLabel = selection
+    ? fmtSelectionByMarket(
+        selectedOutcome ?? -1,
+        selection.marketTypeHash,
+        selection.line,
+        homeTeam,
+        awayTeam,
+      )
+    : "—";
+  const stakeLabel = `${amount || "0"} ${tokenLabel(token)}`;
+  const netPayoutLabel =
+    grossPayoutUsdc !== null
+      ? fmtUsd(grossPayoutUsdc * (1 - PROTOCOL_FEE_BPS / 10_000))
+      : null;
+
+  // Compute the next-button state for each phase.
+  const continueLabelByPhase: Record<Phase, string> = {
+    pick: "Continue →",
+    stake: "Review →",
+    review: needsApproval ? `Approve ${tokenLabel(token)}` : "Place bet",
+    success: "Close",
+  };
+  const nextDisabled = (() => {
+    if (phase === "pick") {
+      return selectedOutcome === null || !isMarketOpen || oddsDecimal === null;
+    }
+    if (phase === "stake") return !isValidAmount || insufficientBalance || swapPathMissing || usdcZeroBalance;
+    if (phase === "review") return !canPlaceBet && !needsApproval;
+    return false;
+  })();
+
+  const onNext = () => {
+    if (phase === "pick") setPhase("stake");
+    else if (phase === "stake") setPhase("review");
+    else if (phase === "review") submit();
+    else if (phase === "success") onClose();
+  };
+  const onBack =
+    phase === "stake"
+      ? () => setPhase("pick")
+      : phase === "review"
+        ? () => setPhase("stake")
+        : undefined;
+
+  // Banner string — surface the most recent error, then secondary contextual hints.
+  const banner: string | null = (() => {
+    if (bannerError) return bannerError;
+    if (hasAnyOdds && !onChainOddsSet && phase !== "pick")
+      return "Odds posted in the back-office aren't yet synced on-chain — the contract would reject this bet. Ask the admin to run setOdds, then retry.";
+    if (expectedStakeExceedsCap && maxBetAmountCapped)
+      return `Stake exceeds the pool's per-bet cap of ${formatUsdc(maxBetAmountCapped, usdcDecimals)} USDC. Try a smaller amount.`;
+    if (insufficientLiquidity)
+      return `Pool too thin for this stake. Free balance: ${formatUsdc(poolFreeBalance as bigint | undefined, usdcDecimals)} USDC.`;
+    if (swapPathMissing) return `No FanX/Kayen liquidity for ${tokenLabel(token)} → USDC. Pick another token.`;
+    if (usdcZeroBalance && phase === "stake")
+      return `You hold 0 USDC at ${chilizConfig.usdc.slice(0, 8)}…${chilizConfig.usdc.slice(-6)}. Acquire test USDC before betting.`;
+    return null;
+  })();
+
+  if (!selection) return null;
+
+  // ── Render ──────────────────────────────────────────────────────────────
+  const stepIdx = phase === "pick" ? 0 : phase === "stake" ? 1 : phase === "review" ? 2 : 3;
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
       <DialogContent
-        className="sm:max-w-[460px] p-0 gap-0 rounded-lg overflow-hidden"
-        style={{ background: "#0F0F0F", color: "#fff", border: "1px solid #2A2A2A" }}
+        showCloseButton={false}
+        className="flex w-full max-w-[540px] flex-col overflow-hidden rounded-2xl border border-[#1E1E1E] bg-[#0A0A0A] p-0 gap-0"
+        style={{ maxHeight: "90dvh", boxShadow: "0 30px 80px rgba(0,0,0,0.55)" }}
       >
-        <div
-          className="h-[2px] w-full"
-          style={{ background: "linear-gradient(90deg, #E8001D 0%, transparent 60%)" }}
-        />
-
-        <DialogHeader className="p-0">
-          <div
-            className="px-5 py-4 flex items-center gap-2"
-            style={{ borderBottom: "1px solid #2A2A2A" }}
-          >
-            <TrendingUp size={14} style={{ color: "#E8001D" }} />
-            <DialogTitle
-              className="text-[14px] font-bold tracking-[0.1em] uppercase"
-              style={{ color: "#fff", fontFamily: "'Barlow Condensed', sans-serif" }}
-            >
-              {selection.marketLabel}
-            </DialogTitle>
-            <div className="flex-1" />
-            <span
-              className="text-[10px] font-semibold tracking-[0.08em] uppercase mr-6"
-              style={{ color: "#888", fontFamily: "'JetBrains Mono', monospace" }}
-            >
-              Pool {formatUsdc(selection.totalPool, usdcDecimals)} USDC
-            </span>
-          </div>
-        </DialogHeader>
-
-        {isSuccess ? (
-          <div className="px-5 py-8 flex flex-col items-center gap-3">
-            <CheckCircle2 size={36} style={{ color: "#00C853" }} />
-            <p
-              className="text-[14px] font-bold uppercase tracking-[0.08em]"
-              style={{ color: "#fff", fontFamily: "'Barlow Condensed', sans-serif" }}
-            >
-              Bet placed
-            </p>
-            {txHash && (
-              <a
-                href={`https://scan.chiliz.com/tx/${txHash}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-1.5 text-[11px]"
-                style={{ color: "#E8001D", fontFamily: "'JetBrains Mono', monospace" }}
-              >
-                {txHash.slice(0, 10)}…{txHash.slice(-8)}
-                <ExternalLink size={11} />
-              </a>
-            )}
-            <button
-              onClick={onClose}
-              className="mt-2 px-4 h-9 rounded text-[11px] font-bold tracking-[0.08em] uppercase transition-colors duration-150"
-              style={{
-                background: "#E8001D",
-                color: "#fff",
-                fontFamily: "'Barlow', sans-serif",
-              }}
-              onMouseEnter={(e) => {
-                (e.currentTarget as HTMLButtonElement).style.background = "#B0001A";
-              }}
-              onMouseLeave={(e) => {
-                (e.currentTarget as HTMLButtonElement).style.background = "#E8001D";
-              }}
-            >
-              Close
-            </button>
-          </div>
+        <DialogTitle className="sr-only">
+          Place bet — {selection.marketLabel} on {homeTeam ?? "Home"} vs {awayTeam ?? "Away"}
+        </DialogTitle>
+        {!isFootball ? (
+          <UnsupportedSportPanel onClose={onClose} />
         ) : (
-          <div className="px-5 py-5 space-y-5">
-            <NetworkGuard />
-
-            {/* Outcomes */}
-            <div className="space-y-2">
-              <div
-                className="text-[10px] font-semibold tracking-[0.1em] uppercase"
-                style={{ color: "#555", fontFamily: "'Barlow', sans-serif" }}
-              >
-                Pick an outcome
+          <>
+            {/* Sticky header */}
+            <div className="sticky top-0 z-[2] border-b border-[#1E1E1E] bg-[#0A0A0A]/95 backdrop-blur">
+              <div className="flex items-start justify-between gap-4 px-7 pb-4 pt-6">
+                <div className="min-w-0 flex-1">
+                  <BdEyebrow>Football · {selection.marketLabel}</BdEyebrow>
+                  <div
+                    className="font-display mt-2 text-[26px] uppercase leading-[0.95] tracking-[-0.015em] text-white sm:text-[30px]"
+                    style={{ fontWeight: 800 }}
+                  >
+                    {homeTeam ?? "Home"} <span className="text-white/40">vs</span> {awayTeam ?? "Away"}
+                  </div>
+                  <div className="font-mono-ctv mt-2 inline-flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.18em] text-white/55">
+                    <span>Market #{selection.marketId}</span>
+                    <span className="block h-3 w-px bg-[#2A2A2A]" />
+                    <span className="text-[#E8001D]">{marketSpec?.label ?? "—"}</span>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={onClose}
+                  aria-label="Close"
+                  className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-md border border-[#1E1E1E] text-white/55 transition-colors hover:border-[#E8001D] hover:text-white"
+                >
+                  <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.4}>
+                    <path d="M18 6 6 18M6 6l12 12" />
+                  </svg>
+                </button>
               </div>
-              {outcomes.length === 0 ? (
-                <div
-                  className="text-[12px] py-3 px-3 rounded"
-                  style={{
-                    background: "#1E1E1E",
-                    color: "#888",
-                    fontFamily: "'Barlow', sans-serif",
+              <StepIndicator steps={BET_DIALOG_STEPS} activeIdx={stepIdx} />
+              <ErrorBanner msg={banner} onDismiss={() => setBannerError(null)} />
+            </div>
+
+            {/* Body */}
+            <div className="flex-1 overflow-y-auto px-7 py-6">
+              <NetworkGuard />
+
+              {phase === "pick" && marketSpec && (
+                <BetSelectionStep
+                  marketKey={marketSpec.key}
+                  marketLabel={marketSpec.label}
+                  stepTitle={
+                    marketSpec.key === "winner"
+                      ? "Pick the winner"
+                      : marketSpec.key === "halftime"
+                        ? "Pick the halftime winner"
+                        : marketSpec.key === "firstscorer"
+                          ? "Who scores first?"
+                          : marketSpec.key === "goalstotal"
+                            ? "Over or Under?"
+                            : "Will both teams score?"
+                  }
+                  helper={marketSpec.hint}
+                  outcomes={outcomes}
+                  selectedSelection={selectedOutcome}
+                  onSelect={(s) => setSelectedOutcome(s)}
+                  state={selection.state}
+                  line={selection.line}
+                  homeTeam={homeTeam}
+                  awayTeam={awayTeam}
+                  oddsBySelection={oddsBySelection}
+                />
+              )}
+
+              {phase === "stake" && (
+                <BetStakeStep
+                  token={currentTokenOption}
+                  tokens={tokenOptions}
+                  amount={amount}
+                  onAmountChange={setAmount}
+                  onTokenChange={(tk) => {
+                    const next = tokenOptions.find((t) => t.key === tk.key);
+                    if (!next) return;
+                    if (next.kind === "USDC") setToken({ kind: "USDC" });
+                    else if (next.kind === "CHZ") setToken({ kind: "CHZ" });
+                    else if (next.address) setToken({ kind: "ERC20", address: next.address, symbol: next.sym, name: next.name });
+                    setAmount("");
                   }}
-                >
-                  This market has multiple outcomes — a future detail view will let you pick a specific score.
-                </div>
-              ) : (
-                <div
-                  className="grid gap-2"
-                  style={{ gridTemplateColumns: `repeat(${outcomes.length}, minmax(0, 1fr))` }}
-                >
-                  {outcomes.map((o) => {
-                    const isSelected = selectedOutcome === o.selection;
-                    return (
-                      <button
-                        key={o.selection}
-                        onClick={() => setSelectedOutcome(o.selection)}
-                        disabled={!isMarketOpen}
-                        className="flex flex-col items-center gap-1 px-2 py-3 rounded transition-colors duration-150"
-                        style={{
-                          background: isSelected ? "rgba(232,0,29,0.12)" : "#1E1E1E",
-                          border: `1px solid ${isSelected ? "#E8001D" : "#2A2A2A"}`,
-                          color: isSelected ? "#fff" : "#ccc",
-                          cursor: isMarketOpen ? "pointer" : "not-allowed",
-                          opacity: isMarketOpen ? 1 : 0.5,
-                        }}
-                      >
-                        <span
-                          className="text-[13px] font-bold uppercase truncate w-full text-center"
-                          style={{ fontFamily: "'Barlow Condensed', sans-serif" }}
-                        >
-                          {o.label}
-                        </span>
-                        {o.hint && (
-                          <span
-                            className="text-[10px]"
-                            style={{ color: "#666", fontFamily: "'Barlow', sans-serif" }}
-                          >
-                            {o.hint}
-                          </span>
-                        )}
-                      </button>
-                    );
-                  })}
-                </div>
+                  slippageBps={slippageBps}
+                  onSlippageChange={setSlippageBps}
+                  slippagePresetsBps={SLIPPAGE_PRESETS_BPS}
+                  selectionLabel={selectionLabel}
+                  insufficient={insufficientBalance}
+                  quotedUsdcAmount={
+                    quotedUsdcOut !== undefined && usdcDecimals !== undefined
+                      ? Number(formatUnits(quotedUsdcOut, usdcDecimals))
+                      : null
+                  }
+                />
+              )}
+
+              {phase === "review" && (
+                <BetReviewStep
+                  homeTeam={homeTeam}
+                  awayTeam={awayTeam}
+                  leagueLabel="Chiliz Spicy testnet"
+                  marketBadge={(marketSpec?.key ?? "").toUpperCase()}
+                  marketLabel={marketSpec?.label ?? "—"}
+                  selectionLabel={selectionLabel}
+                  oddsDecimal={oddsDecimal}
+                  stakeLabel={stakeLabel}
+                  stakeUsdcEquiv={
+                    stakeUsdcEquivNum !== null ? `${fmtUsd(stakeUsdcEquivNum)} USDC` : null
+                  }
+                  slippageBps={token.kind !== "USDC" ? slippageBps : null}
+                  grossPayoutUsdc={grossPayoutUsdc}
+                  feeBps={PROTOCOL_FEE_BPS}
+                />
+              )}
+
+              {phase === "success" && (
+                <BetSuccessStep
+                  txHash={txHash}
+                  selectionLabel={selectionLabel}
+                  stakeLabel={stakeLabel}
+                  oddsDecimal={oddsDecimal}
+                  netPayoutLabel={netPayoutLabel}
+                  onAnother={() => {
+                    setPhase("pick");
+                    setSelectedOutcome(null);
+                    setAmount("");
+                    setBannerError(null);
+                    advancedRef.current = false;
+                  }}
+                  onClose={onClose}
+                />
               )}
             </div>
 
-            {/* Token picker */}
-            <div className="relative">
-              <button
-                onClick={() => setShowTokenList((v) => !v)}
-                className="w-full flex items-center justify-between px-3 py-2.5 rounded text-[12px]"
-                style={{ background: "#1E1E1E", border: "1px solid #2A2A2A", color: "#ccc" }}
-              >
-                <span className="uppercase tracking-[0.08em]" style={{ color: "#666" }}>Pay with</span>
-                <span className="flex items-center gap-1.5 font-bold" style={{ color: "#fff" }}>
-                  {tokenLabel(token)} <ChevronDown size={12} />
-                </span>
-              </button>
-              {showTokenList && (
-                <div
-                  className="absolute z-20 mt-1 w-full max-h-56 overflow-y-auto rounded"
-                  style={{ background: "#0F0F0F", border: "1px solid #2A2A2A" }}
-                >
-                  {tokenOptions.map((t, i) => (
-                    <button
-                      key={i}
-                      onClick={() => {
-                        setToken(t);
-                        setShowTokenList(false);
-                        setAmount("");
-                      }}
-                      className="w-full flex items-center justify-between px-3 py-2 text-[12px] hover:bg-[#181818]"
-                      style={{ color: "#ccc" }}
-                    >
-                      <span className="font-bold uppercase tracking-[0.05em]">{tokenLabel(t)}</span>
-                      {t.kind === "ERC20" && (
-                        <span className="text-[10px]" style={{ color: "#666" }}>{t.name}</span>
-                      )}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Amount */}
-            <div className="space-y-2">
-              <div
-                className="flex items-center justify-between text-[10px] font-semibold tracking-[0.1em] uppercase"
-                style={{ color: "#555", fontFamily: "'Barlow', sans-serif" }}
-              >
-                <span>Amount ({tokenLabel(token)})</span>
-                <span style={{ fontFamily: "'JetBrains Mono', monospace" }}>
-                  Balance {balance.toFixed((decimals ?? 6) >= 18 ? 4 : 2)}
-                </span>
-              </div>
-              <input
-                type="number"
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                placeholder="0.00"
-                min={MIN_INPUT}
-                step="0.01"
-                className="w-full px-4 py-3 rounded text-center font-bold focus:outline-none"
-                style={{
-                  background: "#1E1E1E",
-                  border: "1px solid #2A2A2A",
-                  color: "#fff",
-                  fontSize: "20px",
-                  fontFamily: "'JetBrains Mono', monospace",
-                }}
-              />
-              <div className="grid grid-cols-4 gap-2">
-                {PERCENTS.map((p) => (
-                  <button
-                    key={p}
-                    onClick={() => setPercent(p)}
-                    disabled={balance <= 0}
-                    className="py-1.5 rounded text-[11px] font-bold tracking-[0.08em] uppercase transition-colors duration-150"
-                    style={{
-                      background: "#1E1E1E",
-                      border: "1px solid #2A2A2A",
-                      color: balance > 0 ? "#fff" : "#555",
-                      cursor: balance > 0 ? "pointer" : "not-allowed",
-                      fontFamily: "'Barlow', sans-serif",
-                    }}
-                  >
-                    {p === 100 ? "Max" : `${p}%`}
-                  </button>
-                ))}
-              </div>
-              <p
-                className="text-[10px] text-center"
-                style={{ color: "#555", fontFamily: "'Barlow', sans-serif" }}
-              >
-                Min stake on the pool is 0.10 USDC equivalent.
-              </p>
-            </div>
-
-            {/* FanX quote (non-USDC) */}
-            {token.kind !== "USDC" && parsedAmount > BigInt(0) && (
-              <div
-                className="rounded p-3 space-y-2"
-                style={{ background: "#1A1A1A", border: "1px solid #2A2A2A" }}
-              >
-                <div className="flex items-center justify-between text-[11px]">
-                  <span className="uppercase tracking-[0.1em]" style={{ color: "#666" }}>FanX quote</span>
-                  <span style={{ color: "#fff", fontFamily: "'JetBrains Mono', monospace" }}>
-                    {quotedUsdcOut !== undefined ? `${formatUsdc(quotedUsdcOut, usdcDecimals)} USDC` : "—"}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between text-[11px]">
-                  <span className="uppercase tracking-[0.1em]" style={{ color: "#666" }}>Min received</span>
-                  <span style={{ color: "#888", fontFamily: "'JetBrains Mono', monospace" }}>
-                    {amountOutMin > BigInt(0) ? `${formatUsdc(amountOutMin, usdcDecimals)} USDC` : "—"}
-                  </span>
-                </div>
-                <div className="flex items-center gap-2 pt-1">
-                  <span className="text-[10px] uppercase tracking-[0.1em]" style={{ color: "#666" }}>Slippage</span>
-                  {[10, 50, 100].map((bps) => (
-                    <button
-                      key={bps}
-                      onClick={() => setSlippageBps(bps)}
-                      className="text-[10px] font-bold uppercase px-2 py-0.5 rounded"
-                      style={{
-                        background: slippageBps === bps ? "rgba(232,0,29,0.15)" : "#1A1A1A",
-                        color: slippageBps === bps ? "#E8001D" : "#888",
-                        border: `1px solid ${slippageBps === bps ? "#E8001D" : "#2A2A2A"}`,
-                      }}
-                    >
-                      {(bps / 100).toFixed(2)}%
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {!isMarketOpen && (
-              <div
-                className="px-3 py-2 rounded text-[11px] text-center"
-                style={{
-                  background: "rgba(245,197,24,0.08)",
-                  border: "1px solid rgba(245,197,24,0.3)",
-                  color: "#F5C518",
-                  fontFamily: "'Barlow', sans-serif",
-                }}
-              >
-                Market is not currently open for bets.
-              </div>
-            )}
-
-            {usdcZeroBalance && (
-              <div
-                className="px-3 py-2 rounded text-[11px]"
-                style={{
-                  background: "rgba(245,197,24,0.08)",
-                  border: "1px solid rgba(245,197,24,0.3)",
-                  color: "#F5C518",
-                  fontFamily: "'Barlow', sans-serif",
-                }}
-              >
-                You hold 0 USDC at{" "}
-                <span style={{ color: "#fff", fontFamily: "'JetBrains Mono', monospace" }}>
-                  {chilizConfig.usdc.slice(0, 8)}…{chilizConfig.usdc.slice(-6)}
-                </span>
-                . Acquire test USDC before betting.
-              </div>
-            )}
-
-            {swapPathMissing && (
-              <div
-                className="px-3 py-2 rounded text-[11px]"
-                style={{
-                  background: "rgba(232,0,29,0.08)",
-                  border: "1px solid rgba(232,0,29,0.3)",
-                  color: "#E8001D",
-                  fontFamily: "'Barlow', sans-serif",
-                }}
-              >
-                No FanX/Kayen liquidity for {tokenLabel(token)} → USDC. Pick another token.
-              </div>
-            )}
-
-            {insufficientLiquidity && (
-              <div
-                className="px-3 py-2 rounded text-[11px]"
-                style={{
-                  background: "rgba(245,197,24,0.08)",
-                  border: "1px solid rgba(245,197,24,0.3)",
-                  color: "#F5C518",
-                  fontFamily: "'Barlow', sans-serif",
-                }}
-              >
-                Pool liquidity is too low to back this bet right now. Reduce your stake or come back when the pool has been topped up.
-                {poolFreeBalance !== undefined && (
-                  <span
-                    style={{
-                      display: "block",
-                      marginTop: 2,
-                      color: "#888",
-                      fontFamily: "'JetBrains Mono', monospace",
-                    }}
-                  >
-                    Free pool balance: {formatUsdc(poolFreeBalance as bigint, usdcDecimals)} USDC
-                  </span>
+            {/* Sticky footer — hidden on success (has its own CTAs). */}
+            {phase !== "success" && (
+              <div className="sticky bottom-0 z-[2] border-t border-[#1E1E1E] bg-[#0A0A0A]/95 px-7 py-5 backdrop-blur">
+                <DialogFooter
+                  onBack={onBack}
+                  onNext={onNext}
+                  nextLabel={continueLabelByPhase[phase]}
+                  nextDisabled={nextDisabled}
+                  submitting={phase === "review" && submitting}
+                />
+                {/* Indexer-status hint below the action while we're awaiting the event */}
+                {phase === "review" && submitting && (
+                  <div className="font-mono-ctv mt-3 text-center text-[10px] uppercase tracking-[0.16em] text-white/40">
+                    {isApproving ? `Approving ${tokenLabel(token)}…` : isPending ? "Confirm in wallet…" : "Placing prediction…"}
+                  </div>
                 )}
               </div>
             )}
-
-            {errorMessage && (
-              <div
-                className="px-3 py-2 rounded text-[11px]"
-                style={{
-                  background: "rgba(232,0,29,0.08)",
-                  border: "1px solid rgba(232,0,29,0.3)",
-                  color: "#E8001D",
-                  fontFamily: "'Barlow', sans-serif",
-                }}
-              >
-                {errorMessage}
-              </div>
-            )}
-
-            <button
-              onClick={handleSubmit}
-              disabled={!canSubmit && !needsApproval}
-              className="w-full py-3 rounded text-[12px] font-bold tracking-[0.1em] uppercase transition-colors duration-150"
-              style={{
-                background: canSubmit || needsApproval ? "#E8001D" : "#1E1E1E",
-                border: `1px solid ${canSubmit || needsApproval ? "#E8001D" : "#2A2A2A"}`,
-                color: canSubmit || needsApproval ? "#fff" : "#666",
-                cursor: canSubmit || needsApproval ? "pointer" : "not-allowed",
-                fontFamily: "'Barlow', sans-serif",
-              }}
-              onMouseEnter={(e) => {
-                if (!(canSubmit || needsApproval)) return;
-                (e.currentTarget as HTMLButtonElement).style.background = "#B0001A";
-              }}
-              onMouseLeave={(e) => {
-                if (!(canSubmit || needsApproval)) return;
-                (e.currentTarget as HTMLButtonElement).style.background = "#E8001D";
-              }}
-            >
-              {isApprovePending
-                ? "Confirm approval…"
-                : isApproveConfirming
-                  ? `Approving ${tokenLabel(token)}…`
-                  : isPending
-                    ? "Confirm in wallet…"
-                    : isConfirming
-                      ? "Placing prediction…"
-                      : !walletAddress
-                        ? "Connect wallet"
-                        : usdcZeroBalance
-                          ? "No USDC in wallet"
-                          : swapPathMissing
-                            ? "Swap path unavailable"
-                            : insufficientLiquidity
-                              ? "Pool liquidity too low"
-                              : insufficientBalance
-                                ? `Insufficient ${tokenLabel(token)}`
-                                : needsApproval
-                                  ? `Approve ${tokenLabel(token)}`
-                                  : "Place prediction"}
-            </button>
-          </div>
+          </>
         )}
       </DialogContent>
     </Dialog>

@@ -72,7 +72,17 @@ export class TestMatchLifecycleCommand {
             matchDate,
             status: 'NS',
             venue: 'Velodrome',
-            odds: this.DEFAULT_ODDS,
+            // Wrap the legacy 1X2 odds in the new per-market shape so the entity
+            // accepts them. The deployment adapter still consumes the flat object below.
+            odds: {
+                winner: {
+                    homeWin: this.DEFAULT_ODDS.homeWin,
+                    draw: this.DEFAULT_ODDS.draw,
+                    awayWin: this.DEFAULT_ODDS.awayWin,
+                },
+                goalsTotal: { line: 2.5, over: this.DEFAULT_ODDS.over25, under: this.DEFAULT_ODDS.under25 },
+                bothScore: { yes: this.DEFAULT_ODDS.bttsYes, no: this.DEFAULT_ODDS.bttsNo },
+            },
         });
 
         // Save match

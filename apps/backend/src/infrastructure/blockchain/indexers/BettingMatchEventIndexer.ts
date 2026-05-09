@@ -224,12 +224,37 @@ export class BettingMatchEventIndexer extends BaseIndexer {
             }
             case 'MarketCreated': {
                 const a = args as { marketId: bigint; marketType: string; initialOdds: number };
+                // The MarketCreated event doesn't include `line`. We do a one-off
+                // read of `getFootballMarket(marketId)` here so the front can
+                // render line-aware labels (Over 2.5 goals) for GOALS_TOTAL bets.
+                let line: number | null = null;
+                try {
+                    const result = await this.client.readContract({
+                        address: contractAddress as `0x${string}`,
+                        abi: [
+                            parseAbiItem(
+                                'function getFootballMarket(uint256) view returns (string,int16,uint8,uint8,uint32,uint64,uint256)',
+                            ),
+                        ],
+                        functionName: 'getFootballMarket',
+                        args: [a.marketId],
+                    }) as readonly [string, number, number, number, number, bigint, bigint];
+                    line = Number(result[1]);
+                } catch (err) {
+                    // Basketball matches don't expose getFootballMarket — that's fine,
+                    // line stays null. Same for read errors against non-FootballMatch contracts.
+                    logger.debug('getFootballMarket read failed (likely non-football)', {
+                        contractAddress,
+                        marketId: a.marketId.toString(),
+                        error: err instanceof Error ? err.message : String(err),
+                    });
+                }
                 await this.marketEvents.insertIfAbsent({
                     coordinates: coords,
                     contractAddress,
                     marketId: a.marketId,
                     eventName,
-                    payload: { marketType: a.marketType, initialOdds: a.initialOdds },
+                    payload: { marketType: a.marketType, initialOdds: a.initialOdds, line },
                 });
                 return;
             }

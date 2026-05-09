@@ -13,7 +13,7 @@ import { chilizConfig } from '@/config/chiliz.config';
 import { describeError } from '@/lib/contracts/errors';
 import { usePoolDecimals } from '@/hooks/usePoolDecimals';
 import { fmtUsd, timeAgo } from '../domain/formatters';
-import { isClaimable, isRefundable, type MyBet } from '../domain/bets';
+import { isClaimable, isRefundable, fmtSelection, type MyBet } from '../domain/bets';
 import { useInvalidateMyBets, useStampLocalClaimed } from '../hooks/useMyBets';
 import { StatusPill } from './StatusPill';
 
@@ -75,7 +75,13 @@ export function BetRow({ bet }: BetRowProps) {
     const potential = stake * (bet.oddsX10000 / 10_000);
 
     const matchLabel = bet.match ? `${bet.match.homeTeamName} vs ${bet.match.awayTeamName}` : 'Unknown match';
-    const sel = bet.selection === '0' ? 'Home' : bet.selection === '1' ? 'Draw' : bet.selection === '2' ? 'Away' : `Sel #${bet.selection}`;
+    const sel = fmtSelection(
+        bet.selection,
+        bet.match?.homeTeamName,
+        bet.match?.awayTeamName,
+        bet.marketType,
+        bet.line,
+    );
 
     return (
         <div

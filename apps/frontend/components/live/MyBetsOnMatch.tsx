@@ -84,24 +84,25 @@ export function MyBetsOnMatch({ contractAddress, walletAddress, onPickMarket }: 
 
     if (bets.length === 0) {
         return (
-            <div className="px-4 py-10 flex flex-col items-center gap-3 text-center">
-                <div
-                    className="text-[14px] font-bold uppercase tracking-[0.08em]"
-                    style={{ color: '#fff', fontFamily: "'Barlow Condensed', sans-serif" }}
-                >
-                    You haven&apos;t bet on this match yet
+            <div className="flex flex-col items-center gap-3 px-4 py-10 text-center">
+                <span className="font-mono-ctv inline-flex items-center gap-2.5 text-[10px] font-bold uppercase tracking-[0.16em] text-[#E8001D]">
+                    <span aria-hidden className="block h-0.5 w-4 bg-[#E8001D]" />
+                    No bets yet
+                </span>
+                <div className="font-display text-[20px] font-extrabold uppercase tracking-tight text-white">
+                    Place your first bet on this match
                 </div>
-                <div className="text-[12px]" style={{ color: '#888', fontFamily: "'Barlow', sans-serif" }}>
+                <div className="text-[12px] font-light text-white/55">
                     Pick an outcome from the Markets tab to get started.
                 </div>
                 {onPickMarket && (
                     <button
                         type="button"
                         onClick={onPickMarket}
-                        className="mt-1 px-4 h-9 rounded text-[11px] font-bold tracking-[0.08em] uppercase transition-colors"
-                        style={{ background: '#E8001D', color: '#fff', fontFamily: "'Barlow', sans-serif" }}
+                        className="font-mono-ctv mt-1 inline-flex items-center gap-2 rounded-md px-4 py-2.5 text-[11px] font-bold uppercase tracking-[0.14em] text-white transition-colors hover:bg-[#FF1737]"
+                        style={{ background: '#E8001D' }}
                     >
-                        Pick a market →
+                        Open markets →
                     </button>
                 )}
             </div>
@@ -112,12 +113,11 @@ export function MyBetsOnMatch({ contractAddress, walletAddress, onPickMarket }: 
         <div>
             {isError && (
                 <div
-                    className="mx-4 mt-3 px-3 py-2 rounded text-[11px]"
+                    className="font-mono-ctv mx-4 mt-3 rounded-md px-3 py-2 text-[10px] uppercase tracking-[0.14em]"
                     style={{
                         background: 'rgba(245,197,24,0.08)',
                         border: '1px solid rgba(245,197,24,0.3)',
                         color: '#F5C518',
-                        fontFamily: "'Barlow', sans-serif",
                     }}
                 >
                     Indexing service unavailable — showing the most recent cached data.
@@ -126,23 +126,17 @@ export function MyBetsOnMatch({ contractAddress, walletAddress, onPickMarket }: 
 
             {counts.claimable > 0 && (
                 <div
-                    className="mx-4 mt-3 mb-2 flex items-center justify-between gap-3 rounded px-3 py-2"
+                    className="mx-4 mb-2 mt-3 flex items-center justify-between gap-3 rounded-md px-3 py-2.5"
                     style={{
                         background: 'rgba(232,0,29,0.08)',
                         border: '1px solid rgba(232,0,29,0.3)',
                     }}
                 >
                     <div>
-                        <div
-                            className="text-[10px] font-bold uppercase tracking-[0.14em]"
-                            style={{ color: '#E8001D', fontFamily: "'Barlow', sans-serif" }}
-                        >
+                        <div className="font-mono-ctv text-[10px] font-bold uppercase tracking-[0.16em] text-[#E8001D]">
                             Wins ready
                         </div>
-                        <div
-                            className="text-[14px] font-bold"
-                            style={{ color: '#fff', fontFamily: "'Barlow Condensed', sans-serif" }}
-                        >
+                        <div className="font-display text-[16px] font-extrabold uppercase tracking-tight text-white">
                             {counts.claimable} {counts.claimable === 1 ? 'win' : 'wins'} · {fmtUsd(claimableTotal)} USDC
                         </div>
                     </div>
@@ -166,10 +160,7 @@ function SkeletonBar({ height }: { height: number }) {
 
 function EmptyState({ lead }: { lead: string }) {
     return (
-        <div
-            className="px-4 py-8 text-center text-[12px]"
-            style={{ color: '#555', fontFamily: "'Barlow', sans-serif" }}
-        >
+        <div className="font-mono-ctv px-4 py-10 text-center text-[11px] uppercase tracking-[0.16em] text-white/45">
             {lead}
         </div>
     );

@@ -265,6 +265,60 @@ const CUSTOM_ERROR_HANDLERS: Record<
 };
 
 /**
+ * Cross-contract custom-error selectors (4-byte sigs) → error name.
+ *
+ * viem's `ContractFunctionRevertedError.data?.errorName` is only populated
+ * when the *calling* contract's ABI declares the error. ChilizSwapRouter's
+ * `placeBetWithUSDC` calls into BettingMatch / LiquidityPool — when those
+ * revert, viem only gets the raw 4-byte selector. This map lets us still
+ * surface a friendly message via the existing `CUSTOM_ERROR_HANDLERS`.
+ *
+ * Selectors computed from `keccak256("ErrorName(arg1Type,arg2Type,...)")`
+ * — keep in sync with `apps/smart-contracts/chiliz-tv/src/**`.
+ */
+const ERROR_SELECTOR_TO_NAME: Readonly<Record<string, string>> = {
+    '0x05e0be88': 'OddsNotSet',
+    '0x4d22c051': 'MatchNotAuthorized',
+    '0x4f8c629e': 'InvalidMarketState',
+    '0x4aeb0dcb': 'InsufficientFreeBalance',
+    '0x8dc8eaa0': 'BetAmountAboveCap',
+    '0xeca7125f': 'MarketLiabilityCapExceeded',
+    '0x8c871308': 'MatchLiabilityCapExceeded',
+    '0x78e030db': 'StakeBelowMinimum',
+    '0x0813eb43': 'ZeroBetAmount',
+    '0x340914fe': 'ZeroNetExposure',
+    '0x82a2dff3': 'InvalidSelection',
+    '0x7231c807': 'InvalidOddsValue',
+    '0x9554dd11': 'USDCNotConfigured',
+    '0xb8b5ff15': 'LiquidityPoolNotConfigured',
+    '0xfd5af2a0': 'CooldownActive',
+    '0x2f5a76ec': 'BettingMatchFactoryNotSet',
+    '0x2a1eb67c': 'UnauthorizedBettingMatch',
+    '0xfae7cf6b': 'PoolAssetMismatch',
+    '0x70f65caa': 'DeadlinePassed',
+    '0x0d6368f7': 'SwapSlippageExceeded',
+    '0x3cab8add': 'TokenIsUSDC',
+    '0xf4d678b8': 'InsufficientBalance',
+    '0x118a5a82': 'AlreadyClaimed',
+    '0x8bf5a6c5': 'BetLost',
+    '0xb706971e': 'BetNotFound',
+};
+
+/**
+ * viem doesn't expose `signature` on every error path; we sniff the revert
+ * message which always contains "0xabcdef01" when decoding failed.
+ */
+function findSelectorInError(error: unknown): string | null {
+    if (!error) return null;
+    const msg =
+        (error as { shortMessage?: string }).shortMessage ??
+        (error as { message?: string }).message ??
+        '';
+    const m = msg.match(/0x[0-9a-fA-F]{8}/);
+    return m ? m[0].toLowerCase() : null;
+}
+
+/**
  * Walk a wagmi/viem error chain, looking for a `ContractFunctionRevertedError`
  * that carries the decoded `errorName` + `args`. viem nests these inside
  * `.cause` (sometimes more than one level deep), so we walk via `.walk()`
@@ -331,6 +385,25 @@ export function decodeContractError(error: unknown): DecodedError {
                 errorName,
             };
         }
+        // Fallback — viem couldn't decode errorName (e.g. cross-contract
+        // revert: ChilizSwapRouter calls BettingMatch and the latter's
+        // custom error isn't in the router ABI). Sniff the raw selector
+        // out of the message and look it up against the static map.
+        const selector = findSelectorInError(reverted);
+        if (selector && ERROR_SELECTOR_TO_NAME[selector]) {
+            const name = ERROR_SELECTOR_TO_NAME[selector];
+            const handler = CUSTOM_ERROR_HANDLERS[name];
+            if (handler) {
+                const handled = handler([]);
+                return { ...handled, errorName: name };
+            }
+            return {
+                title: 'Transaction reverted',
+                description: `Contract returned ${name}.`,
+                severity: 'error',
+                errorName: name,
+            };
+        }
         const reason = reverted.reason ?? reverted.shortMessage;
         return {
             title: 'Transaction reverted',
@@ -341,6 +414,18 @@ export function decodeContractError(error: unknown): DecodedError {
 
     // Step 4 — generic BaseError surface (RPC, gas, encoding…).
     if (error instanceof BaseError) {
+        // Last-chance selector sniff — `EstimateGasExecutionError` etc. carry
+        // the raw 4-byte signature in the message even when viem couldn't
+        // walk to a `ContractFunctionRevertedError`.
+        const selector = findSelectorInError(error);
+        if (selector && ERROR_SELECTOR_TO_NAME[selector]) {
+            const name = ERROR_SELECTOR_TO_NAME[selector];
+            const handler = CUSTOM_ERROR_HANDLERS[name];
+            if (handler) {
+                const handled = handler([]);
+                return { ...handled, errorName: name };
+            }
+        }
         return {
             title: 'Transaction failed',
             description: error.shortMessage?.slice(0, 240) ?? error.message?.slice(0, 240),

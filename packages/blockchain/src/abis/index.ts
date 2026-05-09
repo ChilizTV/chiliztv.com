@@ -96,6 +96,13 @@ export const FOOTBALL_MATCH_ABI = [
     },
     {
         type: 'function',
+        name: 'closeMarket',
+        inputs: [{ name: 'marketId', type: 'uint256' }],
+        outputs: [],
+        stateMutability: 'nonpayable'
+    },
+    {
+        type: 'function',
         name: 'marketCount',
         inputs: [],
         outputs: [{ name: '', type: 'uint256' }],

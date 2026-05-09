@@ -7,10 +7,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { createPortal } from "react-dom";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Play, Square, Loader2, CheckCircle, Tv2 } from "lucide-react";
+import { Play, Square, Loader2, CheckCircle, Tv2, Video } from "lucide-react";
 import { streamClientService, streamViewerService } from "@/services";
 import { LiveStream } from "@/models/stream.model";
 import { useDynamicContext } from "@dynamic-labs/sdk-react-core";
@@ -524,62 +521,78 @@ export default function StreamManager({ matchId, onStreamCreated, onStreamEnded,
     );
 
     return (
-      <Card className="bg-zinc-900 border-zinc-800">
-        <CardHeader className="border-b border-zinc-800">
-          <CardTitle className="flex items-center gap-2 text-white">
-            <CheckCircle className="w-5 h-5 text-green-500" />
-            Your Stream is Live
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4 p-6">
-          {error && (
-            <div className="bg-red-500/10 border border-red-500/30 text-red-400 px-4 py-2 rounded text-sm">
-              {error}
-            </div>
-          )}
+      <div className="space-y-4">
+        <div className="font-mono-ctv inline-flex items-center gap-2.5 text-[10px] font-bold uppercase tracking-[0.16em] text-[#2dd4a4]">
+          <span aria-hidden className="block h-0.5 w-4 bg-[#2dd4a4]" />
+          <CheckCircle size={12} />
+          Your stream is live
+        </div>
 
-          {portalTarget
-            ? createPortal(previewElement, portalTarget)
-            : previewElement}
-
-          <StreamControls
-            sourceType={sourceType}
-            cameraEnabled={cameraEnabled}
-            microphoneEnabled={microphoneEnabled}
-            cameraVisible={cameraVisible}
-            onToggleCamera={toggleCamera}
-            onToggleMicrophone={toggleMicrophone}
-            onToggleCameraVisibility={toggleCameraVisibility}
-            isStreaming={isStreaming}
-          />
-
-          <div className="text-sm text-gray-400 space-y-1">
-            <p>Streaming to Match {matchId}</p>
-            <p className="text-xs text-gray-500">Stream Key: {stream?.streamKey}</p>
-          </div>
-
-          <Button onClick={handleEndStream} variant="destructive" className="w-full bg-red-600 hover:bg-red-700">
-            <Square className="w-4 h-4 mr-2" />
-            End Stream
-          </Button>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  return (
-    <Card className="bg-zinc-900 border-zinc-800">
-      <CardHeader className="border-b border-zinc-800">
-        <CardTitle className="text-white">Start Your Stream</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4 p-6">
         {error && (
-          <div className="bg-red-500/10 border border-red-500/30 text-red-400 px-4 py-2 rounded text-sm">
+          <div className="font-mono-ctv rounded-md border border-[#E8001D]/30 bg-[#E8001D]/10 px-3 py-2 text-[11px] uppercase tracking-[0.14em] text-[#FF1737]">
             {error}
           </div>
         )}
 
-        <SourceSelector sourceType={sourceType} onSourceChange={(s) => { setSourceType(s); setObsStream(null); }} />
+        {portalTarget
+          ? createPortal(previewElement, portalTarget)
+          : previewElement}
+
+        <StreamControls
+          sourceType={sourceType}
+          cameraEnabled={cameraEnabled}
+          microphoneEnabled={microphoneEnabled}
+          cameraVisible={cameraVisible}
+          onToggleCamera={toggleCamera}
+          onToggleMicrophone={toggleMicrophone}
+          onToggleCameraVisibility={toggleCameraVisibility}
+          isStreaming={isStreaming}
+        />
+
+        <div className="rounded-md border border-[#1E1E1E] bg-[#0d0d0d] p-4">
+          <div className="font-mono-ctv text-[9px] uppercase tracking-[0.18em] text-white/35">
+            Streaming to
+          </div>
+          <div className="font-display mt-1 text-[16px] font-extrabold uppercase tracking-tight text-white">
+            Match {matchId}
+          </div>
+          {stream?.streamKey && (
+            <div className="font-mono-ctv mt-2 truncate text-[10px] text-white/35">
+              Stream key: {stream.streamKey.slice(0, 12)}…
+            </div>
+          )}
+        </div>
+
+        <button
+          type="button"
+          onClick={handleEndStream}
+          className="font-mono-ctv inline-flex w-full items-center justify-center gap-2 rounded-md px-4 py-2.5 text-[11px] font-bold uppercase tracking-[0.14em] text-white transition-colors hover:bg-[#FF1737]"
+          style={{ background: "#E8001D" }}
+        >
+          <Square size={13} />
+          End stream
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="grid gap-6 lg:grid-cols-[1.1fr_1fr]">
+      {/* Left — form */}
+      <div className="flex flex-col gap-5">
+        {error && (
+          <div className="font-mono-ctv rounded-md border border-[#E8001D]/30 bg-[#E8001D]/10 px-3 py-2 text-[11px] uppercase tracking-[0.14em] text-[#FF1737]">
+            {error}
+          </div>
+        )}
+
+        <SourceSelector
+          sourceType={sourceType}
+          onSourceChange={(s) => {
+            setSourceType(s);
+            setObsStream(null);
+          }}
+        />
 
         {sourceType === "obs" ? (
           obsStream ? (
@@ -591,39 +604,61 @@ export default function StreamManager({ matchId, onStreamCreated, onStreamEnded,
               streamerName={user?.username ?? "Anonymous"}
               streamerWalletAddress={primaryWallet?.address}
               onStreamKeyRegenerated={(newKey, newStreamId) =>
-                setObsStream((prev) => prev ? { ...prev, streamKey: newKey, id: newStreamId } : null)
+                setObsStream((prev) =>
+                  prev ? { ...prev, streamKey: newKey, id: newStreamId } : null,
+                )
               }
               onStreamEnded={() => setObsStream(null)}
             />
           ) : (
-            <Button
-              onClick={async () => {
-                if (!user) return;
-                setObsLoading(true);
-                try {
-                  const res = await streamViewerService.createStream({
-                    matchId,
-                    streamerId: user.userId ?? "",
-                    streamerName: user.username ?? "Anonymous",
-                    streamerWalletAddress: primaryWallet?.address,
-                    title: title.trim() || undefined,
-                  });
-                  if (res.success && res.stream) {
-                    setObsStream(res.stream);
+            <div>
+              <div className="font-mono-ctv mb-2 inline-flex items-center gap-2.5 text-[10px] font-bold uppercase tracking-[0.16em] text-white/45">
+                <span aria-hidden className="block h-0.5 w-4 bg-white/25" />
+                Stream title
+              </div>
+              <input
+                type="text"
+                placeholder="Optional"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                maxLength={100}
+                className="font-mono-ctv mb-4 w-full rounded-md border border-[#1E1E1E] bg-[#0d0d0d] px-3 py-2.5 text-[12px] text-white placeholder-white/35 outline-none transition-colors focus:border-[#E8001D]"
+              />
+              <button
+                type="button"
+                disabled={obsLoading}
+                onClick={async () => {
+                  if (!user) return;
+                  setObsLoading(true);
+                  try {
+                    const res = await streamViewerService.createStream({
+                      matchId,
+                      streamerId: user.userId ?? "",
+                      streamerName: user.username ?? "Anonymous",
+                      streamerWalletAddress: primaryWallet?.address,
+                      title: title.trim() || undefined,
+                    });
+                    if (res.success && res.stream) setObsStream(res.stream);
+                  } finally {
+                    setObsLoading(false);
                   }
-                } finally {
-                  setObsLoading(false);
-                }
-              }}
-              className="w-full bg-orange-600 hover:bg-orange-700 text-white"
-              disabled={obsLoading}
-            >
-              {obsLoading ? (
-                <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Creating stream...</>
-              ) : (
-                <><Tv2 className="w-4 h-4 mr-2" />Get OBS Stream Key</>
-              )}
-            </Button>
+                }}
+                className="font-mono-ctv inline-flex w-full items-center justify-center gap-2 rounded-md px-4 py-2.5 text-[11px] font-bold uppercase tracking-[0.14em] text-white transition-colors hover:bg-[#FF1737] disabled:opacity-50"
+                style={{ background: "#E8001D" }}
+              >
+                {obsLoading ? (
+                  <>
+                    <Loader2 size={13} className="animate-spin" />
+                    Creating stream…
+                  </>
+                ) : (
+                  <>
+                    <Tv2 size={13} />
+                    Get OBS stream key
+                  </>
+                )}
+              </button>
+            </div>
           )
         ) : (
           <>
@@ -636,30 +671,100 @@ export default function StreamManager({ matchId, onStreamCreated, onStreamEnded,
               isStreaming={false}
             />
 
-            <Input
-              placeholder="Stream title (optional)"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              maxLength={100}
-              className="bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-500"
-            />
+            <div>
+              <div className="font-mono-ctv mb-2 inline-flex items-center gap-2.5 text-[10px] font-bold uppercase tracking-[0.16em] text-white/45">
+                <span aria-hidden className="block h-0.5 w-4 bg-white/25" />
+                Stream title
+              </div>
+              <input
+                type="text"
+                placeholder="Optional"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                maxLength={100}
+                className="font-mono-ctv w-full rounded-md border border-[#1E1E1E] bg-[#0d0d0d] px-3 py-2.5 text-[12px] text-white placeholder-white/35 outline-none transition-colors focus:border-[#E8001D]"
+              />
+            </div>
 
-            <Button onClick={handleStartStream} className="w-full bg-blue-600 hover:bg-blue-700 text-white" disabled={isStreaming}>
+            <button
+              type="button"
+              onClick={handleStartStream}
+              disabled={isStreaming}
+              className="font-mono-ctv inline-flex w-full items-center justify-center gap-2 rounded-md px-4 py-2.5 text-[11px] font-bold uppercase tracking-[0.14em] text-white transition-colors hover:bg-[#FF1737] disabled:opacity-50"
+              style={{ background: "#E8001D" }}
+            >
               {isStreaming ? (
                 <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Starting Stream...
+                  <Loader2 size={13} className="animate-spin" />
+                  Starting stream…
                 </>
               ) : (
                 <>
-                  <Play className="w-4 h-4 mr-2" />
-                  Start Your Stream
+                  <Play size={13} />
+                  Go live now
                 </>
               )}
-            </Button>
+            </button>
           </>
         )}
-      </CardContent>
-    </Card>
+      </div>
+
+      {/* Right — preview placeholder */}
+      <div className="flex flex-col gap-4">
+        <div className="font-mono-ctv inline-flex items-center gap-2.5 text-[10px] font-bold uppercase tracking-[0.16em] text-white/45">
+          <span aria-hidden className="block h-0.5 w-4 bg-white/25" />
+          Preview
+        </div>
+        <div className="relative aspect-video w-full overflow-hidden rounded-lg border border-[#1E1E1E] bg-black">
+          <span
+            aria-hidden
+            className="absolute inset-0"
+            style={{
+              background:
+                "radial-gradient(60% 70% at 50% 50%, rgba(232,0,29,0.18), transparent 65%), linear-gradient(180deg, #1A0509 0%, #03110b 100%)",
+            }}
+          />
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-2">
+            {sourceType === "obs" ? (
+              <>
+                <Tv2 size={28} className="text-white/55" />
+                <span className="font-mono-ctv text-[10px] uppercase tracking-[0.18em] text-white/45">
+                  Waiting for OBS to connect…
+                </span>
+              </>
+            ) : (
+              <>
+                <Video size={28} className="text-white/55" />
+                <span className="font-mono-ctv text-[10px] uppercase tracking-[0.18em] text-white/45">
+                  Camera will activate on Go live
+                </span>
+              </>
+            )}
+          </div>
+          <div className="absolute left-3 top-3">
+            <span className="font-mono-ctv inline-flex items-center gap-1.5 rounded-md border px-2 py-1 text-[10px] font-bold uppercase tracking-[0.14em]"
+              style={{
+                color: "#fff",
+                background: "rgba(0,0,0,0.45)",
+                borderColor: "rgba(255,255,255,0.18)",
+              }}
+            >
+              <span className="h-1.5 w-1.5 rounded-full bg-white/55" /> Off-air
+            </span>
+          </div>
+        </div>
+
+        <div className="rounded-md border border-[#1E1E1E] bg-[#111] p-4">
+          <div className="font-mono-ctv inline-flex items-center gap-2.5 text-[10px] font-bold uppercase tracking-[0.16em] text-[#F5C518]">
+            <span aria-hidden className="block h-0.5 w-4 bg-[#F5C518]" />
+            StreamWallet
+          </div>
+          <div className="mt-2 text-[12px] font-light leading-relaxed text-white/65">
+            Tips and subs route to your dedicated{" "}
+            <span className="font-mono-ctv text-white">StreamWallet</span> contract. Withdraw to your main wallet anytime — no platform custody.
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }

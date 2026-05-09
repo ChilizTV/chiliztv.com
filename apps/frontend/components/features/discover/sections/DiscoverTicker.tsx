@@ -23,18 +23,23 @@ export function DiscoverTicker({
   /** `null` until the client clock has been initialised post-hydration. */
   now: Date | null;
 }) {
-  // Live first, then 3 next upcoming — gives a useful glance summary without
-  // making the marquee endless.
+  // Show every match the API returned, regardless of status. Live first,
+  // then upcoming sorted by kickoff, then anything else (finished, etc.)
+  // so the most relevant items are at the front of the marquee loop.
   const items = useMemo(() => {
     const live = matches.filter((m) => isLive(m.status));
-    const next = matches
+    const upcoming = matches
       .filter((m) => m.status === "NS")
       .sort(
         (a, b) =>
           new Date(a.kickoffAt).getTime() - new Date(b.kickoffAt).getTime(),
-      )
-      .slice(0, 3);
-    return [...live, ...next];
+      );
+    const liveIds = new Set(live.map((m) => m.id));
+    const upcomingIds = new Set(upcoming.map((m) => m.id));
+    const rest = matches.filter(
+      (m) => !liveIds.has(m.id) && !upcomingIds.has(m.id),
+    );
+    return [...live, ...upcoming, ...rest];
   }, [matches]);
 
   // Duplicate so the keyframe seamlessly translates by -50%.

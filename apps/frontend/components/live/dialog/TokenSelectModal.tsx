@@ -55,21 +55,24 @@ function fmtUsd(n: number, dp = 2) {
     return '$' + fmtNum(n, dp);
 }
 
-/** Slide-up sheet rendered above the dialog body (absolute inside the shell). */
+/** Inline overlay anchored to the DialogContent (Radix sets it `position: fixed`,
+ *  so our `absolute inset-0` covers the whole dialog box — header, body, footer.
+ *  We keep the picker INSIDE the dialog tree so Radix's focus-trap doesn't
+ *  mark it `inert` (which is what happens when you portal to `document.body`). */
 export function TokenSelectModal({ open, tokens, onPick, onClose }: TokenSelectModalProps) {
     if (!open) return null;
     return (
         <div
-            className="absolute inset-0 z-[5] flex items-end sm:items-center sm:justify-center"
+            className="absolute inset-0 z-[100] flex items-end sm:items-center sm:justify-center p-4"
             style={{ background: 'rgba(0,0,0,0.65)' }}
             onClick={onClose}
         >
             <div
                 onClick={(e) => e.stopPropagation()}
                 className="flex w-full max-w-[400px] flex-col overflow-hidden rounded-t-2xl border border-[#1E1E1E] bg-[#0A0A0A] sm:rounded-2xl"
-                style={{ maxHeight: '70dvh' }}
+                style={{ maxHeight: 'min(560px, 80dvh)' }}
             >
-                <div className="flex items-center justify-between border-b border-[#1E1E1E] px-5 py-4">
+                <div className="flex flex-shrink-0 items-center justify-between border-b border-[#1E1E1E] px-5 py-4">
                     <BdEyebrow>Select stake currency</BdEyebrow>
                     <button type="button" onClick={onClose} aria-label="Close picker" className="text-white/45 hover:text-white">
                         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.4}>
@@ -77,7 +80,7 @@ export function TokenSelectModal({ open, tokens, onPick, onClose }: TokenSelectM
                         </svg>
                     </button>
                 </div>
-                <div className="flex-1 overflow-y-auto p-2">
+                <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-2">
                     {tokens.map((tk) => {
                         const dim = tk.balance === 0;
                         return (

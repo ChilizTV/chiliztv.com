@@ -293,14 +293,50 @@ export default function VideoPlayer({
 
     if (!stream) {
         return (
-            <Card className={`${className} bg-zinc-900 border-zinc-800`}>
-                <CardContent className="p-6">
-                    <div className="flex flex-col items-center justify-center h-64 text-gray-400">
-                        <AlertCircle className="w-12 h-12 mb-4 text-gray-500" />
-                        <p>No one is streaming this match yet</p>
+            <div className={`relative aspect-video w-full overflow-hidden bg-[#0d0d0d] ${className}`}>
+                <span
+                    aria-hidden
+                    className="absolute inset-0"
+                    style={{
+                        background:
+                            "radial-gradient(circle at 50% 40%, rgba(232,0,29,0.10), transparent 65%)",
+                    }}
+                />
+                <span
+                    aria-hidden
+                    className="absolute inset-0 opacity-30"
+                    style={{
+                        background:
+                            "repeating-linear-gradient(180deg, transparent 0px, transparent 18px, rgba(255,255,255,0.025) 18px, rgba(255,255,255,0.025) 19px)",
+                    }}
+                />
+                <div className="absolute inset-0 flex flex-col items-center justify-center gap-5 px-6 text-center">
+                    <Tv2 size={56} className="text-white/35" strokeWidth={1.4} />
+                    <span className="font-mono-ctv inline-flex items-center gap-2.5 text-[10px] font-bold uppercase tracking-[0.16em] text-[#E8001D]">
+                        <span aria-hidden className="block h-0.5 w-4 bg-[#E8001D]" />
+                        Pick a stream
+                    </span>
+                    <div className="font-display max-w-md text-[26px] font-extrabold leading-[0.95] tracking-[-0.01em] text-white sm:text-[32px]">
+                        Choose a creator&nbsp;
+                        <span className="text-[#E8001D]">streaming this match.</span>
                     </div>
-                </CardContent>
-            </Card>
+                    <div className="font-mono-ctv max-w-md text-[10px] uppercase tracking-[0.16em] text-white/45">
+                        Or fire up your own studio and broadcast it yourself.
+                    </div>
+                    {onBrowseStreams && (
+                        <div className="flex flex-wrap items-center justify-center gap-2 pt-2">
+                            <button
+                                type="button"
+                                onClick={onBrowseStreams}
+                                className="font-mono-ctv inline-flex items-center justify-center gap-2 rounded-md bg-[#E8001D] px-4 py-2.5 text-[11px] font-bold uppercase tracking-[0.14em] text-white transition-colors hover:bg-[#FF1737]"
+                            >
+                                <Tv2 size={13} />
+                                Switch streams
+                            </button>
+                        </div>
+                    )}
+                </div>
+            </div>
         );
     }
 

@@ -88,16 +88,44 @@ export class MatchResolutionAdapter {
             const count = Number(marketCount);
             if (count === 0) return 0;
 
+            // Lifecycle: Open(1) → Closed(3) → Resolved(4). `resolveMarket`
+            // requires Closed, so close-then-resolve when still Open.
+            const MARKET_STATE_OPEN = 1;
+            const MARKET_STATE_CLOSED = 3;
+
             for (let marketId = 0; marketId < count; marketId++) {
                 try {
-                    const core = await this.publicClient.readContract({
+                    let core = await this.publicClient.readContract({
                         address: addr,
                         abi: FOOTBALL_MATCH_ABI,
                         functionName: 'getMarketCore',
                         args: [BigInt(marketId)],
                     }) as readonly [number, bigint, number, number, bigint];
-                    const state = core[0];
-                    if (state === MARKET_STATE_RESOLVED) continue;
+                    if (core[0] === MARKET_STATE_RESOLVED) continue;
+
+                    if (core[0] === MARKET_STATE_OPEN) {
+                        const closeHash = await this.walletClient.writeContract({
+                            account: this.walletClient.account!,
+                            address: addr,
+                            abi: FOOTBALL_MATCH_ABI,
+                            functionName: 'closeMarket',
+                            args: [BigInt(marketId)],
+                            chain: this.chain,
+                        });
+                        await this.publicClient.waitForTransactionReceipt({ hash: closeHash, timeout: 90_000 });
+                        await delay();
+                        core = await this.publicClient.readContract({
+                            address: addr,
+                            abi: FOOTBALL_MATCH_ABI,
+                            functionName: 'getMarketCore',
+                            args: [BigInt(marketId)],
+                        }) as readonly [number, bigint, number, number, bigint];
+                    }
+
+                    if (core[0] !== MARKET_STATE_CLOSED) {
+                        logger.warn('Market not in Closed state — skipping resolveMarket', { contractAddress, marketId, state: core[0] });
+                        continue;
+                    }
 
                     const result = BigInt(this.computeResultForMarket(marketId, homeScore, awayScore));
                     const hash = await this.walletClient.writeContract({

@@ -12,7 +12,7 @@ import { logger } from '../../../infrastructure/logging/logger';
  */
 @injectable()
 export class TestMatchLifecycleCommand {
-    private readonly TEST_MATCH_ID = 999001;
+    private readonly TEST_MATCH_ID = 999002;
     private readonly DEFAULT_ODDS = {
         homeWin: 2.1,
         draw: 3.2,
@@ -58,20 +58,20 @@ export class TestMatchLifecycleCommand {
         const match = Match.create({
             id: this.TEST_MATCH_ID,
             apiFootballId: this.TEST_MATCH_ID,
-            homeTeamId: 1,
-            homeTeamName: 'OM',
+            homeTeamId: 3,
+            homeTeamName: 'Real',
             homeTeamLogo: '',
-            awayTeamId: 2,
-            awayTeamName: 'PSG',
+            awayTeamId: 4,
+            awayTeamName: 'Barca',
             awayTeamLogo: '',
-            leagueId: 1,
+            leagueId: 2,
             leagueName: 'Ligue 1',
             leagueLogo: '',
             leagueCountry: 'France',
             season: new Date().getFullYear(),
             matchDate,
             status: 'NS',
-            venue: 'Velodrome',
+            venue: 'bernabeu',
             // Wrap the legacy 1X2 odds in the new per-market shape so the entity
             // accepts them. The deployment adapter still consumes the flat object below.
             odds: {
@@ -89,7 +89,7 @@ export class TestMatchLifecycleCommand {
         await this.matchRepository.save(match);
 
         // Deploy contract
-        const matchName = `OM vs PSG`;
+        const matchName = `real vs barca`;
         const ownerAddress = this.deploymentAdapter.getAdminAddress();
 
         logger.info('Deploying FootballMatch contract');

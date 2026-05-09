@@ -391,7 +391,10 @@ export class SupabaseMatchRepository implements IMatchRepository {
       home_score: json.score?.home,
       away_score: json.score?.away,
       odds: json.odds ? unmapOdds(json.odds) : null,
-      betting_contract_address: json.bettingContractAddress,
+      // Normalize to lowercase so it joins against `bets.contract_address`
+      // (which the indexer always writes lowercased). Mixed-case rows that
+      // predate this fix break the join and surface as "Unknown match".
+      betting_contract_address: json.bettingContractAddress?.toLowerCase(),
       created_at: json.createdAt,
       updated_at: json.updatedAt,
     };

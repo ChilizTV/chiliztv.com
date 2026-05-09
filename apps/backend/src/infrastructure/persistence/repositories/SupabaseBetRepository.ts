@@ -216,14 +216,20 @@ export class SupabaseBetRepository implements IBetRepository {
         const bets = await this.findByUser(userAddress, options);
         if (bets.length === 0) return [];
 
-        const contractAddresses = Array.from(
-            new Set(bets.map((b) => b.contractAddress.toLowerCase())),
+        const contractAddresses = new Set(
+            bets.map((b) => b.contractAddress.toLowerCase()),
         );
 
+        // Fetch every match that has *any* betting_contract_address — small
+        // set (one row per match). Using `.in('betting_contract_address', ...)`
+        // would miss rows saved in mixed case (the indexer writes
+        // `bets.contract_address` lowercased, the deploy adapter saves the
+        // match's `betting_contract_address` as-is from the event topic).
+        // JS-side case-insensitive filter sidesteps the trap.
         const { data, error } = await supabase
             .from('matches')
-            .select('api_football_id, home_team, away_team, league_name, match_date, betting_contract_address')
-            .in('betting_contract_address', contractAddresses);
+            .select('api_football_id, home_team, away_team, league, match_date, betting_contract_address')
+            .not('betting_contract_address', 'is', null);
 
         if (error) {
             logger.error('Failed to load match metadata for bets', { userAddress, error: error.message });
@@ -231,28 +237,41 @@ export class SupabaseBetRepository implements IBetRepository {
             return bets.map((bet) => ({ bet, match: null, marketContext: null }));
         }
 
+        // The `matches` table stores `home_team`, `away_team`, and `league`
+        // as JSONB blobs (sometimes serialized as strings), not flat columns.
+        type JsonBlob = { name?: string; id?: number } | string | null | undefined;
         type MatchMetaRow = {
             api_football_id: number;
-            home_team: { name?: string } | string | null;
-            away_team: { name?: string } | string | null;
-            league_name: string | null;
+            home_team: JsonBlob;
+            away_team: JsonBlob;
+            league: JsonBlob;
             match_date: string;
             betting_contract_address: string;
         };
 
-        const teamName = (raw: MatchMetaRow['home_team']): string => {
-            if (!raw) return 'Unknown';
-            if (typeof raw === 'string') return raw;
-            return raw.name ?? 'Unknown';
+        const parseBlob = (raw: JsonBlob): { name?: string; id?: number } | null => {
+            if (!raw) return null;
+            if (typeof raw === 'string') {
+                try {
+                    return JSON.parse(raw);
+                } catch {
+                    return { name: raw };
+                }
+            }
+            return raw;
         };
+        const teamName = (raw: JsonBlob): string => parseBlob(raw)?.name ?? 'Unknown';
+        const leagueName = (raw: JsonBlob): string | null => parseBlob(raw)?.name ?? null;
 
         const matchByContract = new Map<string, BetWithMatchInfo['match']>();
         for (const row of (data ?? []) as MatchMetaRow[]) {
-            matchByContract.set(row.betting_contract_address.toLowerCase(), {
+            const lower = row.betting_contract_address.toLowerCase();
+            if (!contractAddresses.has(lower)) continue;
+            matchByContract.set(lower, {
                 apiFootballId: row.api_football_id,
                 homeTeamName: teamName(row.home_team),
                 awayTeamName: teamName(row.away_team),
-                leagueName: row.league_name,
+                leagueName: leagueName(row.league),
                 matchDate: new Date(row.match_date),
             });
         }
@@ -269,7 +288,7 @@ export class SupabaseBetRepository implements IBetRepository {
                 .from('market_events')
                 .select('contract_address, market_id, payload')
                 .eq('event_name', 'MarketCreated')
-                .in('contract_address', contractAddresses);
+                .in('contract_address', Array.from(contractAddresses));
 
             if (meError) {
                 logger.warn('Failed to load market_events for bet enrichment', {

@@ -17,11 +17,15 @@ import { decodeContractError } from "@/lib/contracts/errors";
 import { NetworkGuard } from "@/components/web3/NetworkGuard";
 import {
   useBettingMatchReadGetCurrentOdds,
+  useBettingMatchReadGetMarketLiability,
   useBettingMatchReadQuoteNetExposure,
   useBettingMatchWatchBetPlaced,
   useBettingMatchFactoryReadGetSportType,
   useLiquidityPoolReadFreeBalance,
   useLiquidityPoolReadMaxBetAmount,
+  useLiquidityPoolReadMaxLiabilityPerMarketBps,
+  useLiquidityPoolReadMaxLiabilityPerMatchBps,
+  useLiquidityPoolReadTotalAssets,
   useChilizSwapRouterSimulatePlaceBetWithUsdc,
   useChilizSwapRouterSimulatePlaceBetWithChz,
   useChilizSwapRouterSimulatePlaceBetWithToken,
@@ -32,6 +36,7 @@ import {
   isFootballMatch,
   MarketState,
 } from "@/lib/contracts/markets";
+import { tokenLogoFor } from "@/lib/tokens/tokenLogo";
 import { BdEyebrow } from "./dialog/BdEyebrow";
 import { StepIndicator, BET_DIALOG_STEPS } from "./dialog/StepIndicator";
 import { ErrorBanner } from "./dialog/ErrorBanner";
@@ -40,6 +45,7 @@ import { BetSelectionStep } from "./dialog/BetSelectionStep";
 import { BetStakeStep } from "./dialog/BetStakeStep";
 import { BetReviewStep } from "./dialog/BetReviewStep";
 import { BetSuccessStep } from "./dialog/BetSuccessStep";
+import { BetFailureStep } from "./dialog/BetFailureStep";
 import { UnsupportedSportPanel } from "./UnsupportedSportPanel";
 import type { BetTokenOption } from "./dialog/TokenSelectModal";
 import type { MarketSelection } from "./MatchMarketsList";
@@ -59,7 +65,7 @@ type BetToken =
   | { kind: "CHZ" }
   | { kind: "ERC20"; address: Address; symbol: string; name: string };
 
-type Phase = "pick" | "stake" | "review" | "success";
+type Phase = "pick" | "stake" | "review" | "success" | "failure";
 
 const NATIVE_DECIMALS = 18;
 const FAN_TOKEN_DECIMALS = 18;
@@ -120,6 +126,8 @@ export function MarketBetDialog({
   const [token, setToken] = useState<BetToken>({ kind: "USDC" });
   const [slippageBps, setSlippageBps] = useState<number>(DEFAULT_SLIPPAGE_BPS);
   const [bannerError, setBannerError] = useState<string | null>(null);
+  const [failureKind, setFailureKind] = useState<'rejected' | 'reverted' | 'unknown'>('unknown');
+  const [failureReason, setFailureReason] = useState<string | null>(null);
 
   // ── Sport-type guard ────────────────────────────────────────────────────
   const { data: sportType } = useBettingMatchFactoryReadGetSportType({
@@ -162,6 +170,8 @@ export function MarketBetDialog({
       setToken({ kind: "USDC" });
       setSlippageBps(DEFAULT_SLIPPAGE_BPS);
       setBannerError(null);
+      setFailureKind('unknown');
+      setFailureReason(null);
     }
   }, [open, selection?.marketId]);
 
@@ -225,7 +235,12 @@ export function MarketBetDialog({
   const { isLoading: isApproveConfirming, isSuccess: isApproveSuccess } =
     useWaitForTransactionReceipt({ hash: approveTxHash });
   useEffect(() => {
-    if (isApproveSuccess) refetchAllowance();
+    if (!isApproveSuccess) return;
+    refetchAllowance();
+    // Force the simulate hooks to retry — they may hold a cached
+    // "allowance too low" revert from before the approve mined.
+    void usdcSim.refetch();
+    void tokenSim.refetch();
   }, [isApproveSuccess, refetchAllowance]);
 
   const quoteTokenIn: Address | undefined =
@@ -244,6 +259,10 @@ export function MarketBetDialog({
     return (quotedUsdcOut * slippageMul) / BigInt(10_000);
   }, [token.kind, quotedUsdcOut, slippageBps]);
 
+  // Contract's MIN_NET_STAKE = 0.1 USDC (in 6dp raw = 100_000). Anything below
+  // that reverts with `StakeBelowMinimum`. Gate on the front so the user
+  // sees a clear message instead of a wallet-popup gas-estimation error.
+  const MIN_NET_STAKE_USDC_RAW = BigInt(100_000); // 0.10 USDC at 6 decimals.
   const expectedStakeUsdc: bigint =
     token.kind === "USDC" ? parsedAmount : amountOutMin > BigInt(0) ? amountOutMin : BigInt(0);
 
@@ -255,14 +274,18 @@ export function MarketBetDialog({
     chainId: chilizConfig.chainId,
     query: { enabled: !!selection && expectedStakeUsdc > BigInt(0) },
   });
-  const { data: poolFreeBalance } = useLiquidityPoolReadFreeBalance({
+  // Narrow the data type to break wagmi's deep generic inference chain
+  // (too many sibling Simulate*/Read* hooks in this scope otherwise blow up
+  // TS2589: "Type instantiation is excessively deep").
+  const poolFreeBalanceQuery = useLiquidityPoolReadFreeBalance({
     address: chilizConfig.liquidityPool,
     chainId: chilizConfig.chainId,
   });
+  const poolFreeBalance: bigint | undefined = poolFreeBalanceQuery.data as bigint | undefined;
   const insufficientLiquidity: boolean =
     quoteNetExposure !== undefined &&
     poolFreeBalance !== undefined &&
-    (quoteNetExposure as bigint) > (poolFreeBalance as bigint);
+    (quoteNetExposure as bigint) > poolFreeBalance;
 
   const insufficientBalance = parsedAmount > BigInt(0) && balance < numericAmount;
 
@@ -279,15 +302,82 @@ export function MarketBetDialog({
   const onChainOddsSet =
     typeof onChainOddsRaw === "number" ? onChainOddsRaw > 0 : false;
 
-  // Pool max-bet cap.
-  const { data: maxBetAmountRaw } = useLiquidityPoolReadMaxBetAmount({
+  // Pool max-bet cap. Pin the data type to break wagmi's deep generic
+  // inference (TS2589 in this hook-heavy scope).
+  const maxBetAmountQuery = useLiquidityPoolReadMaxBetAmount({
     address: chilizConfig.liquidityPool,
     chainId: chilizConfig.chainId,
   });
+  const maxBetAmountRaw: bigint | undefined = maxBetAmountQuery.data as bigint | undefined;
   const maxBetAmountCapped =
-    typeof maxBetAmountRaw === "bigint" && maxBetAmountRaw > BigInt(0) ? maxBetAmountRaw : null;
+    maxBetAmountRaw !== undefined && maxBetAmountRaw > BigInt(0) ? maxBetAmountRaw : null;
   const expectedStakeExceedsCap =
     !!maxBetAmountCapped && expectedStakeUsdc > BigInt(0) && expectedStakeUsdc > maxBetAmountCapped;
+
+  const stakeBelowMinimum =
+    expectedStakeUsdc > BigInt(0) && expectedStakeUsdc < MIN_NET_STAKE_USDC_RAW;
+
+  // Per-market / per-match liability caps. The pool refuses bets that would
+  // push (existing liability + this bet's net exposure) past
+  //   totalAssets × maxLiabilityPer{Market,Match}Bps / 10_000
+  // — the swap router never gets to actually swap CHZ→USDC because the
+  // bettingMatch.placeBetUSDCFor reverts inside its `pool.recordBet` call.
+  // We replicate the math front-side so the user sees the constraint *before*
+  // burning Kayen-swap gas.
+  const totalAssetsQuery = useLiquidityPoolReadTotalAssets({
+    address: chilizConfig.liquidityPool,
+    chainId: chilizConfig.chainId,
+  });
+  const totalAssetsRaw: bigint | undefined = totalAssetsQuery.data as bigint | undefined;
+
+  const maxMarketBpsQuery = useLiquidityPoolReadMaxLiabilityPerMarketBps({
+    address: chilizConfig.liquidityPool,
+    chainId: chilizConfig.chainId,
+  });
+  const maxMarketBps: number | undefined = maxMarketBpsQuery.data as number | undefined;
+
+  const maxMatchBpsQuery = useLiquidityPoolReadMaxLiabilityPerMatchBps({
+    address: chilizConfig.liquidityPool,
+    chainId: chilizConfig.chainId,
+  });
+  const maxMatchBps: number | undefined = maxMatchBpsQuery.data as number | undefined;
+
+  const marketLiabilityQuery = useBettingMatchReadGetMarketLiability({
+    address: contractAddress,
+    args: selection ? [BigInt(selection.marketId)] : undefined,
+    chainId: chilizConfig.chainId,
+    query: { enabled: !!selection && open },
+  });
+  const currentMarketLiability: bigint =
+    (marketLiabilityQuery.data as bigint | undefined) ?? BigInt(0);
+
+  const maxMarketLiability: bigint | null =
+    totalAssetsRaw !== undefined && maxMarketBps !== undefined && maxMarketBps > 0
+      ? (totalAssetsRaw * BigInt(maxMarketBps)) / BigInt(10_000)
+      : null;
+
+  const maxMatchLiability: bigint | null =
+    totalAssetsRaw !== undefined && maxMatchBps !== undefined && maxMatchBps > 0
+      ? (totalAssetsRaw * BigInt(maxMatchBps)) / BigInt(10_000)
+      : null;
+
+  const exposureForBet: bigint =
+    (quoteNetExposure as bigint | undefined) ?? BigInt(0);
+
+  const exceedsMarketLiabilityCap =
+    maxMarketLiability !== null &&
+    exposureForBet > BigInt(0) &&
+    currentMarketLiability + exposureForBet > maxMarketLiability;
+
+  // Non-USDC paths need the Kayen quote to compute the actual stake the
+  // contract will see. While the quote is loading or the token has no path,
+  // we don't yet know if the bet will clear `MIN_NET_STAKE` — block Continue
+  // so the user can't slide past the gate during the quote round-trip.
+  const quotePending =
+    token.kind !== "USDC" &&
+    parsedAmount > BigInt(0) &&
+    (quoteLoading || quotedUsdcOut === undefined) &&
+    !swapPathMissing;
 
   // ── Tx flags ────────────────────────────────────────────────────────────
   const { isPending, isConfirming, isSuccess, txHash, error: txError, isReverted, isUserRejected } = betState;
@@ -308,6 +398,7 @@ export function MarketBetDialog({
       needsSwap: false,
       logoTxt: "$",
       logoBg: "#2775CA",
+      logoUrl: tokenLogoFor("USDC") ?? undefined,
     };
     const chz: BetTokenOption & { kind: BetToken["kind"] } = {
       kind: "CHZ",
@@ -319,6 +410,7 @@ export function MarketBetDialog({
       needsSwap: true,
       logoTxt: "C",
       logoBg: "#E8001D",
+      logoUrl: tokenLogoFor("CHZ") ?? undefined,
     };
     const erc20s = fanTokens.map((t) => ({
       kind: "ERC20" as const,
@@ -329,6 +421,7 @@ export function MarketBetDialog({
       balance: token.kind === "ERC20" && token.address === t.tokenAddress ? balance : 0,
       decimals: 4,
       needsSwap: true,
+      logoUrl: tokenLogoFor(t.symbol) ?? undefined,
     }));
     return [usdc, chz, ...erc20s];
   }, [fanTokens, token, balance, usdcDecimals]);
@@ -344,6 +437,7 @@ export function MarketBetDialog({
       needsSwap: token.kind !== "USDC",
       logoTxt: tokenLogoTxt(token.kind),
       logoBg: tokenLogoBg(token.kind),
+      logoUrl: tokenLogoFor(sym) ?? undefined,
     };
   }, [token, balance, usdcDecimals]);
 
@@ -430,6 +524,9 @@ export function MarketBetDialog({
     !swapPathMissing &&
     !usdcZeroBalance &&
     !expectedStakeExceedsCap &&
+    !exceedsMarketLiabilityCap &&
+    !stakeBelowMinimum &&
+    !quotePending &&
     !simulationFailed &&
     !!walletAddress;
 
@@ -492,27 +589,67 @@ export function MarketBetDialog({
     if (!open) advancedRef.current = false;
   }, [open, isSuccess, txHash]);
 
-  // Surface tx / approve errors into the banner.
+  // Tx rejected by the wallet — flip the dialog to a dedicated failure step
+  // so the user can't miss what happened. We don't keep them on `review`.
   useEffect(() => {
-    const err = txError ?? approveError;
-    if (!err) return;
-    // Wallet popup rejected — flag explicitly so the user knows what happened.
-    if (isUserRejected) {
-      setBannerError("Transaction cancelled in your wallet. Try again when you're ready.");
+    if (!isUserRejected) return;
+    if (!advancedRef.current) {
+      advancedRef.current = true;
+      setFailureKind('rejected');
+      setFailureReason(null);
+      setPhase('failure');
+    }
+  }, [isUserRejected]);
+
+  // Other bet-path errors (gas estimation revert, RPC, encoding…) that
+  // never reach the receipt phase — surface them too so the user isn't
+  // stuck on review thinking nothing happened.
+  useEffect(() => {
+    if (!txError || isUserRejected || isReverted) return;
+    if (advancedRef.current) return;
+    advancedRef.current = true;
+    const decoded = decodeContractError(txError);
+    setFailureKind('reverted');
+    setFailureReason(decoded.description ? `${decoded.title} — ${decoded.description}` : decoded.title);
+    setPhase('failure');
+  }, [txError, isUserRejected, isReverted]);
+
+  // Receipt came back with `status: 'reverted'` — tx mined, contract refused.
+  // Decode the revert reason from the simulation hook (the same call viem
+  // tried) so we can show the actual contract error rather than a generic
+  // "transaction reverted".
+  useEffect(() => {
+    if (!isReverted) return;
+    if (!advancedRef.current) {
+      advancedRef.current = true;
+      setFailureKind('reverted');
+      const simErr =
+        token.kind === 'USDC' ? usdcSim.error : token.kind === 'CHZ' ? chzSim.error : tokenSim.error;
+      if (simErr) {
+        const decoded = decodeContractError(simErr);
+        setFailureReason(decoded.description ? `${decoded.title} — ${decoded.description}` : decoded.title);
+      } else if (txError) {
+        const decoded = decodeContractError(txError);
+        setFailureReason(decoded.description ? `${decoded.title} — ${decoded.description}` : decoded.title);
+      } else {
+        setFailureReason(null);
+      }
+      setPhase('failure');
+    }
+  }, [isReverted, txError, token.kind, usdcSim.error, chzSim.error, tokenSim.error]);
+
+  // Approve-flow errors are surfaced as a dismissable banner, NOT as a
+  // dialog-takeover failure step — approve is a precursor and the user
+  // should be able to immediately retry without resetting the form.
+  useEffect(() => {
+    if (!approveError) {
+      // Don't clobber an existing banner from a different source.
       return;
     }
-    const decoded = decodeContractError(err);
-    setBannerError(decoded.description ? `${decoded.title} — ${decoded.description}` : decoded.title);
-  }, [txError, approveError, isUserRejected]);
-
-  // Receipt came back with status: 'reverted' — the tx mined but the contract
-  // refused. Surface a clear banner with a tx-hash link.
-  useEffect(() => {
-    if (!isReverted || !txHash) return;
-    setBannerError(
-      `Transaction failed on-chain (${txHash.slice(0, 10)}…${txHash.slice(-8)}). Gas was spent but no bet was placed — check the explorer for the revert reason.`,
-    );
-  }, [isReverted, txHash]);
+    const decoded = decodeContractError(approveError);
+    const reason = decoded.description ? `${decoded.title} — ${decoded.description}` : decoded.title;
+    setBannerError(`Approval failed — ${reason}`);
+  }, [approveError]);
 
   // ── Derived display strings ─────────────────────────────────────────────
   const stakeUsdcEquivNum = (() => {
@@ -546,12 +683,13 @@ export function MarketBetDialog({
     stake: "Review →",
     review: needsApproval ? `Approve ${tokenLabel(token)}` : "Place bet",
     success: "Close",
+    failure: "Close",
   };
   const nextDisabled = (() => {
     if (phase === "pick") {
       return selectedOutcome === null || !isMarketOpen || oddsDecimal === null;
     }
-    if (phase === "stake") return !isValidAmount || insufficientBalance || swapPathMissing || usdcZeroBalance;
+    if (phase === "stake") return !isValidAmount || insufficientBalance || swapPathMissing || usdcZeroBalance || stakeBelowMinimum || exceedsMarketLiabilityCap || quotePending;
     if (phase === "review") return !canPlaceBet && !needsApproval;
     return false;
   })();
@@ -574,6 +712,22 @@ export function MarketBetDialog({
     if (bannerError) return bannerError;
     if (hasAnyOdds && !onChainOddsSet && phase !== "pick")
       return "Odds posted in the back-office aren't yet synced on-chain — the contract would reject this bet. Ask the admin to run setOdds, then retry.";
+    if (exceedsMarketLiabilityCap && maxMarketLiability !== null) {
+      const remaining = maxMarketLiability > currentMarketLiability
+        ? maxMarketLiability - currentMarketLiability
+        : BigInt(0);
+      return `This market's liability cap is ${formatUsdc(maxMarketLiability, usdcDecimals)} USDC (pool × ${((maxMarketBps ?? 0) / 100).toFixed(1)}%). After existing bets, only ${formatUsdc(remaining, usdcDecimals)} USDC of new exposure fits. Reduce your stake or wait for the LP to deposit more.`;
+    }
+    if (stakeBelowMinimum && token.kind !== "USDC") {
+      // Surface the actual swap quote so the user understands why their input
+      // isn't enough — Kayen testnet pricing can be far below mainnet.
+      const usdcOut = formatUsdc(expectedStakeUsdc, usdcDecimals);
+      return `${amount} ${tokenLabel(token)} swaps to ≈ ${usdcOut} USDC after Kayen — below the 0.10 USDC contract minimum. Bet a larger amount or switch to USDC.`;
+    }
+    if (stakeBelowMinimum)
+      return `Stake below the contract minimum (0.10 USDC). Increase your amount.`;
+    if (quotePending && phase !== "pick")
+      return "Loading the FanX/Kayen quote — checking the swap output is above the 0.10 USDC minimum.";
     if (expectedStakeExceedsCap && maxBetAmountCapped)
       return `Stake exceeds the pool's per-bet cap of ${formatUsdc(maxBetAmountCapped, usdcDecimals)} USDC. Try a smaller amount.`;
     if (insufficientLiquidity)
@@ -729,10 +883,26 @@ export function MarketBetDialog({
                   onClose={onClose}
                 />
               )}
+
+              {phase === "failure" && (
+                <BetFailureStep
+                  kind={failureKind}
+                  txHash={txHash}
+                  reason={failureReason}
+                  onRetry={() => {
+                    // Back to the review step so the user can re-submit.
+                    setBannerError(null);
+                    setFailureReason(null);
+                    advancedRef.current = false;
+                    setPhase("review");
+                  }}
+                  onClose={onClose}
+                />
+              )}
             </div>
 
-            {/* Sticky footer — hidden on success (has its own CTAs). */}
-            {phase !== "success" && (
+            {/* Sticky footer — hidden on success/failure (those steps own their CTAs). */}
+            {phase !== "success" && phase !== "failure" && (
               <div className="sticky bottom-0 z-[2] border-t border-[#1E1E1E] bg-[#0A0A0A]/95 px-7 py-5 backdrop-blur">
                 <DialogFooter
                   onBack={onBack}

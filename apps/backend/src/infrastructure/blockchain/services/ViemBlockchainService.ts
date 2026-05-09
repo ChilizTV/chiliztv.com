@@ -172,14 +172,40 @@ export class ViemBlockchainService implements IBlockchainService {
             }));
             if (count === 0) return 0;
 
+            // Lifecycle reminder: Inactive(0) → Open(1) → Closed(3) → Resolved(4).
+            // `resolveMarket` requires state == Closed, so we must call
+            // `closeMarket` first when the market is still Open.
+            const MARKET_STATE_OPEN = 1;
+            const MARKET_STATE_CLOSED = 3;
+
             for (let id = 0; id < count; id++) {
                 try {
-                    const core = await this.publicClient.readContract({
+                    let core = await this.publicClient.readContract({
                         address: addr, abi: FOOTBALL_MATCH_ABI,
                         functionName: 'getMarketCore', args: [BigInt(id)],
                     }) as readonly [number, bigint, number, number, bigint];
 
                     if (core[0] === MARKET_STATE_RESOLVED) continue;
+
+                    if (core[0] === MARKET_STATE_OPEN) {
+                        const closeHash = await this.walletClient.writeContract({
+                            chain: undefined,
+                            address: addr, abi: FOOTBALL_MATCH_ABI,
+                            functionName: 'closeMarket', args: [BigInt(id)],
+                        });
+                        await this.publicClient.waitForTransactionReceipt({ hash: closeHash, timeout: 90_000 });
+                        await delay();
+                        // Re-read so we don't pass `Inactive`/`Cancelled` etc. through to resolveMarket.
+                        core = await this.publicClient.readContract({
+                            address: addr, abi: FOOTBALL_MATCH_ABI,
+                            functionName: 'getMarketCore', args: [BigInt(id)],
+                        }) as readonly [number, bigint, number, number, bigint];
+                    }
+
+                    if (core[0] !== MARKET_STATE_CLOSED) {
+                        logger.warn('Market not in Closed state — skipping resolveMarket', { contractAddress, id, state: core[0] });
+                        continue;
+                    }
 
                     const result = BigInt(this.computeResult(id, homeScore, awayScore));
                     const hash = await this.walletClient.writeContract({

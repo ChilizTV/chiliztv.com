@@ -16,10 +16,6 @@ interface ChatPanelProps {
   username: string;
   walletAddress: string;
   onMessageSent?: () => void;
-  headerProps?: {
-    onOpenDonation?: () => void;
-    onOpenSubscription?: () => void;
-  };
 }
 
 const chatService = new SupabaseChatService();
@@ -31,7 +27,6 @@ export default function ChatPanel({
   username,
   walletAddress,
   onMessageSent,
-  headerProps,
 }: ChatPanelProps) {
   const [newMessage, setNewMessage] = useState("");
   const [isConnected, setIsConnected] = useState(false);
@@ -42,7 +37,6 @@ export default function ChatPanel({
     onMessageSentRef.current = onMessageSent;
   }, [onMessageSent]);
 
-  // Connected-users tracking (match-level only)
   useEffect(() => {
     const numericMatchId = parseInt(matchId);
     chatService
@@ -63,7 +57,6 @@ export default function ChatPanel({
     walletAddress,
   });
 
-
   const handleSendMessage = async () => {
     if (!newMessage.trim() || !isConnected) return;
     const text = newMessage.trim();
@@ -73,7 +66,7 @@ export default function ChatPanel({
   };
 
   return (
-    <div className="flex flex-col flex-1 min-h-0 bg-gray-950/95 backdrop-blur-sm rounded-lg overflow-hidden shadow-2xl border border-gray-800">
+    <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden bg-[#0d0d0d]">
       <ChatHeader isConnected={isConnected} />
 
       {streamRoom && (
@@ -107,9 +100,7 @@ export default function ChatPanel({
         onChange={setNewMessage}
         onSend={handleSendMessage}
         disabled={!isConnected}
-        placeholder={isConnected ? "Type a message..." : "Connecting..."}
-        onOpenDonation={headerProps?.onOpenDonation}
-        onOpenSubscription={headerProps?.onOpenSubscription}
+        placeholder={isConnected ? "Send a message…" : "Connecting…"}
       />
     </div>
   );

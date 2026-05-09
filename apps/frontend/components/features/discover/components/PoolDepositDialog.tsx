@@ -18,6 +18,7 @@ import { usePoolDecimals } from "@/hooks/usePoolDecimals";
 import { chilizConfig } from "@/config/chiliz.config";
 import { decodeContractError } from "@/lib/contracts/errors";
 import { NetworkGuard } from "@/components/web3/NetworkGuard";
+import { tokenLogoFor } from "@/lib/tokens/tokenLogo";
 
 interface PoolDepositDialogProps {
   open: boolean;
@@ -34,6 +35,30 @@ const NATIVE_DECIMALS = 18;
 const FAN_TOKEN_DECIMALS = 18;
 const DEADLINE_MIN = 20; // minutes
 const DEFAULT_SLIPPAGE_BPS = 50; // 0.5%
+
+function TokenIcon({ symbol, size = 18 }: { symbol: string; size?: number }) {
+  const url = tokenLogoFor(symbol);
+  if (!url) {
+    return (
+      <span
+        className="inline-flex items-center justify-center rounded-full text-[9px] font-bold text-white"
+        style={{ width: size, height: size, background: "#2A2A2A" }}
+      >
+        {symbol.slice(0, 1)}
+      </span>
+    );
+  }
+  return (
+    <img
+      src={url}
+      alt={symbol}
+      width={size}
+      height={size}
+      className="inline-block flex-shrink-0 rounded-full object-cover"
+      style={{ width: size, height: size, background: "#0A0A0A", border: "1px solid #1E1E1E" }}
+    />
+  );
+}
 
 function formatAtomic(value: bigint | undefined, decimals: number | undefined, fractionDigits = 2): string {
   if (value === undefined || decimals === undefined) return "—";
@@ -442,6 +467,7 @@ export function PoolDepositDialog({ open, onClose }: PoolDepositDialogProps) {
                       Pay with
                     </span>
                     <span className="flex items-center gap-1.5 font-bold" style={{ color: "#fff" }}>
+                      <TokenIcon symbol={tokenLabel(token)} size={18} />
                       {tokenLabel(token)} <ChevronDown size={12} />
                     </span>
                   </button>
@@ -461,7 +487,10 @@ export function PoolDepositDialog({ open, onClose }: PoolDepositDialogProps) {
                           className="w-full flex items-center justify-between px-3 py-2 text-[12px] hover:bg-[#181818]"
                           style={{ color: "#ccc" }}
                         >
-                          <span className="font-bold uppercase tracking-[0.05em]">{tokenLabel(t)}</span>
+                          <span className="flex items-center gap-2">
+                            <TokenIcon symbol={tokenLabel(t)} size={20} />
+                            <span className="font-bold uppercase tracking-[0.05em]">{tokenLabel(t)}</span>
+                          </span>
                           {t.kind === "ERC20" && (
                             <span className="text-[10px]" style={{ color: "#666" }}>{t.name}</span>
                           )}

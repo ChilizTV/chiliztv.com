@@ -3,7 +3,6 @@
  * @dev Allows user to choose between camera, screen, both, or OBS
  */
 
-import { Button } from "@/components/ui/button";
 import { User, Monitor, Video, Tv2 } from "lucide-react";
 
 type SourceType = "camera" | "screen" | "both" | "obs";
@@ -13,62 +12,70 @@ interface SourceSelectorProps {
   onSourceChange: (source: SourceType) => void;
 }
 
-/**
- * @notice Render source selector buttons
- * @param sourceType Currently selected source
- * @param onSourceChange Callback when source changes
- */
-export function SourceSelector({ sourceType, onSourceChange }: SourceSelectorProps) {
-  const getButtonClass = (type: SourceType) => {
-    const isSelected = sourceType === type;
-    const activeColor = type === "obs" ? "bg-orange-600 hover:bg-orange-700" : "bg-blue-600 hover:bg-blue-700";
-    return `flex-1 ${
-      isSelected
-        ? `${activeColor} text-white`
-        : "bg-zinc-800 border-zinc-700 text-gray-300 hover:bg-zinc-700"
-    }`;
-  };
+interface ModeTileProps {
+  active: boolean;
+  onClick: () => void;
+  icon: React.ReactNode;
+  label: string;
+  sub: string;
+}
 
+function ModeTile({ active, onClick, icon, label, sub }: ModeTileProps) {
   return (
-    <div className="space-y-2">
-      <label className="text-sm font-medium text-gray-300">Source</label>
-      <div className="flex gap-2">
-        <Button
-          type="button"
-          variant={sourceType === "camera" ? "default" : "outline"}
+    <button
+      type="button"
+      onClick={onClick}
+      className="relative flex items-start gap-3 bg-[#111] p-4 text-left transition-colors hover:bg-[#161616]"
+      style={{ background: active ? "rgba(232,0,29,0.08)" : undefined }}
+    >
+      {active && <span aria-hidden className="absolute left-0 top-0 h-full w-1 bg-[#E8001D]" />}
+      <span className={active ? "text-[#E8001D]" : "text-white/55"}>{icon}</span>
+      <div className="min-w-0">
+        <div className="font-display text-[14px] font-extrabold uppercase tracking-tight text-white">
+          {label}
+        </div>
+        <div className="mt-0.5 text-[11px] font-light text-white/55">{sub}</div>
+      </div>
+    </button>
+  );
+}
+
+export function SourceSelector({ sourceType, onSourceChange }: SourceSelectorProps) {
+  return (
+    <div>
+      <div className="font-mono-ctv mb-2 inline-flex items-center gap-2.5 text-[10px] font-bold uppercase tracking-[0.16em] text-white/45">
+        <span aria-hidden className="block h-0.5 w-4 bg-white/25" />
+        Source
+      </div>
+      <div className="grid grid-cols-2 gap-px overflow-hidden rounded-md bg-[#1E1E1E] sm:grid-cols-4">
+        <ModeTile
+          active={sourceType === "camera"}
           onClick={() => onSourceChange("camera")}
-          className={getButtonClass("camera")}
-        >
-          <User className="w-4 h-4 mr-2" />
-          Camera
-        </Button>
-        <Button
-          type="button"
-          variant={sourceType === "screen" ? "default" : "outline"}
+          icon={<User size={14} />}
+          label="Camera"
+          sub="Webcam only"
+        />
+        <ModeTile
+          active={sourceType === "screen"}
           onClick={() => onSourceChange("screen")}
-          className={getButtonClass("screen")}
-        >
-          <Monitor className="w-4 h-4 mr-2" />
-          Screen
-        </Button>
-        <Button
-          type="button"
-          variant={sourceType === "both" ? "default" : "outline"}
+          icon={<Monitor size={14} />}
+          label="Screen"
+          sub="Share screen"
+        />
+        <ModeTile
+          active={sourceType === "both"}
           onClick={() => onSourceChange("both")}
-          className={getButtonClass("both")}
-        >
-          <Video className="w-4 h-4 mr-2" />
-          Both
-        </Button>
-        <Button
-          type="button"
-          variant={sourceType === "obs" ? "default" : "outline"}
+          icon={<Video size={14} />}
+          label="Both"
+          sub="Cam + screen"
+        />
+        <ModeTile
+          active={sourceType === "obs"}
           onClick={() => onSourceChange("obs")}
-          className={getButtonClass("obs")}
-        >
-          <Tv2 className="w-4 h-4 mr-2" />
-          OBS
-        </Button>
+          icon={<Tv2 size={14} />}
+          label="OBS / RTMP"
+          sub="Push from OBS"
+        />
       </div>
     </div>
   );

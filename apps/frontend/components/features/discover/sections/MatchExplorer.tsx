@@ -38,7 +38,9 @@ export function MatchExplorer({
   const [tab, setTab] = useState<MatchTab>("all");
   const [league, setLeague] = useState<string | null>(null);
   const [sort, setSort] = useState<SortMode>("time_asc");
-  const [showFinished, setShowFinished] = useState(false);
+  // Default to showing finished matches so the visible list matches the
+  // "All (n)" counter — the toggle still lets users hide them.
+  const [showFinished, setShowFinished] = useState(true);
 
   const liveCount = useMemo(
     () => matches.filter((m) => isLive(m.status)).length,

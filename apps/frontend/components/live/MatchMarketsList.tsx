@@ -152,62 +152,46 @@ function MarketRow({ contractAddress, marketId, homeTeam, awayTeam, matchOdds, o
 
   return (
     <div
-      className="px-4 py-3"
+      className="px-4 py-4"
       style={{ borderTop: marketId > 0 ? "1px solid #1E1E1E" : "none" }}
     >
       {/* Top row : icon + label + state + pool */}
       <div className="flex items-center gap-3">
         <div
-          className="w-8 h-8 rounded flex items-center justify-center flex-shrink-0"
-          style={{ background: "#1E1E1E" }}
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md"
+          style={{ background: "#1A1A1A", border: "1px solid #2A2A2A" }}
         >
-          <Icon size={14} style={{ color: "#888" }} />
+          <Icon size={14} style={{ color: "#fff" }} />
         </div>
 
-        <div className="flex-1 min-w-0">
+        <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
-            <span
-              className="text-[13px] font-bold uppercase truncate"
-              style={{ color: "#fff", fontFamily: "'Barlow Condensed', sans-serif" }}
-            >
+            <span className="font-display truncate text-[16px] font-extrabold uppercase tracking-tight text-white">
               {label}
             </span>
             {lineLabel && (
-              <span
-                className="text-[10px] px-1.5 py-0.5 rounded"
-                style={{
-                  background: "#1E1E1E",
-                  color: "#888",
-                  fontFamily: "'JetBrains Mono', monospace",
-                }}
-              >
+              <span className="font-mono-ctv rounded-sm border border-[#1E1E1E] bg-[#141414] px-1.5 py-0.5 text-[10px] font-bold tabular-nums text-white/65">
                 O/U {lineLabel}
               </span>
             )}
           </div>
-          <div
-            className="text-[11px] truncate mt-0.5"
-            style={{ color: "#555", fontFamily: "'Barlow', sans-serif" }}
-          >
+          <div className="font-mono-ctv mt-1 truncate text-[10px] uppercase tracking-[0.16em] text-white/45">
             {hint}
           </div>
         </div>
 
-        <div className="flex flex-col items-end gap-1 flex-shrink-0">
+        <div className="flex shrink-0 flex-col items-end gap-1">
           <span
-            className="text-[10px] font-bold tracking-[0.08em] uppercase px-2 py-0.5 rounded"
+            className="font-mono-ctv rounded-sm px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.14em]"
             style={{
-              background: `${stateColor}1f`,
+              background: `${stateColor}1a`,
               color: stateColor,
-              fontFamily: "'Barlow', sans-serif",
+              border: `1px solid ${stateColor}33`,
             }}
           >
             {stateName}
           </span>
-          <span
-            className="text-[11px]"
-            style={{ color: "#888", fontFamily: "'JetBrains Mono', monospace" }}
-          >
+          <span className="font-mono-ctv text-[10px] tabular-nums text-white/45">
             {formatBetAmount(totalPool, assetDecimals)} {BET_TOKEN_SYMBOL}
           </span>
         </div>
@@ -238,46 +222,43 @@ function MarketRow({ contractAddress, marketId, homeTeam, awayTeam, matchOdds, o
             const cellOdds = dbOdds.bySelection.get(o.selection) ?? null;
             const cellBettable = canBet && cellOdds !== null;
             return (
-            <button
-              key={o.selection}
-              type="button"
-              onClick={() => handleCellClick(o.selection)}
-              disabled={!cellBettable}
-              className="flex items-center justify-between px-3 py-2 rounded transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E8001D]"
-              style={{
-                background: "#1A1A1A",
-                border: "1px solid #2A2A2A",
-                color: cellBettable ? "#fff" : "#666",
-                cursor: cellBettable ? "pointer" : "not-allowed",
-                opacity: cellBettable ? 1 : 0.4,
-              }}
-              onMouseEnter={(e) => {
-                if (!cellBettable) return;
-                const el = e.currentTarget as HTMLButtonElement;
-                el.style.background = "rgba(232,0,29,0.10)";
-                el.style.borderColor = "#E8001D";
-              }}
-              onMouseLeave={(e) => {
-                if (!cellBettable) return;
-                const el = e.currentTarget as HTMLButtonElement;
-                el.style.background = "#1A1A1A";
-                el.style.borderColor = "#2A2A2A";
-              }}
-            >
-              <span
-                className="text-[11px] font-bold uppercase tracking-[0.04em] truncate"
-                style={{ fontFamily: "'Barlow Condensed', sans-serif" }}
+              <button
+                key={o.selection}
+                type="button"
+                onClick={() => handleCellClick(o.selection)}
+                disabled={!cellBettable}
+                className="group flex items-center justify-between rounded-md px-3 py-2.5 transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E8001D]"
+                style={{
+                  background: "#0d0d0d",
+                  border: "1px solid #1E1E1E",
+                  color: cellBettable ? "#fff" : "#666",
+                  cursor: cellBettable ? "pointer" : "not-allowed",
+                  opacity: cellBettable ? 1 : 0.4,
+                }}
+                onMouseEnter={(e) => {
+                  if (!cellBettable) return;
+                  const el = e.currentTarget as HTMLButtonElement;
+                  el.style.background = "rgba(232,0,29,0.08)";
+                  el.style.borderColor = "#E8001D";
+                }}
+                onMouseLeave={(e) => {
+                  if (!cellBettable) return;
+                  const el = e.currentTarget as HTMLButtonElement;
+                  el.style.background = "#0d0d0d";
+                  el.style.borderColor = "#1E1E1E";
+                }}
               >
-                {o.label}
-              </span>
-              <span
-                className="text-[12px] font-bold tabular-nums ml-2"
-                style={{ color: cellOdds !== null ? "#E8001D" : "#666", fontFamily: "'JetBrains Mono', monospace" }}
-              >
-                {cellOdds !== null ? `× ${cellOdds.toFixed(2)}` : "—"}
-              </span>
-            </button>
-          );
+                <span className="font-display truncate text-[12px] font-extrabold uppercase tracking-tight">
+                  {o.label}
+                </span>
+                <span
+                  className="font-mono-ctv ml-2 text-[12px] font-bold tabular-nums"
+                  style={{ color: cellOdds !== null ? "#E8001D" : "#666" }}
+                >
+                  {cellOdds !== null ? `× ${cellOdds.toFixed(2)}` : "—"}
+                </span>
+              </button>
+            );
           })}
         </div>
       )}
@@ -365,13 +346,13 @@ export function MatchMarketsList({
 function SkeletonRow({ first = false }: { first?: boolean }) {
   return (
     <div
-      className="flex items-center gap-3 px-4 py-3"
+      className="flex items-center gap-3 px-4 py-4"
       style={{ borderTop: first ? "none" : "1px solid #1E1E1E" }}
     >
-      <div className="w-8 h-8 rounded" style={{ background: "#1E1E1E" }} />
+      <div className="h-9 w-9 animate-pulse rounded-md" style={{ background: "#1E1E1E" }} />
       <div className="flex-1">
-        <div className="h-3 w-24 rounded mb-1.5" style={{ background: "#1E1E1E" }} />
-        <div className="h-2.5 w-32 rounded" style={{ background: "#141414" }} />
+        <div className="mb-1.5 h-3 w-24 animate-pulse rounded" style={{ background: "#1E1E1E" }} />
+        <div className="h-2.5 w-32 animate-pulse rounded" style={{ background: "#141414" }} />
       </div>
     </div>
   );
@@ -379,10 +360,7 @@ function SkeletonRow({ first = false }: { first?: boolean }) {
 
 function EmptyState({ message }: { message: string }) {
   return (
-    <div
-      className="px-4 py-8 text-center text-[12px]"
-      style={{ color: "#555", fontFamily: "'Barlow', sans-serif" }}
-    >
+    <div className="font-mono-ctv px-4 py-10 text-center text-[11px] uppercase tracking-[0.16em] text-white/45">
       {message}
     </div>
   );

@@ -6,6 +6,7 @@ import { useBalance } from 'wagmi';
 import { useFanTokens } from '@/hooks/useFanTokens';
 import { useLpPosition } from '@/hooks/useLpPosition';
 import { PoolDepositDialog } from '@/components/features/discover/components/PoolDepositDialog';
+import { BackgroundFX } from '@/components/features/discover/sections/BackgroundFX';
 import { useDashboardUser } from './hooks/useDashboardUser';
 import { useIsStreamer } from './hooks/useIsStreamer';
 import { useMyBets } from './hooks/useMyBets';
@@ -84,7 +85,8 @@ export function Dashboard() {
     const openPool = () => setPoolDialogOpen(true);
 
     return (
-        <main className="relative">
+        <main className="relative bg-[#0A0A0A]">
+            <BackgroundFX />
             <DashboardHero user={user} />
             <QuickActionsStrip isStreamer={isStreamer} onAction={handleQuickAction} />
             <StatsHero stats={stats.data} onPlaceFirstBet={goToDiscover} onJoinPool={openPool} />

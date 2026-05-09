@@ -157,7 +157,16 @@ export class BettingContractDeploymentAdapter {
 
         const sendAndWait = async (fn: () => Promise<`0x${string}`>) => {
             hash = await fn();
-            const receipt = await this.publicClient.waitForTransactionReceipt({ hash, timeout: 90_000 });
+            // Spicy's public RPC is load-balanced and the receipt-poll node
+            // sometimes doesn't see the tx for a few blocks. Lengthen the
+            // timeout + lower the polling cadence so we don't bail early.
+            const receipt = await this.publicClient.waitForTransactionReceipt({
+                hash,
+                timeout: 180_000,
+                pollingInterval: 4_000,
+                retryCount: 4,
+                retryDelay: 4_000,
+            });
             if (receipt.status === 'reverted') {
                 throw new Error(`Transaction reverted on-chain (hash: ${hash})`);
             }

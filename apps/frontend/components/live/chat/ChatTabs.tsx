@@ -1,43 +1,46 @@
-'use client';
+"use client";
 
-import { ChatTab } from '@/hooks/useMultiChat';
+import { ChatTab } from "@/hooks/useMultiChat";
 
 interface ChatTabsProps {
-    activeTab: ChatTab;
-    onTabChange: (tab: ChatTab) => void;
-    matchUnread: number;
-    streamUnread: number;
+  activeTab: ChatTab;
+  onTabChange: (tab: ChatTab) => void;
+  matchUnread: number;
+  streamUnread: number;
 }
 
+const TABS: { key: ChatTab; label: string }[] = [
+  { key: "stream", label: "Stream" },
+  { key: "match", label: "General" },
+];
+
 export function ChatTabs({ activeTab, onTabChange, matchUnread, streamUnread }: ChatTabsProps) {
-    return (
-        <div className="flex border-b border-gray-800">
-            {(['stream', 'match'] as const).map((tab) => {
-                const isActive = activeTab === tab;
-                const unread = tab === 'stream' ? streamUnread : matchUnread;
-                const label = tab === 'stream' ? 'Stream' : 'General';
-                return (
-                    <button
-                        key={tab}
-                        onClick={() => onTabChange(tab)}
-                        className={`
-                            flex-1 flex items-center justify-center gap-1.5
-                            py-2 text-xs font-medium transition-colors
-                            ${isActive
-                                ? 'text-white border-b-2 border-white -mb-px'
-                                : 'text-gray-500 hover:text-gray-300'
-                            }
-                        `}
-                    >
-                        {label}
-                        {unread > 0 && !isActive && (
-                            <span className="min-w-4 h-4 rounded-full bg-red-500 text-white text-[10px] font-bold inline-flex items-center justify-center px-1">
-                                {unread > 99 ? '99+' : unread}
-                            </span>
-                        )}
-                    </button>
-                );
-            })}
-        </div>
-    );
+  return (
+    <div className="flex items-center gap-2 border-b border-[#1E1E1E] bg-[#0d0d0d] p-3">
+      {TABS.map((t) => {
+        const isActive = activeTab === t.key;
+        const unread = t.key === "stream" ? streamUnread : matchUnread;
+        return (
+          <button
+            key={t.key}
+            type="button"
+            onClick={() => onTabChange(t.key)}
+            className="font-mono-ctv inline-flex items-center gap-2 rounded-md border px-3 py-2 text-[10px] font-bold uppercase tracking-[0.14em] transition-colors"
+            style={{
+              borderColor: isActive ? "#E8001D" : "#1E1E1E",
+              background: isActive ? "rgba(232,0,29,0.08)" : "transparent",
+              color: isActive ? "#fff" : "rgba(255,255,255,0.55)",
+            }}
+          >
+            {t.label}
+            {unread > 0 && !isActive && (
+              <span className="ml-0.5 inline-flex h-4 min-w-[16px] items-center justify-center rounded-full bg-[#E8001D] px-1 text-[9px] font-bold tabular-nums text-white">
+                {unread > 99 ? "99+" : unread}
+              </span>
+            )}
+          </button>
+        );
+      })}
+    </div>
+  );
 }

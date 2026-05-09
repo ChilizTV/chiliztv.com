@@ -175,9 +175,11 @@ export class SyncMatchesUseCase {
         }
     }
 
-    /** Convert domain ExtendedOdds to MatchOdds stored on the Match entity. */
+    /** Convert domain ExtendedOdds (1X2 only) to per-market MatchOdds. */
     private toMatchOdds(odds: ExtendedOdds | null): MatchOdds | undefined {
         if (!odds) return undefined;
-        return { homeWin: odds.homeWin, draw: odds.draw, awayWin: odds.awayWin };
+        return {
+            winner: { homeWin: odds.homeWin, draw: odds.draw, awayWin: odds.awayWin },
+        };
     }
 }

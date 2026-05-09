@@ -42,8 +42,23 @@ export interface TxState {
     isPending: boolean;
     isConfirming: boolean;
     isSuccess: boolean;
+    /** True when the receipt came back with `status: 'reverted'` (on-chain failure). */
+    isReverted: boolean;
+    /** True when the user dismissed the wallet popup (MetaMask "Reject"). */
+    isUserRejected: boolean;
     error: Error | null;
     txHash?: `0x${string}`;
+}
+
+function isUserRejectionError(err: Error | null): boolean {
+    if (!err) return false;
+    const msg = err.message.toLowerCase();
+    return (
+        msg.includes('user rejected') ||
+        msg.includes('user denied') ||
+        msg.includes('action_rejected') ||
+        msg.includes('rejected the request')
+    );
 }
 
 function useTxState(args: {
@@ -51,11 +66,18 @@ function useTxState(args: {
     isPending: boolean;
     error: Error | null;
 }): TxState {
-    const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash: args.data });
+    const {
+        isLoading: isConfirming,
+        isSuccess,
+        data: receipt,
+    } = useWaitForTransactionReceipt({ hash: args.data });
+    const isReverted = receipt?.status === 'reverted';
     return {
         isPending: args.isPending,
         isConfirming,
-        isSuccess,
+        isSuccess: isSuccess && !isReverted,
+        isReverted,
+        isUserRejected: isUserRejectionError(args.error),
         error: args.error,
         txHash: args.data,
     };

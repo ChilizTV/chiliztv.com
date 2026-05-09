@@ -23,6 +23,105 @@ interface MatchRow {
   updated_at: string;
 }
 
+/**
+ * Read JSONB → typed `MatchOdds`. Accepts the new per-market shape
+ *   `{ WINNER: {...}, HALFTIME: {...}, GOALS_TOTAL: {...}, BOTH_SCORE: {...}, FIRST_SCORER: {...} }`
+ * and falls back to the legacy flat `{ home_win, draw, away_win }` shape
+ * (auto-promoted to `winner`). Missing markets stay `undefined`.
+ */
+function mapOdds(raw: unknown): MatchOdds | undefined {
+  if (!raw || typeof raw !== 'object') return undefined;
+  const r = raw as Record<string, any>;
+
+  // Legacy flat shape — promote to `winner` and stop.
+  if ((r.home_win !== undefined || r.homeWin !== undefined) && r.WINNER === undefined && r.winner === undefined) {
+    return {
+      winner: {
+        homeWin: Number(r.home_win ?? r.homeWin),
+        draw: Number(r.draw),
+        awayWin: Number(r.away_win ?? r.awayWin),
+      },
+    };
+  }
+
+  const out: MatchOdds = {};
+  const winner = r.WINNER ?? r.winner;
+  if (winner && (winner.home_win !== undefined || winner.homeWin !== undefined)) {
+    out.winner = {
+      homeWin: Number(winner.home_win ?? winner.homeWin),
+      draw: Number(winner.draw),
+      awayWin: Number(winner.away_win ?? winner.awayWin),
+    };
+  }
+  const halftime = r.HALFTIME ?? r.halftime;
+  if (halftime && (halftime.home_win !== undefined || halftime.homeWin !== undefined)) {
+    out.halftime = {
+      homeWin: Number(halftime.home_win ?? halftime.homeWin),
+      draw: Number(halftime.draw),
+      awayWin: Number(halftime.away_win ?? halftime.awayWin),
+    };
+  }
+  const gt = r.GOALS_TOTAL ?? r.goalsTotal;
+  if (gt && gt.over !== undefined && gt.under !== undefined) {
+    out.goalsTotal = {
+      line: Number(gt.line),
+      over: Number(gt.over),
+      under: Number(gt.under),
+    };
+  }
+  const bs = r.BOTH_SCORE ?? r.bothScore;
+  if (bs && bs.yes !== undefined && bs.no !== undefined) {
+    out.bothScore = { yes: Number(bs.yes), no: Number(bs.no) };
+  }
+  const fs = r.FIRST_SCORER ?? r.firstScorer;
+  if (fs && fs.home !== undefined && fs.away !== undefined) {
+    out.firstScorer = {
+      home: Number(fs.home),
+      away: Number(fs.away),
+      none: Number(fs.none),
+    };
+  }
+
+  return Object.keys(out).length > 0 ? out : undefined;
+}
+
+/** Typed `MatchOdds` → JSONB written to the `matches.odds` column. */
+function unmapOdds(odds: MatchOdds): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  if (odds.winner) {
+    out.WINNER = {
+      home_win: odds.winner.homeWin,
+      draw: odds.winner.draw,
+      away_win: odds.winner.awayWin,
+    };
+  }
+  if (odds.halftime) {
+    out.HALFTIME = {
+      home_win: odds.halftime.homeWin,
+      draw: odds.halftime.draw,
+      away_win: odds.halftime.awayWin,
+    };
+  }
+  if (odds.goalsTotal) {
+    out.GOALS_TOTAL = {
+      line: odds.goalsTotal.line,
+      over: odds.goalsTotal.over,
+      under: odds.goalsTotal.under,
+    };
+  }
+  if (odds.bothScore) {
+    out.BOTH_SCORE = { yes: odds.bothScore.yes, no: odds.bothScore.no };
+  }
+  if (odds.firstScorer) {
+    out.FIRST_SCORER = {
+      home: odds.firstScorer.home,
+      away: odds.firstScorer.away,
+      none: odds.firstScorer.none,
+    };
+  }
+  return out;
+}
+
 @injectable()
 export class SupabaseMatchRepository implements IMatchRepository {
   async findAll(): Promise<Match[]> {
@@ -242,13 +341,7 @@ export class SupabaseMatchRepository implements IMatchRepository {
     const awayTeam = typeof row.away_team === 'string' ? JSON.parse(row.away_team) : row.away_team;
     const league = typeof row.league === 'string' ? JSON.parse(row.league) : row.league;
 
-    const odds: MatchOdds | undefined = row.odds
-      ? {
-          homeWin: row.odds.home_win || row.odds.homeWin,
-          draw: row.odds.draw,
-          awayWin: row.odds.away_win || row.odds.awayWin,
-        }
-      : undefined;
+    const odds: MatchOdds | undefined = mapOdds(row.odds);
 
     return Match.reconstitute({
       id: row.id,
@@ -297,11 +390,7 @@ export class SupabaseMatchRepository implements IMatchRepository {
       venue: json.venue,
       home_score: json.score?.home,
       away_score: json.score?.away,
-      odds: json.odds ? {
-        home_win: json.odds.homeWin,
-        draw: json.odds.draw,
-        away_win: json.odds.awayWin,
-      } : null,
+      odds: json.odds ? unmapOdds(json.odds) : null,
       betting_contract_address: json.bettingContractAddress,
       created_at: json.createdAt,
       updated_at: json.updatedAt,

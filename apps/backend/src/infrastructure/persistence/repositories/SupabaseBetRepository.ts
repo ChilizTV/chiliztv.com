@@ -228,7 +228,7 @@ export class SupabaseBetRepository implements IBetRepository {
         if (error) {
             logger.error('Failed to load match metadata for bets', { userAddress, error: error.message });
             // Graceful degradation: render the bets without match info rather than 500.
-            return bets.map((bet) => ({ bet, match: null }));
+            return bets.map((bet) => ({ bet, match: null, marketContext: null }));
         }
 
         type MatchMetaRow = {
@@ -257,9 +257,50 @@ export class SupabaseBetRepository implements IBetRepository {
             });
         }
 
-        return bets.map((bet) => ({
-            bet,
-            match: matchByContract.get(bet.contractAddress.toLowerCase()) ?? null,
-        }));
+        // Pull the MarketCreated event payload for each (contract, marketId)
+        // tuple so the front can render "Over 2.5 goals" instead of `Selection #1`.
+        const marketKeys = Array.from(
+            new Set(bets.map((b) => `${b.contractAddress.toLowerCase()}:${b.marketId.toString()}`)),
+        );
+        const marketContextByKey = new Map<string, BetWithMatchInfo['marketContext']>();
+
+        if (marketKeys.length > 0) {
+            const { data: meRows, error: meError } = await supabase
+                .from('market_events')
+                .select('contract_address, market_id, payload')
+                .eq('event_name', 'MarketCreated')
+                .in('contract_address', contractAddresses);
+
+            if (meError) {
+                logger.warn('Failed to load market_events for bet enrichment', {
+                    userAddress,
+                    error: meError.message,
+                });
+            } else {
+                interface MarketEventRow {
+                    contract_address: string;
+                    market_id: string | number;
+                    payload: { marketType?: unknown; line?: unknown } | null;
+                }
+                for (const row of (meRows ?? []) as MarketEventRow[]) {
+                    const key = `${row.contract_address.toLowerCase()}:${String(row.market_id)}`;
+                    if (marketContextByKey.has(key)) continue;
+                    const p = row.payload ?? {};
+                    const marketType = typeof p.marketType === 'string' ? p.marketType : null;
+                    const line = typeof p.line === 'number' ? p.line : null;
+                    if (!marketType) continue;
+                    marketContextByKey.set(key, { marketType, line });
+                }
+            }
+        }
+
+        return bets.map((bet) => {
+            const key = `${bet.contractAddress.toLowerCase()}:${bet.marketId.toString()}`;
+            return {
+                bet,
+                match: matchByContract.get(bet.contractAddress.toLowerCase()) ?? null,
+                marketContext: marketContextByKey.get(key) ?? null,
+            };
+        });
     }
 }

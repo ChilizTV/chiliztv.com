@@ -88,11 +88,11 @@ export class GetBrowseMatchesUseCase {
         score: props.score
           ? { home: props.score.home, away: props.score.away }
           : null,
-        odds: props.odds
+        odds: props.odds?.winner
           ? {
-              home: props.odds.homeWin ?? null,
-              draw: props.odds.draw ?? null,
-              away: props.odds.awayWin ?? null,
+              home: props.odds.winner.homeWin ?? null,
+              draw: props.odds.winner.draw ?? null,
+              away: props.odds.winner.awayWin ?? null,
             }
           : null,
         streamsPreview,

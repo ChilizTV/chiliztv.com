@@ -1,5 +1,11 @@
 /** On-chain bet shape served by `GET /bets`, with the embedded `match` join. */
 
+import {
+    fmtSelectionByMarket,
+    MARKET_TYPE_HASHES,
+    isHiddenMarket as isHiddenMarketByHash,
+} from '@/lib/contracts/markets';
+
 export type BetStatus = 'PENDING' | 'WON' | 'LOST' | 'REFUNDED';
 
 export interface MyBet {
@@ -23,6 +29,10 @@ export interface MyBet {
     readonly resolvedAt: string | null;
     readonly claimedAt: string | null;
     readonly refundedAt: string | null;
+    /** Lot 5 — short-name string from MarketCreated payload ("WINNER", "GOALS_TOTAL"…). */
+    readonly marketType: string | null;
+    /** Lot 5 — int16 line from FootballMarket (tenths of goal — 25 = 2.5). */
+    readonly line: number | null;
     readonly match: {
         readonly apiFootballId: number;
         readonly homeTeamName: string;
@@ -30,6 +40,19 @@ export interface MyBet {
         readonly leagueName: string | null;
         readonly matchDate: string;
     } | null;
+}
+
+/** Map a short-name market type ("WINNER") to its bytes32 hash for catalog lookup. */
+function marketTypeHashFor(marketType: string | null | undefined): string | null {
+    if (!marketType) return null;
+    const key = marketType as keyof typeof MARKET_TYPE_HASHES;
+    return MARKET_TYPE_HASHES[key] ?? null;
+}
+
+/** True for bets posted on a market the front silently filters (CORRECT_SCORE today). */
+export function isBetOnHiddenMarket(bet: Pick<MyBet, 'marketType'>): boolean {
+    const hash = marketTypeHashFor(bet.marketType);
+    return isHiddenMarketByHash(hash ?? undefined);
 }
 
 export interface MyBetsResponse {
@@ -63,13 +86,28 @@ export function fmtOdds(oddsX10000: number): string {
 }
 
 /**
- * Selection label (WINNER 0/1/2 → home/draw/away). Other markets fall back to numeric.
+ * Selection label. When `marketType` is known (Lot 5 enrichment), defer to
+ * the football catalog for accurate per-market labels (Over 2.5 goals,
+ * Both score: Yes, etc.). Falls back to legacy 0/1/2 → Home/Draw/Away when
+ * the API didn't populate marketType (predates the indexer enrichment).
  */
 export function fmtSelection(
     selection: string,
     homeTeamName?: string | null,
     awayTeamName?: string | null,
+    marketType?: string | null,
+    line?: number | null,
 ): string {
+    const hash = marketTypeHashFor(marketType);
+    if (hash) {
+        return fmtSelectionByMarket(
+            Number(selection),
+            hash,
+            line ?? 0,
+            homeTeamName ?? undefined,
+            awayTeamName ?? undefined,
+        );
+    }
     switch (selection) {
         case '0':
             return homeTeamName ? `${homeTeamName} (Home)` : 'Home';

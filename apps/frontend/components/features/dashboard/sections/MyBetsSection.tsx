@@ -11,6 +11,7 @@ import { EMPTY_ICONS } from '../components/EmptyIcons';
 import {
     applyBetFilter,
     computeBetCounts,
+    isBetOnHiddenMarket,
     sumClaimablePayouts,
     type BetFilter,
     type MyBet,
@@ -36,11 +37,19 @@ export function MyBetsSection({ bets, onClaimAll, onPlaceFirstBet, onWatchLive }
     const { assetDecimals } = usePoolDecimals();
     const [filter, setFilter] = useState<BetFilter>('all');
 
-    const counts = useMemo(() => computeBetCounts(bets), [bets]);
-    const filtered = useMemo(() => applyBetFilter(bets, filter), [bets, filter]);
-    const claimableTotal = useMemo(() => sumClaimablePayouts(bets, assetDecimals), [bets, assetDecimals]);
+    // Drop bets posted on markets the front silently filters (CORRECT_SCORE — D1).
+    const visibleBets = useMemo(
+        () => bets.filter((b) => !isBetOnHiddenMarket(b)),
+        [bets],
+    );
+    const counts = useMemo(() => computeBetCounts(visibleBets), [visibleBets]);
+    const filtered = useMemo(() => applyBetFilter(visibleBets, filter), [visibleBets, filter]);
+    const claimableTotal = useMemo(
+        () => sumClaimablePayouts(visibleBets, assetDecimals),
+        [visibleBets, assetDecimals],
+    );
 
-    if (bets.length === 0) {
+    if (visibleBets.length === 0) {
         return (
             <section id="bets" className="relative z-[4] mx-auto max-w-[1400px] px-8 pb-4 pt-20 sm:px-14">
                 <SectionHeadDash

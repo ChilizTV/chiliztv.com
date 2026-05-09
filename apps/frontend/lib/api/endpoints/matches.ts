@@ -26,15 +26,9 @@ function transformMatch(m: MatchResponseDto): Match {
     awayScore: m.score?.away ?? undefined,
     venue: m.venue,
     contractAddress: m.bettingContractAddress,
-    odds: m.odds
-      ? {
-          match_winner: {
-            home: m.odds.homeWin,
-            draw: m.odds.draw,
-            away: m.odds.awayWin,
-          },
-        }
-      : undefined,
+    // The DTO already speaks the per-market shape ({ winner, halftime, … });
+    // pass it through verbatim so the dialog can read every market's odds.
+    odds: m.odds,
   };
 }
 

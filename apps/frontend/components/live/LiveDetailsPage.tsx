@@ -305,6 +305,7 @@ export default function LiveDetailsPage({ id }: LiveDetailsPageProps) {
             walletAddress={walletAddress || undefined}
             homeTeam={matchData.homeTeam}
             awayTeam={matchData.awayTeam}
+            matchOdds={matchData.odds}
             onDonate={
               streamForDonateSubscribe ? () => setShowDonationDialog(true) : undefined
             }

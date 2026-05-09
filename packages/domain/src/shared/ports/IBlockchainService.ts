@@ -5,7 +5,7 @@ export interface DeployContractResult {
 }
 
 export interface IBlockchainService {
-  deployBettingContract(matchName: string, ownerAddress: string): Promise<DeployContractResult>;
+  deployBettingContract(matchName: string, ownerAddress: string, oracleAddress?: string): Promise<DeployContractResult>;
   setupMarkets(contractAddress: string, odds: ExtendedOdds): Promise<void>;
   resolveMarkets(contractAddress: string, homeScore: number, awayScore: number): Promise<number>;
   syncOdds(contractAddress: string, odds: ExtendedOdds): Promise<void>;

@@ -21,13 +21,24 @@ interface DashboardHeroProps {
 interface AvatarUploadResponse {
     readonly success: boolean;
     readonly url: string;
+    readonly version: number;
 }
 
 export function DashboardHero({ user }: DashboardHeroProps) {
     const [, setKycVerified] = useKycVerified(user.wallet);
     const [kycOpen, setKycOpen] = useState(false);
     const [uploading, setUploading] = useState(false);
+    // Cache-buster local to this session — Dynamic stores the clean URL (its
+    // metadata validator rejects `?` / `=`), so we append `?v=…` only at render
+    // time to force the browser to refetch right after a re-upload.
+    const [avatarBust, setAvatarBust] = useState<number | null>(null);
     const { updateUserWithModal, updateUser } = useUserUpdateRequest();
+
+    const photoUrl = user.profilePicture
+        ? avatarBust != null
+            ? `${user.profilePicture}?v=${avatarBust}`
+            : user.profilePicture
+        : null;
 
     const handleEditUsername = () => updateUserWithModal(['username']);
 
@@ -49,7 +60,11 @@ export function DashboardHero({ user }: DashboardHeroProps) {
             form.append('file', file);
             // Axios infers multipart/form-data from FormData (with the boundary).
             const res = await apiClient.post<AvatarUploadResponse>('/users/avatar', form);
+            // Persist the bare URL on Dynamic (no query string — their validator
+            // rejects URLs containing `?` / `=`). Bust the local img cache via
+            // a render-time suffix so the new bytes appear instantly.
             await updateUser({ metadata: { profilePicture: res.url } } as never);
+            setAvatarBust(res.version);
             toast.success('Profile photo updated');
         } catch (err) {
             toast.error('Photo upload failed', {
@@ -63,7 +78,11 @@ export function DashboardHero({ user }: DashboardHeroProps) {
     const handleRemoveAvatar = async () => {
         try {
             await apiClient.delete('/users/avatar');
-            await updateUser({ metadata: { profilePicture: null } } as never);
+            // Dynamic's metadata API throws on `null` ("Cannot convert undefined
+            // or null to object"). Empty string clears it for our purposes —
+            // the read-side treats falsy as "no photo".
+            await updateUser({ metadata: { profilePicture: '' } } as never);
+            setAvatarBust(null);
             toast.success('Profile photo removed');
         } catch (err) {
             toast.error('Could not remove photo', {
@@ -82,7 +101,7 @@ export function DashboardHero({ user }: DashboardHeroProps) {
                         seed={user.wallet ?? user.username}
                         label={user.username}
                         size={120}
-                        photoUrl={user.profilePicture}
+                        photoUrl={photoUrl}
                         uploading={uploading}
                         onUpload={handleUploadAvatar}
                         onRemove={handleRemoveAvatar}
@@ -146,7 +165,7 @@ export function DashboardHero({ user }: DashboardHeroProps) {
                 </div>
 
                 <p className="max-w-md text-[15px] font-light leading-[1.6] text-white/65 lg:justify-self-end">
-                    Your <span className="text-white">wallet, bets, pool position, fan tokens</span> and on-chain history — all settled on Chiliz, no admin in the middle.
+                    Your <span className="text-white">wallet, predictions, pool position, fan tokens</span> and on-chain history — all settled on Chiliz, no admin in the middle.
                 </p>
             </div>
 

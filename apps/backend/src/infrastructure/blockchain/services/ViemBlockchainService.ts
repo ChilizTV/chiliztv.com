@@ -80,15 +80,17 @@ export class ViemBlockchainService implements IBlockchainService {
 
     async deployBettingContract(
         matchName: string,
-        ownerAddress: string
+        ownerAddress: string,
+        oracleAddress?: string,
     ): Promise<DeployContractResult> {
-        logger.info('Deploying FootballMatch contract', { matchName, ownerAddress });
+        const oracle = (oracleAddress ?? process.env.RESOLVER_ADDRESS ?? ownerAddress) as `0x${string}`;
+        logger.info('Deploying FootballMatch contract', { matchName, ownerAddress, oracle });
 
         const hash = await this.walletClient.writeContract({
             address:      this.config.bettingFactoryAddress as `0x${string}`,
             abi:          FACTORY_ABI,
             functionName: 'createFootballMatch',
-            args:         [matchName, ownerAddress as `0x${string}`],
+            args:         [matchName, ownerAddress as `0x${string}`, oracle],
         });
 
         const receipt = await this.publicClient.waitForTransactionReceipt({ hash, timeout: 120_000 });
@@ -120,10 +122,12 @@ export class ViemBlockchainService implements IBlockchainService {
             await delay();
         };
 
+        // FootballMatch only exposes `addMarketWithLine` — pass `line=0` for
+        // markets without a numeric line (WINNER, BTTS).
         logger.info('Adding WINNER market', { contractAddress });
         await sendAndWait(() => this.walletClient.writeContract({
             address: addr, abi: FOOTBALL_MATCH_ABI,
-            functionName: 'addMarket', args: [MARKET_WINNER, oddsHome],
+            functionName: 'addMarketWithLine', args: [MARKET_WINNER, oddsHome, 0],
             gas: 500_000n,
         }));
 
@@ -137,7 +141,7 @@ export class ViemBlockchainService implements IBlockchainService {
         logger.info('Adding BOTH_SCORE market', { contractAddress });
         await sendAndWait(() => this.walletClient.writeContract({
             address: addr, abi: FOOTBALL_MATCH_ABI,
-            functionName: 'addMarket', args: [MARKET_BOTH_SCORE, oddsBtts],
+            functionName: 'addMarketWithLine', args: [MARKET_BOTH_SCORE, oddsBtts, 0],
             gas: 500_000n,
         }));
 

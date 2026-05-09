@@ -17,9 +17,9 @@ interface StatsHeroProps {
 }
 
 const EMPTY_PLACEHOLDERS = [
-    { eyebrow: 'Net PnL · all time',  value: '—', sub: '0 bets settled' },
-    { eyebrow: 'Win rate · 0 bets',   value: '—', sub: 'Avg odds × —' },
-    { eyebrow: 'Open positions',      value: '0', sub: 'Nothing pending' },
+    { eyebrow: 'Net PnL · all time',         value: '—', sub: '0 predictions settled' },
+    { eyebrow: 'Win rate · 0 predictions',   value: '—', sub: 'Avg odds × —' },
+    { eyebrow: 'Open positions',             value: '0', sub: 'Nothing pending' },
 ] as const;
 
 export function StatsHero({ stats, onPlaceFirstBet, onJoinPool }: StatsHeroProps) {
@@ -46,14 +46,14 @@ export function StatsHero({ stats, onPlaceFirstBet, onJoinPool }: StatsHeroProps
                             $0.00
                         </div>
                         <div className="font-mono-ctv mt-3 text-[11px] uppercase tracking-[0.18em] text-white/35">
-                            No bets · no LP shares · no fan tokens
+                            No predictions · no LP shares · no fan tokens
                         </div>
                         <div className="mt-8">
                             <PlaceholderSparkline width={520} height={48} />
                         </div>
                         <div className="mt-6 flex flex-wrap items-center gap-2">
                             <ActionPill primary onClick={onPlaceFirstBet}>
-                                Place your first bet →
+                                Make your first prediction →
                             </ActionPill>
                             <ActionPill onClick={onJoinPool}>Or join the pool</ActionPill>
                         </div>
@@ -101,7 +101,7 @@ export function StatsHero({ stats, onPlaceFirstBet, onJoinPool }: StatsHeroProps
                     {stats.totalWageredUSD > 0 && <PnlBadge value={stats.netPnlPct} suffix="%" />}
                 </SecondaryStat>
                 <SecondaryStat
-                    eyebrow={`Win rate · ${stats.totalBets} bets`}
+                    eyebrow={`Win rate · ${stats.totalBets} predictions`}
                     value={`${stats.winRatePct.toFixed(0)}%`}
                     sub={stats.avgOdds > 0 ? `Avg odds × ${stats.avgOdds.toFixed(2)}` : '—'}
                 >
@@ -110,7 +110,7 @@ export function StatsHero({ stats, onPlaceFirstBet, onJoinPool }: StatsHeroProps
                 <SecondaryStat
                     eyebrow="Open positions"
                     value={stats.openBets}
-                    sub={`${stats.totalBets} lifetime bets`}
+                    sub={`${stats.totalBets} lifetime predictions`}
                 >
                     {stats.openBets > 0 && (
                         <div className="font-mono-ctv flex items-center gap-2 text-[10px] uppercase tracking-[0.18em] text-white/45">

@@ -81,18 +81,24 @@ export class BettingContractDeploymentAdapter {
      * Deploy a new FootballMatch contract via the Factory
      * @param matchName Name of the match (e.g., "PSG vs Barcelona")
      * @param ownerAddress Address that will own the match contract (usually admin)
+     * @param oracleAddress Address that gets RESOLVER_ROLE. Defaults to owner on testnet.
      * @returns Address of the deployed match proxy
      */
-    async deployFootballMatch(matchName: string, ownerAddress: string): Promise<string> {
+    async deployFootballMatch(
+        matchName: string,
+        ownerAddress: string,
+        oracleAddress?: string,
+    ): Promise<string> {
         try {
-            logger.info('Deploying FootballMatch contract', { matchName, ownerAddress });
+            const oracle = (oracleAddress ?? process.env.RESOLVER_ADDRESS ?? ownerAddress) as `0x${string}`;
+            logger.info('Deploying FootballMatch contract', { matchName, ownerAddress, oracle });
 
-            // Call createFootballMatch on the Factory
+            // Factory signature: createFootballMatch(string, address owner, address oracle).
             const hash = await this.walletClient.writeContract({
                 address: FACTORY_ADDRESS,
                 abi: FACTORY_ABI,
                 functionName: 'createFootballMatch',
-                args: [matchName, ownerAddress as `0x${string}`],
+                args: [matchName, ownerAddress as `0x${string}`, oracle],
             });
 
             logger.debug('Transaction sent', { hash });
@@ -158,12 +164,14 @@ export class BettingContractDeploymentAdapter {
             await delay();
         };
 
+        // FootballMatch only exposes `addMarketWithLine`. Markets without a
+        // line (WINNER, BTTS) pass `line=0`.
         logger.info('Adding WINNER market (1X2)', { contractAddress });
         await sendAndWait(() => this.walletClient.writeContract({
             address: matchAddr,
             abi: FOOTBALL_MATCH_ABI,
-            functionName: 'addMarket',
-            args: [MARKET_WINNER, oddsHome],
+            functionName: 'addMarketWithLine',
+            args: [MARKET_WINNER, oddsHome, 0],
             gas: 500_000n,
         }));
 
@@ -180,8 +188,8 @@ export class BettingContractDeploymentAdapter {
         await sendAndWait(() => this.walletClient.writeContract({
             address: matchAddr,
             abi: FOOTBALL_MATCH_ABI,
-            functionName: 'addMarket',
-            args: [MARKET_BOTH_SCORE, oddsBttsYes],
+            functionName: 'addMarketWithLine',
+            args: [MARKET_BOTH_SCORE, oddsBttsYes, 0],
             gas: 500_000n,
         }));
 

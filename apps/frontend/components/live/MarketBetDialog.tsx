@@ -319,7 +319,7 @@ export function MarketBetDialog({
   const toastFiredRef = useRef(false);
   useEffect(() => {
     if (isSuccess && !toastFiredRef.current) {
-      toast.success("Bet placed", {
+      toast.success("Prediction placed", {
         description: txHash ? `${txHash.slice(0, 10)}…${txHash.slice(-8)}` : undefined,
       });
       toastFiredRef.current = true;
@@ -794,7 +794,7 @@ export function MarketBetDialog({
                   : isPending
                     ? "Confirm in wallet…"
                     : isConfirming
-                      ? "Placing bet…"
+                      ? "Placing prediction…"
                       : !walletAddress
                         ? "Connect wallet"
                         : usdcZeroBalance
@@ -807,7 +807,7 @@ export function MarketBetDialog({
                                 ? `Insufficient ${tokenLabel(token)}`
                                 : needsApproval
                                   ? `Approve ${tokenLabel(token)}`
-                                  : "Place bet"}
+                                  : "Place prediction"}
             </button>
           </div>
         )}

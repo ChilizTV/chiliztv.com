@@ -1,6 +1,7 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { SelfQRcodeWrapper, SelfAppBuilder } from "@selfxyz/qrcode";
 import { useDynamicContext } from "@dynamic-labs/sdk-react-core";
 import { countries } from "@selfxyz/core";
@@ -17,6 +18,10 @@ export default function SelfProtocolQRCode({
 
   const { primaryWallet } = useDynamicContext();
   const userId = primaryWallet?.address ?? "";
+
+  // Portal target — only available client-side, after mount.
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
 
   const handleClose = () => {
     onClose?.();
@@ -50,8 +55,10 @@ export default function SelfProtocolQRCode({
     }),
   }).build();
 
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4">
+  if (!mounted) return null;
+
+  return createPortal(
+    <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-[1000] p-4">
       <div className="bg-white dark:bg-gray-900 rounded-xl shadow-xl p-8 max-w-md w-full relative">
         {/* Close button */}
         <button
@@ -102,6 +109,7 @@ export default function SelfProtocolQRCode({
           and secure.
         </p>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

@@ -88,6 +88,11 @@ class ApiClient {
         if (token && config.headers) {
           config.headers.Authorization = `Bearer ${token}`;
         }
+        // FormData bodies need the boundary-aware multipart Content-Type axios
+        // would set — but our global JSON default blocks that override. Drop it.
+        if (config.data instanceof FormData && config.headers) {
+          delete config.headers['Content-Type'];
+        }
         return config;
       },
       (error: AxiosError) => Promise.reject(error)

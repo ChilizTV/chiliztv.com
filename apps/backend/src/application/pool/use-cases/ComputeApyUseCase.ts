@@ -67,6 +67,7 @@ export class ComputeApyUseCase {
                 if (snapshot) {
                     snapshots.push(snapshot);
                 } else {
+                    logger.info(`ComputeApyUseCase: insufficient history for ${window}`);
                     warnings.push(`Insufficient history for ${window}`);
                 }
             } catch (err) {
@@ -130,28 +131,40 @@ export class ComputeApyUseCase {
     }
 
     private async readPpsAtBlock(blockNumber: bigint): Promise<PpsAtBlock> {
-        const [totalAssets, totalSupply, block] = await Promise.all([
-            this.client.readContract({
-                address: this.poolAddress,
-                abi: POOL_READS_ABI,
-                functionName: 'totalAssets',
-                blockNumber,
-            }) as Promise<bigint>,
-            this.client.readContract({
-                address: this.poolAddress,
-                abi: POOL_READS_ABI,
-                functionName: 'totalSupply',
-                blockNumber,
-            }) as Promise<bigint>,
-            this.client.getBlock({ blockNumber }),
-        ]);
+        const block = await this.client.getBlock({ blockNumber });
+        const ts = Number(block.timestamp);
+        try {
+            const [totalAssets, totalSupply] = await Promise.all([
+                this.client.readContract({
+                    address: this.poolAddress,
+                    abi: POOL_READS_ABI,
+                    functionName: 'totalAssets',
+                    blockNumber,
+                }) as Promise<bigint>,
+                this.client.readContract({
+                    address: this.poolAddress,
+                    abi: POOL_READS_ABI,
+                    functionName: 'totalSupply',
+                    blockNumber,
+                }) as Promise<bigint>,
+            ]);
 
-        if (totalSupply === BigInt(0)) {
-            return { blockNumber, timestamp: Number(block.timestamp), pps: BigInt(0), totalSupply };
+            if (totalSupply === BigInt(0)) {
+                return { blockNumber, timestamp: ts, pps: BigInt(0), totalSupply };
+            }
+            // Scale by 1e18 so a 12-dp ctvLP share denomination doesn't truncate.
+            const pps = (totalAssets * BigInt(1e18)) / totalSupply;
+            return { blockNumber, timestamp: ts, pps, totalSupply };
+        } catch (err) {
+            // `0x` return = the pool proxy didn't exist at that block (window
+            // older than deployment). Treat as zero PPS so the caller returns
+            // null (= insufficient history) instead of erroring the whole job.
+            const msg = err instanceof Error ? err.message : String(err);
+            if (msg.includes('returned no data') || msg.includes('"0x"')) {
+                return { blockNumber, timestamp: ts, pps: BigInt(0), totalSupply: BigInt(0) };
+            }
+            throw err;
         }
-        // Scale by 1e18 so a 12-dp ctvLP share denomination doesn't truncate.
-        const pps = (totalAssets * BigInt(1e18)) / totalSupply;
-        return { blockNumber, timestamp: Number(block.timestamp), pps, totalSupply };
     }
 
     /**

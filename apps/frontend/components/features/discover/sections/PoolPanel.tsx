@@ -325,7 +325,7 @@ function PoolBento({
         <PoolMetric
           label="Locked liability"
           value={data.liability}
-          sub="Open bets · USDC"
+          sub="Open predictions · USDC"
         />
       </div>
       <div className="relative overflow-hidden rounded-xl border border-[#1E1E1E] bg-[#111] p-7 transition-colors hover:border-[#2A2A2A] sm:col-span-1 lg:col-span-2">

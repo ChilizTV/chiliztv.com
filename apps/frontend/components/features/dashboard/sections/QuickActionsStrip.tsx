@@ -19,7 +19,7 @@ interface ActionItem {
 const ITEMS: ReadonlyArray<ActionItem> = [
     { key: 'discover', label: 'Discover matches', primary: true, icon: <Compass size={12} strokeWidth={2.4} /> },
     { key: 'pool',     label: 'Open the pool',                  icon: <Coins size={12} strokeWidth={2.4} /> },
-    { key: 'bets',     label: 'My bets',                        icon: <Tickets size={12} strokeWidth={2.4} /> },
+    { key: 'bets',     label: 'My predictions',                 icon: <Tickets size={12} strokeWidth={2.4} /> },
     { key: 'swap',     label: 'Swap → USDC',                    icon: <ArrowLeftRight size={12} strokeWidth={2.4} /> },
 ];
 

@@ -82,7 +82,7 @@ export function PoolStatusBanner() {
             <AlertOctagon size={14} style={{ color: '#E8001D', flexShrink: 0 }} />
             <span className="flex-1">
                 <strong className="font-bold uppercase tracking-[0.08em] mr-2">Pool paused</strong>
-                Deposits, bets and withdrawals are temporarily disabled on-chain — your existing positions are safe. Refresh once ops un-pauses.
+                Deposits, predictions and withdrawals are temporarily disabled on-chain — your existing positions are safe. Refresh once ops un-pauses.
             </span>
             <button
                 type="button"

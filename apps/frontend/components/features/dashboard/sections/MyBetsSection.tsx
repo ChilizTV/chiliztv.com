@@ -44,7 +44,7 @@ export function MyBetsSection({ bets, onClaimAll, onPlaceFirstBet, onWatchLive }
         return (
             <section id="bets" className="relative z-[4] mx-auto max-w-[1400px] px-8 pb-4 pt-20 sm:px-14">
                 <SectionHeadDash
-                    eyebrow="Bets · Markets"
+                    eyebrow="Predictions · Markets"
                     title={
                         <>
                             Your <span className="text-[#E8001D]">positions.</span>
@@ -54,8 +54,8 @@ export function MyBetsSection({ bets, onClaimAll, onPlaceFirstBet, onWatchLive }
                 />
                 <EmptyCard
                     icon={EMPTY_ICONS.ticket}
-                    title="No bets yet"
-                    lead="Pick a live or upcoming match and place your first prediction. Stake USDC or any fan token — the smart contract holds the funds until settlement."
+                    title="No predictions yet"
+                    lead="Pick a live or upcoming match and make your first prediction. Stake USDC or any fan token — the smart contract holds the funds until settlement."
                     cta="Discover matches →"
                     onCta={onPlaceFirstBet}
                     secondary="Watch live now"
@@ -110,7 +110,7 @@ export function MyBetsSection({ bets, onClaimAll, onPlaceFirstBet, onWatchLive }
                             Nothing here yet
                         </div>
                         <div className="font-mono-ctv mt-2 text-[11px] uppercase tracking-[0.16em] text-white/45">
-                            No bets match this filter
+                            No predictions match this filter
                         </div>
                     </div>
                 ) : (

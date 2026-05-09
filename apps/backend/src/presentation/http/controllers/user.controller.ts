@@ -36,26 +36,65 @@ export class UserController {
             }
 
             const ext = EXT_BY_MIME[file.mimetype];
-            // Wallet-scoped path so a user can only ever overwrite their own avatar (the JWT
-            // pins the wallet — clients can't ask to upload onto someone else's slot).
             const path = `${wallet.toLowerCase()}.${ext}`;
 
-            const { error: uploadError } = await supabase.storage
-                .from(BUCKET)
-                .upload(path, file.buffer, { contentType: file.mimetype, upsert: true });
+            let uploadError: { message: string; statusCode?: string } | null = null;
+            try {
+                const { error } = await supabase.storage
+                    .from(BUCKET)
+                    .upload(path, file.buffer, {
+                        contentType: file.mimetype,
+                        upsert: true,
+                        // Short TTL so re-uploads at the same path (`{wallet}.{ext}`)
+                        // become visible within a minute instead of the 1h default.
+                        cacheControl: '60',
+                    });
+                uploadError = error;
+            } catch (sdkError) {
+                // supabase-js shouldn't throw, but if the URL/key is misconfigured it can.
+                logger.error('Avatar upload threw inside supabase-js', {
+                    wallet,
+                    error: sdkError instanceof Error ? sdkError.message : String(sdkError),
+                });
+                res.status(500).json({
+                    success: false,
+                    error: 'Storage SDK error — check SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY',
+                    details: sdkError instanceof Error ? sdkError.message : String(sdkError),
+                });
+                return;
+            }
 
             if (uploadError) {
-                logger.warn('Avatar upload failed', { wallet, error: uploadError.message });
-                res.status(500).json({ success: false, error: 'Upload failed' });
+                // Bubble Supabase's actual error to the client so the user knows whether
+                // it's a missing bucket / RLS / size issue instead of a generic 500.
+                logger.warn('Avatar upload rejected by Supabase', {
+                    wallet,
+                    bucket: BUCKET,
+                    path,
+                    error: uploadError.message,
+                    statusCode: uploadError.statusCode,
+                });
+                res.status(500).json({
+                    success: false,
+                    error: 'Upload rejected by storage',
+                    details: uploadError.message,
+                });
                 return;
             }
 
             const { data: urlData } = supabase.storage.from(BUCKET).getPublicUrl(path);
-            // Append a cache-buster so Dynamic / browsers refresh on re-upload.
-            const url = `${urlData.publicUrl}?v=${Date.now()}`;
+            // Clean URL only — Dynamic's metadata validator rejects values with
+            // query strings. The `version` field below lets the client append
+            // its own cache-buster at render time.
+            const url = urlData.publicUrl;
+            const version = Date.now();
 
-            res.json({ success: true, url, timestamp: Date.now() });
+            res.json({ success: true, url, version, timestamp: version });
         } catch (error) {
+            logger.error('Avatar upload unexpected error', {
+                error: error instanceof Error ? error.message : String(error),
+                stack: error instanceof Error ? error.stack : undefined,
+            });
             next(error);
         }
     }

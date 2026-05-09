@@ -71,8 +71,8 @@ export function MainTabs({ tokens, activity, followed, subscribed, onSwap, onPla
                     <EmptyCard
                         icon={EMPTY_ICONS.pulse}
                         title="No on-chain history"
-                        lead="Every bet, claim, donation, subscription and pool deposit will land here, with a link to the transaction on Chiliz Scan."
-                        cta="Place your first bet →"
+                        lead="Every prediction, claim, donation, subscription and pool deposit will land here, with a link to the transaction on Chiliz Scan."
+                        cta="Make your first prediction →"
                         onCta={onPlaceFirstBet}
                         tip="Tx-level transparency · nothing is hidden"
                     />

@@ -31,7 +31,7 @@ interface ActivityMeta {
 
 /** Per-type pill colors (locked design palette). */
 export const ACTIVITY_META: Readonly<Record<ActivityType, ActivityMeta>> = {
-    bet_placed:   { label: 'Bet',          accent: '#E8001D' },
+    bet_placed:   { label: 'Predict',      accent: '#E8001D' },
     bet_won:      { label: 'Win',          accent: '#2dd4a4' },
     bet_lost:     { label: 'Loss',         accent: 'rgba(255,255,255,0.45)' },
     bet_refunded: { label: 'Refund',       accent: 'rgba(255,255,255,0.65)' },
@@ -53,7 +53,7 @@ interface ActivityFilter {
 /** Filter chips. `types: null` means All. */
 export const ACTIVITY_FILTERS: ReadonlyArray<ActivityFilter> = [
     { key: 'all',    label: 'All',           types: null },
-    { key: 'bets',   label: 'Bets',          types: ['bet_placed', 'bet_won', 'bet_lost', 'bet_refunded', 'claim'] },
+    { key: 'bets',   label: 'Predictions',   types: ['bet_placed', 'bet_won', 'bet_lost', 'bet_refunded', 'claim'] },
     { key: 'donate', label: 'Donations',     types: ['donation'] },
     { key: 'subs',   label: 'Subscriptions', types: ['subscription'] },
     { key: 'lp',     label: 'LP',            types: ['lp_deposit', 'lp_withdraw'] },

@@ -63,7 +63,7 @@ export function LpPositionPanel({ lp, onDeposit, onWithdraw }: LpPositionPanelPr
                     <EmptyCard
                         icon={EMPTY_ICONS.pool}
                         title="You're not in the pool yet"
-                        lead="Deposit USDC to underwrite every losing bet on the platform. Your share earns yield from the protocol's net house edge — not from inflation."
+                        lead="Deposit USDC to underwrite every losing prediction on the platform. Your share earns yield from the protocol's net house edge — not from inflation."
                         cta="Open the pool →"
                         onCta={onDeposit}
                         tip="ERC-4626 vault · withdrawal cooldown 1h · exit fee 1.5%"

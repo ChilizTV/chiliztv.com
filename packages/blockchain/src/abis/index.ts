@@ -24,14 +24,29 @@ export const ERC20_ABI = [
     }
 ] as const;
 
-// Minimal ABI for BettingMatchFactory (createFootballMatch)
+// Minimal ABI for BettingMatchFactory — must mirror the deployed signature
+// `createFootballMatch(string, address owner, address oracle)`.
 export const FACTORY_ABI = [
     {
         "type": "function",
         "name": "createFootballMatch",
         "inputs": [
             { "name": "_matchName", "type": "string" },
-            { "name": "_owner", "type": "address" }
+            { "name": "_owner", "type": "address" },
+            { "name": "_oracle", "type": "address" }
+        ],
+        "outputs": [
+            { "name": "proxy", "type": "address" }
+        ],
+        "stateMutability": "nonpayable"
+    },
+    {
+        "type": "function",
+        "name": "createBasketballMatch",
+        "inputs": [
+            { "name": "_matchName", "type": "string" },
+            { "name": "_owner", "type": "address" },
+            { "name": "_oracle", "type": "address" }
         ],
         "outputs": [
             { "name": "proxy", "type": "address" }
@@ -59,16 +74,8 @@ export const FOOTBALL_MATCH_ABI = [
     { type: 'error', name: 'InvalidSelection', inputs: [{ name: 'marketId', type: 'uint256' }, { name: 'selection', type: 'uint64' }, { name: 'maxAllowed', type: 'uint8' }] },
     { type: 'error', name: 'OddsNotSet', inputs: [{ name: 'marketId', type: 'uint256' }] },
     { type: 'error', name: 'AccessControlUnauthorizedAccount', inputs: [{ name: 'account', type: 'address' }, { name: 'neededRole', type: 'bytes32' }] },
-    {
-        type: 'function',
-        name: 'addMarket',
-        inputs: [
-            { name: 'marketType', type: 'bytes32' },
-            { name: 'initialOdds', type: 'uint32' }
-        ],
-        outputs: [],
-        stateMutability: 'nonpayable'
-    },
+    // Note: the deployed FootballMatch only exposes `addMarketWithLine(bytes32, uint32, int16)`
+    // and `addMarketsBatch(...)` — no plain `addMarket`. Always pass `line=0` for line-less markets.
     {
         type: 'function',
         name: 'addMarketWithLine',

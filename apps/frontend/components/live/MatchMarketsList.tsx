@@ -222,7 +222,7 @@ function MarketRow({ contractAddress, marketId, onBet }: MarketRowProps) {
           (e.currentTarget as HTMLButtonElement).style.background = "#E8001D";
         }}
       >
-        Bet
+        Predict
       </button>
     </div>
   );

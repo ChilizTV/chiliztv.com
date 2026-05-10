@@ -363,6 +363,8 @@ export default function LiveDetailsPage({ id }: LiveDetailsPageProps) {
           }
           open={showDonationDialog}
           onOpenChange={setShowDonationDialog}
+          streamerName={streamForDonateSubscribe.streamerName}
+          streamerHandle={streamForDonateSubscribe.streamerName}
         />
       )}
 
@@ -375,6 +377,8 @@ export default function LiveDetailsPage({ id }: LiveDetailsPageProps) {
           }
           open={showSubscriptionDialog}
           onOpenChange={setShowSubscriptionDialog}
+          streamerName={streamForDonateSubscribe.streamerName}
+          streamerHandle={streamForDonateSubscribe.streamerName}
         />
       )}
     </div>

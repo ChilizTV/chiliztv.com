@@ -56,4 +56,16 @@ export interface IBetRepository {
      * raw on-chain bet rather than a silent gap.
      */
     findByUserWithMatchInfo(userAddress: string, options: FindBetsByUserOptions): Promise<BetWithMatchInfo[]>;
+
+    /**
+     * Distinct `contract_address` values currently stored on `bets` rows.
+     * Drives the match-retention policy: any match whose
+     * `betting_contract_address` is in this set must NOT be deleted by the
+     * 24h cleanup, otherwise the bet→match join in `findByUserWithMatchInfo`
+     * collapses and the dashboard renders "Unknown match".
+     *
+     * Returned addresses are lowercased so set lookups stay case-insensitive
+     * (matches the existing case-insensitive filter inside this repo).
+     */
+    listReferencedContractAddresses(): Promise<ReadonlySet<string>>;
 }

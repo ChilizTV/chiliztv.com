@@ -10,5 +10,6 @@ router.get('/subscriptions/:streamerAddress', streamWalletController.getStreamer
 router.get('/stats/:streamerAddress', streamWalletController.getStreamerStats.bind(streamWalletController));
 router.get('/donor/:donorAddress/donations', streamWalletController.getDonorHistory.bind(streamWalletController));
 router.get('/subscriber/:subscriberAddress/subscriptions', streamWalletController.getSubscriberHistory.bind(streamWalletController));
+router.post('/deploy/:streamerAddress', streamWalletController.deployStreamerWallet.bind(streamWalletController));
 
 export { router as streamWalletRoutes };

@@ -5,6 +5,7 @@ import { GetStreamerSubscriptionsUseCase } from '../../../application/stream-wal
 import { GetStreamerStatsUseCase } from '../../../application/stream-wallet/use-cases/GetStreamerStatsUseCase';
 import { GetDonorHistoryUseCase } from '../../../application/stream-wallet/use-cases/GetDonorHistoryUseCase';
 import { GetSubscriberHistoryUseCase } from '../../../application/stream-wallet/use-cases/GetSubscriberHistoryUseCase';
+import { DeployStreamerWalletUseCase } from '../../../application/stream-wallet/use-cases/DeployStreamerWalletUseCase';
 
 @injectable()
 export class StreamWalletController {
@@ -18,7 +19,9 @@ export class StreamWalletController {
     @inject(GetDonorHistoryUseCase)
     private readonly getDonorHistoryUseCase: GetDonorHistoryUseCase,
     @inject(GetSubscriberHistoryUseCase)
-    private readonly getSubscriberHistoryUseCase: GetSubscriberHistoryUseCase
+    private readonly getSubscriberHistoryUseCase: GetSubscriberHistoryUseCase,
+    @inject(DeployStreamerWalletUseCase)
+    private readonly deployStreamerWalletUseCase: DeployStreamerWalletUseCase
   ) {}
 
   async getStreamerDonations(req: Request, res: Response, next: NextFunction): Promise<void> {
@@ -77,6 +80,26 @@ export class StreamWalletController {
         success: true,
         donations: donations.map(d => d.toJSON()),
         count: donations.length,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * POST /stream-wallet/deploy/:streamerAddress
+   *
+   * Deploys a `StreamWallet` proxy for the supplied address (admin-signed,
+   * gas paid by the platform). Idempotent: re-uses an existing proxy.
+   */
+  async deployStreamerWallet(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { streamerAddress } = req.params;
+      const result = await this.deployStreamerWalletUseCase.execute(streamerAddress);
+      res.json({
+        success: true,
+        wallet: result.wallet,
+        created: result.created,
       });
     } catch (error) {
       next(error);

@@ -8,6 +8,8 @@ import { TabPill } from '../components/TabPill';
 import { BetRow } from '../components/BetRow';
 import { EmptyCard } from '../components/EmptyState';
 import { EMPTY_ICONS } from '../components/EmptyIcons';
+import { useLocallyClaimed } from '../hooks/useLocallyClaimed';
+import { useClaimAll } from '../hooks/useClaimAll';
 import {
     applyBetFilter,
     computeBetCounts,
@@ -19,7 +21,6 @@ import {
 
 interface MyBetsSectionProps {
     readonly bets: ReadonlyArray<MyBet>;
-    readonly onClaimAll?: () => void;
     readonly onPlaceFirstBet?: () => void;
     readonly onWatchLive?: () => void;
 }
@@ -33,7 +34,7 @@ const FILTERS: ReadonlyArray<{ key: BetFilter; label: string }> = [
     { key: 'refundable',  label: 'Refundable' },
 ];
 
-export function MyBetsSection({ bets, onClaimAll, onPlaceFirstBet, onWatchLive }: MyBetsSectionProps) {
+export function MyBetsSection({ bets, onPlaceFirstBet, onWatchLive }: MyBetsSectionProps) {
     const { assetDecimals } = usePoolDecimals();
     const [filter, setFilter] = useState<BetFilter>('all');
 
@@ -42,12 +43,25 @@ export function MyBetsSection({ bets, onClaimAll, onPlaceFirstBet, onWatchLive }
         () => bets.filter((b) => !isBetOnHiddenMarket(b)),
         [bets],
     );
-    const counts = useMemo(() => computeBetCounts(visibleBets), [visibleBets]);
-    const filtered = useMemo(() => applyBetFilter(visibleBets, filter), [visibleBets, filter]);
-    const claimableTotal = useMemo(
-        () => sumClaimablePayouts(visibleBets, assetDecimals),
-        [visibleBets, assetDecimals],
+
+    // Locally-claimed overlay — feeds counts/totals AND filters out bets
+    // the user has just claimed but the indexer hasn't yet recorded.
+    const { map: claimedOverlay } = useLocallyClaimed();
+    const counts = useMemo(
+        () => computeBetCounts(visibleBets, claimedOverlay),
+        [visibleBets, claimedOverlay],
     );
+    const filtered = useMemo(
+        () => applyBetFilter(visibleBets, filter, claimedOverlay),
+        [visibleBets, filter, claimedOverlay],
+    );
+    const claimableTotal = useMemo(
+        () => sumClaimablePayouts(visibleBets, assetDecimals, claimedOverlay),
+        [visibleBets, assetDecimals, claimedOverlay],
+    );
+
+    // Claim-all batch — wires the banner to the multi-market sequential tx.
+    const { run: runClaimAll, busy: claimAllBusy, progress: claimAllProgress } = useClaimAll(visibleBets);
 
     if (visibleBets.length === 0) {
         return (
@@ -89,7 +103,13 @@ export function MyBetsSection({ bets, onClaimAll, onPlaceFirstBet, onWatchLive }
 
             {counts.claimable > 0 && (
                 <div className="mb-6">
-                    <ClaimAllBanner count={counts.claimable} totalUSDC={claimableTotal} onClaim={onClaimAll ?? (() => undefined)} />
+                    <ClaimAllBanner
+                        count={counts.claimable}
+                        totalUSDC={claimableTotal}
+                        onClaim={runClaimAll}
+                        busy={claimAllBusy}
+                        progress={claimAllProgress}
+                    />
                 </div>
             )}
 

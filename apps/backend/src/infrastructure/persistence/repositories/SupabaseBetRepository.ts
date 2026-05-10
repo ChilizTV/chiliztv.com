@@ -322,4 +322,30 @@ export class SupabaseBetRepository implements IBetRepository {
             };
         });
     }
+
+    /**
+     * Distinct contract addresses referenced by stored bets, lowercased.
+     * Drives the match-retention policy in `CleanupOldMatchesUseCase`.
+     *
+     * Implementation note: Supabase REST has no `DISTINCT`, so we fetch the
+     * column and dedup in JS. Acceptable up to ~50k rows; promote to a
+     * `list_distinct_bet_contracts()` Postgres RPC beyond that.
+     */
+    async listReferencedContractAddresses(): Promise<ReadonlySet<string>> {
+        const { data, error } = await supabase
+            .from('bets')
+            .select('contract_address')
+            .not('contract_address', 'is', null);
+
+        if (error) {
+            logger.error('Failed to list referenced contract addresses', { error: error.message });
+            throw new Error('Failed to list referenced contract addresses');
+        }
+
+        const set = new Set<string>();
+        for (const row of (data ?? []) as Array<{ contract_address: string | null }>) {
+            if (row.contract_address) set.add(row.contract_address.toLowerCase());
+        }
+        return set;
+    }
 }

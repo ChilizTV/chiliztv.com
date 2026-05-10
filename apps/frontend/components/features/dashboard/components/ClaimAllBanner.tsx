@@ -1,5 +1,6 @@
 'use client';
 
+import { Loader2 } from 'lucide-react';
 import { ActionPill } from './ActionPill';
 import { fmtUsd } from '../domain/formatters';
 
@@ -7,12 +8,15 @@ interface ClaimAllBannerProps {
     readonly count: number;
     readonly totalUSDC: number;
     readonly onClaim: () => void;
-    readonly disabled?: boolean;
+    readonly busy?: boolean;
+    /** `{ done, total }` while a batch is in-flight (one tx per market). */
+    readonly progress?: { readonly done: number; readonly total: number } | null;
 }
 
 /** "X wins ready · $Y · Claim all" banner above the bets table. */
-export function ClaimAllBanner({ count, totalUSDC, onClaim, disabled }: ClaimAllBannerProps) {
+export function ClaimAllBanner({ count, totalUSDC, onClaim, busy, progress }: ClaimAllBannerProps) {
     if (count <= 0) return null;
+    const showProgress = busy && progress && progress.total > 1;
     return (
         <div
             className="relative flex flex-wrap items-center justify-between gap-4 overflow-hidden rounded-xl border px-6 py-5"
@@ -34,10 +38,24 @@ export function ClaimAllBanner({ count, totalUSDC, onClaim, disabled }: ClaimAll
                     <div className="font-display mt-1 text-[26px] font-extrabold uppercase leading-none tracking-[-0.01em] text-white">
                         {count} {count === 1 ? 'Win' : 'Wins'} · {fmtUsd(totalUSDC)} USDC
                     </div>
+                    {showProgress && (
+                        <div className="font-mono-ctv mt-1 text-[10px] uppercase tracking-[0.18em] text-white/55">
+                            Claiming market {Math.min(progress!.done + 1, progress!.total)} of {progress!.total}…
+                        </div>
+                    )}
                 </div>
             </div>
-            <ActionPill primary onClick={onClaim} disabled={disabled}>
-                Claim all <span aria-hidden>→</span>
+            <ActionPill primary onClick={onClaim} disabled={busy}>
+                {busy ? (
+                    <span className="inline-flex items-center gap-2">
+                        <Loader2 size={11} className="animate-spin" />
+                        Confirming…
+                    </span>
+                ) : (
+                    <>
+                        Claim all <span aria-hidden>→</span>
+                    </>
+                )}
             </ActionPill>
         </div>
     );

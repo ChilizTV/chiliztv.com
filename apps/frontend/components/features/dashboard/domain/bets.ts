@@ -67,14 +67,45 @@ export interface MyBetsResponse {
 /** Filter chips — `claimable` / `refundable` are derived (no indexer field). */
 export type BetFilter = 'all' | 'pending' | 'won' | 'lost' | 'claimable' | 'refundable';
 
-/** WON bet whose payout hasn't been collected. */
+/** WON bet whose payout hasn't been collected (server-only check). */
 export function isClaimable(bet: MyBet): boolean {
     return bet.status === 'WON' && bet.claimedAt === null;
 }
 
-/** REFUNDED bet whose stake hasn't been pulled back. */
+/** REFUNDED bet whose stake hasn't been pulled back (server-only check). */
 export function isRefundable(bet: MyBet): boolean {
     return bet.status === 'REFUNDED' && bet.refundedAt === null;
+}
+
+/**
+ * Lightweight overlay shape passed to UI helpers — typically the snapshot
+ * from the locally-claimed pub/sub store. We keep this domain layer free
+ * of React APIs by accepting a plain `Map`-shaped object.
+ */
+export interface ClaimOverlay {
+    has(key: string): boolean;
+    get(key: string): { kind: 'claimed' | 'refunded' } | undefined;
+}
+
+/** Build the overlay key for a bet — must match the store's `localClaimKey`. */
+export function betOverlayKey(bet: Pick<MyBet, 'contractAddress' | 'marketId' | 'betIndex'>): string {
+    return `${bet.contractAddress.toLowerCase()}:${String(bet.marketId)}:${String(bet.betIndex)}`;
+}
+
+/** True when the user has just claimed/refunded this bet (overlay says so). */
+export function isLocallyClaimed(bet: MyBet, overlay: ClaimOverlay | undefined): boolean {
+    if (!overlay) return false;
+    return overlay.has(betOverlayKey(bet));
+}
+
+/** Overlay-aware claimable check — flips to false the instant we stamp it. */
+export function isClaimableNow(bet: MyBet, overlay: ClaimOverlay | undefined): boolean {
+    return isClaimable(bet) && !isLocallyClaimed(bet, overlay);
+}
+
+/** Overlay-aware refundable check — flips to false the instant we stamp it. */
+export function isRefundableNow(bet: MyBet, overlay: ClaimOverlay | undefined): boolean {
+    return isRefundable(bet) && !isLocallyClaimed(bet, overlay);
 }
 
 export function decodeOdds(oddsX10000: number): number {
@@ -130,15 +161,23 @@ export function fmtStake(rawAmount: string, decimals: number | undefined, fracti
     });
 }
 
-/** Apply a filter chip to the bets list. The two derived filters use predicates. */
-export function applyBetFilter(bets: ReadonlyArray<MyBet>, filter: BetFilter): ReadonlyArray<MyBet> {
+/**
+ * Apply a filter chip to the bets list. `claimable` / `refundable` collapse
+ * once the user has just claimed/refunded — the overlay (when supplied)
+ * suppresses bets that are pending the indexer's confirmation.
+ */
+export function applyBetFilter(
+    bets: ReadonlyArray<MyBet>,
+    filter: BetFilter,
+    overlay?: ClaimOverlay,
+): ReadonlyArray<MyBet> {
     switch (filter) {
         case 'all':         return bets;
         case 'pending':     return bets.filter((b) => b.status === 'PENDING');
         case 'won':         return bets.filter((b) => b.status === 'WON');
         case 'lost':        return bets.filter((b) => b.status === 'LOST');
-        case 'claimable':   return bets.filter(isClaimable);
-        case 'refundable':  return bets.filter(isRefundable);
+        case 'claimable':   return bets.filter((b) => isClaimableNow(b, overlay));
+        case 'refundable':  return bets.filter((b) => isRefundableNow(b, overlay));
         default:            return bets;
     }
 }
@@ -152,21 +191,31 @@ export interface BetCounts {
     readonly refundable: number;
 }
 
-export function computeBetCounts(bets: ReadonlyArray<MyBet>): BetCounts {
+export function computeBetCounts(
+    bets: ReadonlyArray<MyBet>,
+    overlay?: ClaimOverlay,
+): BetCounts {
     return {
         all:        bets.length,
         pending:    bets.filter((b) => b.status === 'PENDING').length,
         won:        bets.filter((b) => b.status === 'WON').length,
         lost:       bets.filter((b) => b.status === 'LOST').length,
-        claimable:  bets.filter(isClaimable).length,
-        refundable: bets.filter(isRefundable).length,
+        claimable:  bets.filter((b) => isClaimableNow(b, overlay)).length,
+        refundable: bets.filter((b) => isRefundableNow(b, overlay)).length,
     };
 }
 
-/** Sum of unclaimed payouts (feeds ClaimAllBanner). */
-export function sumClaimablePayouts(bets: ReadonlyArray<MyBet>, decimals: number | undefined): number {
+/**
+ * Sum of unclaimed payouts (feeds ClaimAllBanner). Excludes bets the user
+ * has already locally-claimed so the banner total ticks down immediately.
+ */
+export function sumClaimablePayouts(
+    bets: ReadonlyArray<MyBet>,
+    decimals: number | undefined,
+    overlay?: ClaimOverlay,
+): number {
     if (decimals === undefined) return 0;
     return bets
-        .filter(isClaimable)
+        .filter((b) => isClaimableNow(b, overlay))
         .reduce((acc, b) => acc + (b.payout ? Number(b.payout) / 10 ** decimals : 0), 0);
 }

@@ -305,19 +305,77 @@ export class SupabaseMatchRepository implements IMatchRepository {
     return this.toDomain(data);
   }
 
-  async deleteOldMatches(before: Date): Promise<number> {
-    const { data, error } = await supabase
-      .from('matches')
-      .delete()
-      .lt('match_date', before.toISOString())
-      .select('id');
+  async deleteOldMatches(
+    before: Date,
+    exclusions?: {
+      contractAddresses?: ReadonlySet<string>;
+      apiFootballIds?: ReadonlySet<number>;
+    },
+  ): Promise<number> {
+    // Fast path: no retention policy — keep the original single-query
+    // behaviour so any caller that doesn't compose with bets/predictions
+    // (e.g. a manual admin purge) still gets the same semantics.
+    if (!exclusions || (
+      (!exclusions.contractAddresses || exclusions.contractAddresses.size === 0) &&
+      (!exclusions.apiFootballIds || exclusions.apiFootballIds.size === 0)
+    )) {
+      const { data, error } = await supabase
+        .from('matches')
+        .delete()
+        .lt('match_date', before.toISOString())
+        .select('id');
 
-    if (error) {
-      logger.error('Failed to delete old matches', { error: error.message });
-      throw new Error('Failed to delete old matches');
+      if (error) {
+        logger.error('Failed to delete old matches', { error: error.message });
+        throw new Error('Failed to delete old matches');
+      }
+
+      return data ? data.length : 0;
     }
 
-    return data ? data.length : 0;
+    // Retention path: fetch candidates first, filter exclusions in JS, then
+    // delete by id list. Avoids the `NOT IN (huge list)` Supabase REST
+    // pattern and stays safe even when the referenced sets grow.
+    const { data: candidates, error: fetchErr } = await supabase
+      .from('matches')
+      .select('id, betting_contract_address, api_football_id')
+      .lt('match_date', before.toISOString());
+
+    if (fetchErr) {
+      logger.error('Failed to fetch cleanup candidates', { error: fetchErr.message });
+      throw new Error('Failed to fetch cleanup candidates');
+    }
+
+    if (!candidates?.length) return 0;
+
+    const contractRefs = exclusions.contractAddresses;
+    const apiIdRefs = exclusions.apiFootballIds;
+    const idsToDelete: Array<number | string> = [];
+    for (const c of candidates as Array<{
+      id: number | string;
+      betting_contract_address: string | null;
+      api_football_id: number;
+    }>) {
+      const refByContract =
+        contractRefs && c.betting_contract_address
+          ? contractRefs.has(c.betting_contract_address.toLowerCase())
+          : false;
+      const refByApiId = apiIdRefs ? apiIdRefs.has(Number(c.api_football_id)) : false;
+      if (!refByContract && !refByApiId) idsToDelete.push(c.id);
+    }
+
+    if (idsToDelete.length === 0) return 0;
+
+    const { error: delErr } = await supabase
+      .from('matches')
+      .delete()
+      .in('id', idsToDelete);
+
+    if (delErr) {
+      logger.error('Failed to delete old matches', { error: delErr.message });
+      throw new Error('Failed to delete old matches');
+    }
+    return idsToDelete.length;
   }
 
   async getStats(): Promise<MatchStats> {

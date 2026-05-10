@@ -10,6 +10,7 @@ import {
 } from '@/lib/contracts/generated';
 import { usePoolDecimals } from '@/hooks/usePoolDecimals';
 import { useMyBetsOnMatch } from '@/components/features/dashboard/hooks/useMyBetsOnMatch';
+import { useLocallyClaimed } from '@/components/features/dashboard/hooks/useLocallyClaimed';
 import { BetRow } from '@/components/features/dashboard/components/BetRow';
 import { computeBetCounts, sumClaimablePayouts } from '@/components/features/dashboard/domain/bets';
 import { fmtUsd } from '@/components/features/dashboard/domain/formatters';
@@ -36,10 +37,11 @@ export function MyBetsOnMatch({ contractAddress, walletAddress, onPickMarket }: 
         contractAddress,
     });
 
-    const counts = useMemo(() => computeBetCounts(bets), [bets]);
+    const { map: claimedOverlay } = useLocallyClaimed();
+    const counts = useMemo(() => computeBetCounts(bets, claimedOverlay), [bets, claimedOverlay]);
     const claimableTotal = useMemo(
-        () => sumClaimablePayouts(bets, assetDecimals),
-        [bets, assetDecimals],
+        () => sumClaimablePayouts(bets, assetDecimals, claimedOverlay),
+        [bets, assetDecimals, claimedOverlay],
     );
 
     const invalidate = () => {

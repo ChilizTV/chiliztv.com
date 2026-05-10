@@ -2,7 +2,7 @@
 
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '@/lib/api/client';
-import type { MyBet, MyBetsResponse, BetFilter, BetStatus } from '../domain/bets';
+import type { MyBetsResponse, BetFilter, BetStatus } from '../domain/bets';
 
 interface FetchArgs {
     readonly user: string;
@@ -59,25 +59,9 @@ export function useInvalidateMyBets(): () => void {
     };
 }
 
-/**
- * Optimistic stamp of `claimedAt` / `refundedAt` on a single bet so the UI
- * flips before the indexer catches up. Reverted on next refetch if wrong.
- */
-export function useStampLocalClaimed(): (txHash: `0x${string}`, logIndex: number) => void {
-    const qc = useQueryClient();
-    return (txHash, logIndex) => {
-        qc.setQueriesData<MyBetsResponse>({ queryKey: ['my-bets'] }, (old) => {
-            if (!old) return old;
-            const stamped = new Date().toISOString();
-            const next = old.bets.map((b: MyBet) => {
-                if (b.txHash === txHash && b.logIndex === logIndex) {
-                    return b.status === 'REFUNDED'
-                        ? { ...b, refundedAt: stamped }
-                        : { ...b, claimedAt: stamped };
-                }
-                return b;
-            });
-            return { ...old, bets: next };
-        });
-    };
-}
+// `useStampLocalClaimed` was replaced by the persistent locally-claimed
+// pub/sub store at `domain/locallyClaimedStore.ts` (consumed via
+// `hooks/useLocallyClaimed.ts`). Mutating react-query's cache in place
+// was unsafe: the next refetch would overwrite the optimistic stamp
+// before the indexer had recorded the on-chain Payout/Refund event,
+// re-showing the Claim button (which then reverted on a second click).

@@ -20,7 +20,7 @@ import { StatsHero } from './sections/StatsHero';
 import { LpPositionPanel } from './sections/LpPositionPanel';
 import { MyBetsSection } from './sections/MyBetsSection';
 import { MainTabs } from './sections/MainTabs';
-import { StreamerRevenuePanel } from './sections/StreamerRevenuePanel';
+import { StreamerStudioSection } from './sections/streamer-studio';
 import type { TokenCardData } from './components/TokenCardDash';
 
 function scrollToId(id: string): void {
@@ -105,11 +105,9 @@ export function Dashboard() {
                 onPlaceFirstBet={goToDiscover}
                 onBrowseStreamers={goToDiscover}
             />
-            {isStreamer && (
-                <div id="streamer-revenue">
-                    <StreamerRevenuePanel wallet={user.wallet} />
-                </div>
-            )}
+            <div id="streamer-revenue">
+                <StreamerStudioSection wallet={user.wallet} />
+            </div>
 
             <PoolDepositDialog open={poolDialogOpen} onClose={() => setPoolDialogOpen(false)} />
         </main>

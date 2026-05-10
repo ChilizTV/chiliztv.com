@@ -45,4 +45,13 @@ export const streamWalletApi = {
    */
   getSubscriberHistory: (subscriberAddress: string): Promise<{ success: boolean; subscriptions: Subscription[]; count: number }> =>
     apiClient.get<{ success: boolean; subscriptions: Subscription[]; count: number }>(`/stream-wallet/subscriber/${subscriberAddress}/subscriptions`),
+
+  /**
+   * @notice Self-onboards a streamer: deploys a `StreamWallet` proxy via
+   * the platform admin signer (gas paid by the platform). Idempotent —
+   * returns the existing proxy address with `created: false` if one is
+   * already deployed for this address.
+   */
+  deployStreamerWallet: (streamerAddress: string): Promise<{ success: boolean; wallet: string; created: boolean }> =>
+    apiClient.post<{ success: boolean; wallet: string; created: boolean }>(`/stream-wallet/deploy/${streamerAddress}`, {}),
 };

@@ -186,6 +186,34 @@ export class SupabasePredictionRepository implements IPredictionRepository {
     });
   }
 
+  /**
+   * Distinct `match_id` (= `api_football_id`) values referenced by stored
+   * predictions. Drives the match-retention policy: any match whose
+   * `apiFootballId` is in this set must NOT be deleted by the 24h cleanup,
+   * otherwise the prediction would orphan and lose its match context.
+   *
+   * Implementation note: dedup happens in JS — Supabase REST has no
+   * `DISTINCT`. Acceptable up to ~50k rows; promote to a Postgres RPC
+   * beyond that.
+   */
+  async listReferencedMatchIds(): Promise<ReadonlySet<number>> {
+    const { data, error } = await supabase
+      .from('predictions')
+      .select('match_id')
+      .not('match_id', 'is', null);
+
+    if (error) {
+      logger.error('Failed to list referenced match ids', { error: error.message });
+      throw new Error('Failed to list referenced match ids');
+    }
+
+    const set = new Set<number>();
+    for (const row of (data ?? []) as Array<{ match_id: number | null }>) {
+      if (row.match_id != null) set.add(Number(row.match_id));
+    }
+    return set;
+  }
+
   private toRow(prediction: Prediction): any {
     const json = prediction.toJSON();
     return {

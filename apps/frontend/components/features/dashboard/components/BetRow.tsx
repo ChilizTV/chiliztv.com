@@ -13,19 +13,36 @@ import { chilizConfig } from '@/config/chiliz.config';
 import { describeError } from '@/lib/contracts/errors';
 import { usePoolDecimals } from '@/hooks/usePoolDecimals';
 import { fmtUsd, timeAgo } from '../domain/formatters';
-import { isClaimable, isRefundable, fmtSelection, type MyBet } from '../domain/bets';
-import { useInvalidateMyBets, useStampLocalClaimed } from '../hooks/useMyBets';
+import {
+    fmtSelection,
+    isClaimableNow,
+    isLocallyClaimed,
+    isRefundableNow,
+    type MyBet,
+} from '../domain/bets';
+import { useInvalidateMyBets } from '../hooks/useMyBets';
+import { useLocallyClaimed } from '../hooks/useLocallyClaimed';
 import { StatusPill } from './StatusPill';
 
 interface BetRowProps {
     readonly bet: MyBet;
 }
 
-/** Single row in the My Bets table — owns its own claim/refund tx state. */
+/**
+ * Single row in the My Bets table — owns its own claim/refund tx state.
+ *
+ * The "Claim" / "Refund" affordance flips to a "Claimed" / "Refunded" pill
+ * the instant the on-chain receipt confirms. We persist that flip in a
+ * locally-claimed pub/sub store (24h TTL) so a query refetch — which
+ * arrives before the indexer has caught up — can't reset the UI back to
+ * a callable button (which would revert when clicked again).
+ */
 export function BetRow({ bet }: BetRowProps) {
     const { assetDecimals } = usePoolDecimals();
-    const claimable = isClaimable(bet);
-    const refundable = isRefundable(bet);
+    const { map: claimedOverlay, lookup, mark } = useLocallyClaimed();
+    const claimable = isClaimableNow(bet, claimedOverlay);
+    const refundable = isRefundableNow(bet, claimedOverlay);
+    const locallyHandled = isLocallyClaimed(bet, claimedOverlay);
     const isWon = bet.status === 'WON';
     const isLost = bet.status === 'LOST';
     const isPending = bet.status === 'PENDING';
@@ -38,7 +55,6 @@ export function BetRow({ bet }: BetRowProps) {
     const { isLoading: refundConfirming, isSuccess: refundSuccess } = useWaitForTransactionReceipt({ hash: refundHash });
 
     const invalidateBets = useInvalidateMyBets();
-    const stampLocal = useStampLocalClaimed();
     const handledTxRef = useRef<`0x${string}` | null>(null);
 
     useEffect(() => {
@@ -47,12 +63,19 @@ export function BetRow({ bet }: BetRowProps) {
         const txHash = (claimHash ?? refundHash) as `0x${string}` | undefined;
         if (!txHash || handledTxRef.current === txHash) return;
         handledTxRef.current = txHash;
-        stampLocal(bet.txHash, bet.logIndex);
+
+        // Persistent overlay — survives the upcoming `invalidateBets` refetch
+        // even when the indexer hasn't yet recorded the Payout/Refund event.
+        mark(bet, claimSuccess ? 'claimed' : 'refunded', txHash);
+
         toast.success(claimSuccess ? 'Payout claimed' : 'Refund collected', {
             description: `${txHash.slice(0, 10)}…${txHash.slice(-8)}`,
         });
+        // Trigger a refetch so the row eventually reconciles with the
+        // indexer's authoritative `claimedAt` / `refundedAt` (the overlay
+        // simply masks the gap until then).
         invalidateBets();
-    }, [claimSuccess, refundSuccess, claimHash, refundHash, bet.txHash, bet.logIndex, invalidateBets, stampLocal]);
+    }, [claimSuccess, refundSuccess, claimHash, refundHash, bet, invalidateBets, mark]);
 
     useEffect(() => {
         const err = claimError ?? refundError;
@@ -71,8 +94,13 @@ export function BetRow({ bet }: BetRowProps) {
 
     const isTxPending = claimPending || claimConfirming || refundPending || refundConfirming;
     const stake = Number(bet.netStake) / 10 ** (assetDecimals ?? 6);
-    const payout = bet.payout ? Number(bet.payout) / 10 ** (assetDecimals ?? 6) : 0;
     const potential = stake * (bet.oddsX10000 / 10_000);
+    // `bet.payout` is only populated on the Payout event (i.e. after the user
+    // claims). When a market settles but the user hasn't claimed yet, the
+    // backend marks status=WON but leaves payout null — fall back to the
+    // expected `stake × odds` so the row never displays "$0.00 Won".
+    const claimedPayout = bet.payout ? Number(bet.payout) / 10 ** (assetDecimals ?? 6) : 0;
+    const payout = claimedPayout > 0 ? claimedPayout : potential;
 
     const matchLabel = bet.match ? `${bet.match.homeTeamName} vs ${bet.match.awayTeamName}` : 'Unknown match';
     const sel = fmtSelection(
@@ -82,6 +110,17 @@ export function BetRow({ bet }: BetRowProps) {
         bet.marketType,
         bet.line,
     );
+
+    // Visible status — overlay first (the user just acted), server second.
+    // The indexer's authoritative `claimedAt` / `refundedAt` also drives
+    // the "Claimed" / "Refunded" pills.
+    const overlayEntry = lookup(bet);
+    const showClaimedPill =
+        overlayEntry?.kind === 'claimed' ||
+        (bet.status === 'WON' && bet.claimedAt !== null);
+    const showRefundedPill =
+        overlayEntry?.kind === 'refunded' ||
+        (bet.status === 'REFUNDED' && bet.refundedAt !== null);
 
     return (
         <div
@@ -149,8 +188,18 @@ export function BetRow({ bet }: BetRowProps) {
                         {isTxPending && <Loader2 size={11} className="animate-spin" />}
                         {isTxPending ? 'Confirming…' : refundable ? 'Refund' : 'Claim'}
                     </button>
+                ) : showClaimedPill ? (
+                    <StatusPill status="claimed" />
+                ) : showRefundedPill ? (
+                    <StatusPill status="refunded" />
                 ) : (
-                    <StatusPill status={bet.status.toLowerCase() as 'pending' | 'won' | 'lost' | 'refunded'} />
+                    <StatusPill
+                        status={
+                            locallyHandled
+                                ? 'claimed'
+                                : (bet.status.toLowerCase() as 'pending' | 'won' | 'lost' | 'refunded')
+                        }
+                    />
                 )}
             </div>
         </div>

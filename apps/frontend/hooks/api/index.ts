@@ -35,6 +35,7 @@ export {
   useStreamerStats,
   useDonorHistory,
   useSubscriberHistory,
+  useDeployStreamerWallet,
 } from './useStreamWallet';
 export {
   useCheckWaitlistAccess,

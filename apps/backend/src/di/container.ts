@@ -104,6 +104,8 @@ import { GetStreamerSubscriptionsUseCase } from '../application/stream-wallet/us
 import { GetStreamerStatsUseCase } from '../application/stream-wallet/use-cases/GetStreamerStatsUseCase';
 import { GetDonorHistoryUseCase } from '../application/stream-wallet/use-cases/GetDonorHistoryUseCase';
 import { GetSubscriberHistoryUseCase } from '../application/stream-wallet/use-cases/GetSubscriberHistoryUseCase';
+import { DeployStreamerWalletUseCase } from '../application/stream-wallet/use-cases/DeployStreamerWalletUseCase';
+import { StreamWalletDeploymentAdapter } from '../infrastructure/blockchain/adapters/StreamWalletDeploymentAdapter';
 
 // ─── Application — FanTokens ─────────────────────────────────────────────────
 import { GetUserFanTokenBalancesUseCase } from '../application/fan-tokens/use-cases/GetUserFanTokenBalancesUseCase';
@@ -249,6 +251,8 @@ export function setupDependencyInjection(): void {
   container.registerSingleton(GetStreamerStatsUseCase);
   container.registerSingleton(GetDonorHistoryUseCase);
   container.registerSingleton(GetSubscriberHistoryUseCase);
+  container.registerSingleton(StreamWalletDeploymentAdapter);
+  container.registerSingleton(DeployStreamerWalletUseCase);
 
   // ─── 10. Use Cases — FanTokens ─────────────────────────────────────────────
   container.registerSingleton(GetUserFanTokenBalancesUseCase);

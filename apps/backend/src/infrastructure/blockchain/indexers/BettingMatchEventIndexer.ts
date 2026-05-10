@@ -393,6 +393,7 @@ export class BettingMatchEventIndexer extends BaseIndexer {
                 username: 'System',
                 message: `🎯 New prediction: ${formatted} USDC on ${team || subType}`,
                 type: MessageType.SYSTEM,
+                systemType: 'bet',
                 isFeatured: false,
             });
             await this.chat.saveMessage(message);

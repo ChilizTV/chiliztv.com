@@ -4,4 +4,5 @@ export { ChatHeader } from "./ChatHeader";
 export { ChatComposer } from "./ChatComposer";
 export { ChatMessageList } from "./ChatMessageList";
 export { ChatMessageItem } from "./ChatMessageItem";
+export { LatestSystemBanner } from "./LatestSystemBanner";
 export { NewMessagesPill } from "./NewMessagesPill";

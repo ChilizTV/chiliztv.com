@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { streamWalletApi } from '@/lib/api/endpoints';
 import { queryKeys } from '@/lib/query/keys';
 
@@ -64,5 +64,31 @@ export function useSubscriberHistory(subscriberAddress: string) {
     queryKey: queryKeys.streamWallet.subscriberSubscriptions(subscriberAddress),
     queryFn: () => streamWalletApi.getSubscriberHistory(subscriberAddress),
     enabled: !!subscriberAddress,
+  });
+}
+
+/**
+ * @notice Mutation that triggers a self-onboarding deployment of the
+ * connected user's `StreamWallet` proxy. Backend signs the deployment
+ * with the platform admin key (gas paid by the platform). On success we
+ * invalidate `donations` / `subscriptions` / `stats` for the caller so
+ * the dashboard re-renders with the freshly deployed wallet.
+ */
+export function useDeployStreamerWallet(streamerAddress: string | undefined) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: () => {
+      if (!streamerAddress) {
+        return Promise.reject(new Error('No streamer address — connect a wallet first.'));
+      }
+      return streamWalletApi.deployStreamerWallet(streamerAddress);
+    },
+    onSuccess: () => {
+      if (!streamerAddress) return;
+      queryClient.invalidateQueries({ queryKey: queryKeys.streamWallet.donations(streamerAddress) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.streamWallet.subscriptions(streamerAddress) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.streamWallet.stats(streamerAddress) });
+    },
   });
 }

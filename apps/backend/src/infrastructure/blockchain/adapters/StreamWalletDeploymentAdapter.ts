@@ -70,8 +70,20 @@ export class StreamWalletDeploymentAdapter {
      * Returns the existing wallet address if one is already deployed,
      * otherwise deploys a new proxy via `factory.deployWalletFor` and
      * returns the freshly created address.
+     *
+     * When `created === true`, the caller should persist the
+     * `(streamer, wallet, txHash)` mapping into `stream_wallets`
+     * synchronously — the `StreamWalletIndexer` will eventually pick up
+     * the on-chain `StreamWalletCreated` event and idempotently re-insert,
+     * but writing the row at deploy time avoids a race where a tip /
+     * subscription arrives before the next indexer tick and the wallet
+     * lookup returns null.
      */
-    async ensureWallet(streamer: string): Promise<{ wallet: `0x${string}`; created: boolean }> {
+    async ensureWallet(streamer: string): Promise<{
+        wallet: `0x${string}`;
+        created: boolean;
+        txHash?: `0x${string}`;
+    }> {
         const existing = await this.getWallet(streamer);
         if (existing && existing !== '0x0000000000000000000000000000000000000000') {
             return { wallet: existing, created: false };
@@ -102,6 +114,6 @@ export class StreamWalletDeploymentAdapter {
             wallet,
             txHash: hash,
         });
-        return { wallet, created: true };
+        return { wallet, created: true, txHash: hash };
     }
 }

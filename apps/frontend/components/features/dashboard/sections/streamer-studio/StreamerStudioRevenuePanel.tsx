@@ -8,12 +8,12 @@ import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useStreamWallet } from '@/hooks/useStreamWallet';
 import { usePoolDecimals } from '@/hooks/usePoolDecimals';
-import { useStreamerDonations } from '@/hooks/api';
+import { useStreamerDonations, useUserProfilesBatch } from '@/hooks/api';
 import { useStreamWalletWriteWithdrawRevenue } from '@/lib/contracts/generated';
 import { chilizConfig } from '@/config/chiliz.config';
 import { describeError } from '@/lib/contracts/errors';
 import { DashEyebrow } from '../../components/DashEyebrow';
-import { Avatar } from '../../components/Avatar';
+import { UserBadge } from '@/components/shared/UserBadge';
 import { fmtUsd, timeAgo } from '../../domain/formatters';
 
 interface StreamerStudioRevenuePanelProps {
@@ -29,6 +29,13 @@ export function StreamerStudioRevenuePanel({ wallet }: StreamerStudioRevenuePane
     const sw = useStreamWallet({ streamerAddress: wallet });
     const { assetDecimals } = usePoolDecimals();
     const donations = useStreamerDonations(wallet ?? '');
+
+    // Batch-resolve donor display profiles for the 5 most recent donations
+    // so the "Recent donations" rows show real usernames + avatars instead
+    // of `??` initials + truncated addresses.
+    const recentDonations = (donations.data?.donations ?? []).slice(0, 5);
+    const donorWallets = recentDonations.map((d) => d.donorAddress);
+    const { data: donorProfiles } = useUserProfilesBatch(donorWallets);
 
     const totalRevenue = Number(sw.statistics.totalRevenue);
     const totalWithdrawn = Number(sw.statistics.totalWithdrawn);
@@ -129,18 +136,20 @@ export function StreamerStudioRevenuePanel({ wallet }: StreamerStudioRevenuePane
                     </div>
                 ) : (
                     <div className="flex flex-col">
-                        {(donations.data?.donations ?? []).slice(0, 5).map((d) => {
+                        {recentDonations.map((d) => {
                             const amount = Number(d.amount) / 10 ** (assetDecimals ?? 6);
+                            const profile = donorProfiles?.get(d.donorAddress.toLowerCase()) ?? null;
                             return (
                                 <div
                                     key={d.transactionHash}
                                     className="flex items-center justify-between gap-4 border-b border-[#1E1E1E] py-3 last:border-0"
                                 >
                                     <div className="flex min-w-0 items-center gap-3">
-                                        <Avatar seed={d.donorAddress} label="??" size={32} />
-                                        <div className="font-mono-ctv text-[12px] tabular-nums text-white/85">
-                                            {d.donorAddress.slice(0, 6)}…{d.donorAddress.slice(-4)}
-                                        </div>
+                                        <UserBadge
+                                            walletAddress={d.donorAddress}
+                                            profile={profile}
+                                            size={32}
+                                        />
                                     </div>
                                     <div className="flex items-center gap-4">
                                         <div className="font-mono-ctv text-[10px] uppercase tracking-[0.16em] text-white/35">

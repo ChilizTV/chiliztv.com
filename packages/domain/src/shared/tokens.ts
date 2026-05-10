@@ -8,6 +8,7 @@ export const TOKENS = {
   IWaitlistRepository:     Symbol.for('IWaitlistRepository'),
   IFollowRepository:       Symbol.for('IFollowRepository'),
   IFanTokenRepository:     Symbol.for('IFanTokenRepository'),
+  IUserProfileRepository:  Symbol.for('IUserProfileRepository'),
 
   // Repositories — blockchain indexing
   IIndexerCheckpointRepository: Symbol.for('IIndexerCheckpointRepository'),

@@ -1,7 +1,11 @@
 import { Request, Response, NextFunction } from 'express';
-import { injectable } from 'tsyringe';
+import { injectable, inject } from 'tsyringe';
 import { supabaseClient as supabase } from '../../../infrastructure/database/supabase/client';
 import { logger } from '../../../infrastructure/logging/logger';
+import { ResolveUserProfileUseCase } from '../../../application/users/use-cases/ResolveUserProfileUseCase';
+import { ResolveUserProfilesBatchUseCase } from '../../../application/users/use-cases/ResolveUserProfilesBatchUseCase';
+import { UpsertUserProfileUseCase } from '../../../application/users/use-cases/UpsertUserProfileUseCase';
+import type { UserProfile } from '@chiliztv/domain/users/entities/UserProfile';
 
 const BUCKET = 'avatars';
 const ALLOWED_MIME = new Set(['image/jpeg', 'image/png', 'image/webp']);
@@ -17,6 +21,68 @@ interface AuthedRequest extends Request {
 
 @injectable()
 export class UserController {
+    constructor(
+        @inject(ResolveUserProfileUseCase)
+        private readonly resolveProfile: ResolveUserProfileUseCase,
+        @inject(ResolveUserProfilesBatchUseCase)
+        private readonly resolveProfilesBatch: ResolveUserProfilesBatchUseCase,
+        @inject(UpsertUserProfileUseCase)
+        private readonly upsertProfile: UpsertUserProfileUseCase,
+    ) {}
+
+    /** GET /users/by-wallet/:address — resolves a wallet to its display profile. */
+    async getProfileByWallet(req: Request, res: Response, next: NextFunction): Promise<void> {
+        try {
+            const { address } = req.params;
+            const profile = await this.resolveProfile.execute(address);
+            res.json({ success: true, profile: serializeProfile(profile) });
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    /** POST /users/by-wallets — batch resolve. Body: `{ addresses: string[] }`. */
+    async getProfilesByWallets(req: Request, res: Response, next: NextFunction): Promise<void> {
+        try {
+            const addresses = Array.isArray(req.body?.addresses) ? req.body.addresses : [];
+            if (addresses.length === 0) {
+                res.json({ success: true, profiles: {} });
+                return;
+            }
+            const profiles = await this.resolveProfilesBatch.execute(addresses);
+            const serialized: Record<string, ReturnType<typeof serializeProfile>> = {};
+            for (const [wallet, profile] of profiles) {
+                serialized[wallet] = serializeProfile(profile);
+            }
+            res.json({ success: true, profiles: serialized });
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    /** POST /users/profile — upsert from the authenticated session (Dynamic Labs). */
+    async upsertOwnProfile(req: AuthedRequest, res: Response, next: NextFunction): Promise<void> {
+        try {
+            const wallet = req.user?.walletAddress;
+            if (!wallet) {
+                res.status(401).json({ success: false, error: 'Wallet not derivable from token' });
+                return;
+            }
+            const { username, avatarUrl } = (req.body ?? {}) as {
+                username?: string | null;
+                avatarUrl?: string | null;
+            };
+            const profile = await this.upsertProfile.execute({
+                walletAddress: wallet,
+                username: username ?? null,
+                avatarUrl: avatarUrl ?? null,
+            });
+            res.json({ success: true, profile: serializeProfile(profile) });
+        } catch (error) {
+            next(error);
+        }
+    }
+
     /** POST /users/avatar — multipart `file` field. Returns the public URL. */
     async uploadAvatar(req: AuthedRequest, res: Response, next: NextFunction): Promise<void> {
         try {
@@ -89,6 +155,22 @@ export class UserController {
             const url = urlData.publicUrl;
             const version = Date.now();
 
+            // Mirror the new URL into `users.avatar_url` so server-side
+            // consumers (chat events, dashboard list views) pick it up.
+            // Failure here is non-fatal — the upload itself succeeded.
+            try {
+                await this.upsertProfile.execute({
+                    walletAddress: wallet,
+                    username: null,
+                    avatarUrl: url,
+                });
+            } catch (mirrorErr) {
+                logger.warn('Avatar URL mirror to users table failed', {
+                    wallet,
+                    error: mirrorErr instanceof Error ? mirrorErr.message : String(mirrorErr),
+                });
+            }
+
             res.json({ success: true, url, version, timestamp: version });
         } catch (error) {
             logger.error('Avatar upload unexpected error', {
@@ -114,9 +196,36 @@ export class UserController {
                 res.status(500).json({ success: false, error: 'Delete failed' });
                 return;
             }
+            // Clear `users.avatar_url` as well — keep storage and cache in sync.
+            try {
+                await this.upsertProfile.execute({
+                    walletAddress: wallet,
+                    username: null,
+                    avatarUrl: null,
+                });
+            } catch (mirrorErr) {
+                logger.warn('Avatar URL clear in users table failed', {
+                    wallet,
+                    error: mirrorErr instanceof Error ? mirrorErr.message : String(mirrorErr),
+                });
+            }
             res.json({ success: true, timestamp: Date.now() });
         } catch (error) {
             next(error);
         }
     }
+}
+
+function serializeProfile(profile: UserProfile): {
+    walletAddress: string;
+    username: string | null;
+    avatarUrl: string | null;
+    updatedAt: string;
+} {
+    return {
+        walletAddress: profile.walletAddress,
+        username: profile.username,
+        avatarUrl: profile.avatarUrl,
+        updatedAt: profile.updatedAt.toISOString(),
+    };
 }

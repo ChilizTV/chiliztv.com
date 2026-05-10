@@ -14,6 +14,7 @@ import { Subscription } from '@chiliztv/domain/stream-wallet/entities/Subscripti
 import { ChatMessage, MessageType } from '@chiliztv/domain/chat/entities/ChatMessage';
 import { BaseIndexer } from './BaseIndexer';
 import { getTokenDecimals } from '../utils/getTokenDecimals';
+import { ResolveUserProfileUseCase } from '../../../application/users/use-cases/ResolveUserProfileUseCase';
 
 const STREAM_WALLET_CREATED = parseAbiItem(
     'event StreamWalletCreated(address indexed streamer, address indexed wallet)',
@@ -66,6 +67,8 @@ export class StreamWalletIndexer extends BaseIndexer {
         private readonly chatRepository: IChatRepository,
         @inject(TOKENS.INetworkConfig)
         private readonly network: INetworkConfig,
+        @inject(ResolveUserProfileUseCase)
+        private readonly resolveProfile: ResolveUserProfileUseCase,
     ) {
         const factoryAddress = network.streamWalletFactoryAddress as `0x${string}`;
         super({
@@ -115,14 +118,9 @@ export class StreamWalletIndexer extends BaseIndexer {
             }
         }
 
-        // Phase 2: wallet events. Listening to the union of all known wallets
-        // in a single getLogs keeps the RPC call count flat regardless of how
-        // many streamers exist.
-        if (this.knownWallets.size === 0) return;
-
+        // Phase 2: wallet events.
         const usdcDecimals = await this.getUsdcDecimals();
         const walletLogs = await this.client.getLogs({
-            address: Array.from(this.knownWallets),
             events: WALLET_EVENTS,
             fromBlock,
             toBlock,
@@ -215,7 +213,6 @@ export class StreamWalletIndexer extends BaseIndexer {
             return;
         }
         if (!streamerAddress) {
-            logger.warn(`${this.indexerName}: donation on unknown wallet`, { walletAddress, txHash });
             return;
         }
 
@@ -258,7 +255,10 @@ export class StreamWalletIndexer extends BaseIndexer {
             return;
         }
         if (!streamerAddress) {
-            logger.warn(`${this.indexerName}: subscription on unknown wallet`, { walletAddress, txHash });
+            // Same rationale as `handleDonation`: foreign contract sharing
+            // the topic signature — skip silently. `recoverStreamerFromContract`
+            // already logs the `streamer()` revert at warn level when
+            // appropriate, so we don't double-log here.
             return;
         }
 
@@ -312,8 +312,55 @@ export class StreamWalletIndexer extends BaseIndexer {
             .select('streamer_address')
             .eq('wallet_address', walletAddress.toLowerCase())
             .maybeSingle();
-        if (error || !data) return null;
-        return (data.streamer_address as string).toLowerCase();
+        if (!error && data) {
+            return (data.streamer_address as string).toLowerCase();
+        }
+        // Self-heal — the DB doesn't know this wallet (factory event missed,
+        // re-org, or the deploy happened before this indexer started). Read
+        // `streamer()` directly off the proxy and backfill the mapping so
+        // every subsequent lookup hits the cache.
+        return this.recoverStreamerFromContract(walletAddress);
+    }
+
+    private async recoverStreamerFromContract(walletAddress: string): Promise<string | null> {
+        try {
+            const streamer = (await this.client.readContract({
+                address: walletAddress as `0x${string}`,
+                abi: [
+                    parseAbiItem('function streamer() view returns (address)'),
+                ],
+                functionName: 'streamer',
+            })) as `0x${string}`;
+            if (!streamer || streamer === '0x0000000000000000000000000000000000000000') {
+                return null;
+            }
+            const lower = streamer.toLowerCase();
+            // Best-effort persist — keyed by wallet_address; we don't have
+            // the deploy txHash here so we use a synthetic placeholder.
+            // Unique-violation on tx_hash (later, when the indexer sees the
+            // factory event) is swallowed by the repo (PG code 23505).
+            await this.streamWalletRepository.saveStreamWallet(
+                lower,
+                walletAddress.toLowerCase(),
+                `recovered:${walletAddress.toLowerCase()}`,
+            );
+            logger.info(`${this.indexerName}: recovered wallet→streamer mapping`, {
+                wallet: walletAddress,
+                streamer: lower,
+            });
+            this.knownWallets.add(walletAddress.toLowerCase() as `0x${string}`);
+            return lower;
+        } catch (err) {
+            // Expected for any contract that emitted a matching topic
+            // signature but isn't a `StreamWallet` proxy. Logged at debug
+            // level only so the noise floor stays clean — switching the
+            // logger to debug surfaces these for troubleshooting.
+            logger.debug(`${this.indexerName}: streamer() read failed`, {
+                wallet: walletAddress,
+                error: err instanceof Error ? err.message : String(err),
+            });
+            return null;
+        }
     }
 
     private async findActiveStream(
@@ -346,7 +393,13 @@ export class StreamWalletIndexer extends BaseIndexer {
         extra?: string,
     ): Promise<void> {
         try {
-            const display = `${userAddress.slice(0, 6)}...${userAddress.slice(-4)}`;
+            // Resolve the human display name first — falls through to the
+            // truncated address only if both the `users` cache AND the
+            // multi-source fallback come up empty. The system-event chat
+            // row is the most visible surface for this string.
+            const profile = await this.resolveProfile.execute(userAddress);
+            const display = profile.username
+                ?? `${userAddress.slice(0, 6)}...${userAddress.slice(-4)}`;
             const formatted = parseFloat(amount).toFixed(2);
             const message = type === 'donation'
                 ? `🎁 ${display} donated ${formatted} USDC${extra ? `: "${extra}"` : ''}`

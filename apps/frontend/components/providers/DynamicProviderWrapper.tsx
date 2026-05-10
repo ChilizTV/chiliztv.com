@@ -9,6 +9,7 @@ import { DynamicWagmiConnector } from '@dynamic-labs/wagmi-connector';
 import * as React from "react";
 import { useRouter } from "next/navigation";
 import { WagmiProviderWrapper } from "./WagmiProviderWrapper";
+import { UserProfileAutoSync } from "./UserProfileAutoSync";
 
 
 export default function DynamicSolanaWalletProvider({ children }: Readonly<{ children: React.ReactNode }>) {
@@ -97,6 +98,12 @@ export default function DynamicSolanaWalletProvider({ children }: Readonly<{ chi
             settings={dynamicSettings}
             >
                 <DynamicWagmiConnector>
+                    {/* Side-effect hook: push the connected user's name +
+                        avatar into the backend `users` cache on every
+                        auth state change so server-side renderers and
+                        list views resolve real names instead of truncated
+                        addresses. */}
+                    <UserProfileAutoSync />
                     {children}
                 </DynamicWagmiConnector>
             </DynamicContextProvider>

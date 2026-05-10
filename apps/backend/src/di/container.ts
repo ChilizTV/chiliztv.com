@@ -107,6 +107,14 @@ import { GetSubscriberHistoryUseCase } from '../application/stream-wallet/use-ca
 import { DeployStreamerWalletUseCase } from '../application/stream-wallet/use-cases/DeployStreamerWalletUseCase';
 import { StreamWalletDeploymentAdapter } from '../infrastructure/blockchain/adapters/StreamWalletDeploymentAdapter';
 
+// ─── Application — Users ─────────────────────────────────────────────────────
+import { IUserProfileRepository } from '@chiliztv/domain/users/repositories/IUserProfileRepository';
+import { SupabaseUserProfileRepository } from '../infrastructure/persistence/repositories/SupabaseUserProfileRepository';
+import { MultiSourceUserDisplayFallback } from '../infrastructure/persistence/repositories/MultiSourceUserDisplayFallback';
+import { ResolveUserProfileUseCase } from '../application/users/use-cases/ResolveUserProfileUseCase';
+import { ResolveUserProfilesBatchUseCase } from '../application/users/use-cases/ResolveUserProfilesBatchUseCase';
+import { UpsertUserProfileUseCase } from '../application/users/use-cases/UpsertUserProfileUseCase';
+
 // ─── Application — FanTokens ─────────────────────────────────────────────────
 import { GetUserFanTokenBalancesUseCase } from '../application/fan-tokens/use-cases/GetUserFanTokenBalancesUseCase';
 
@@ -186,6 +194,7 @@ export function setupDependencyInjection(): void {
   container.registerSingleton<IFanTokenRepository>(TOKENS.IFanTokenRepository, FanTokenAdapter);
   container.registerSingleton<IFollowRepository>(TOKENS.IFollowRepository, SupabaseFollowRepository);
   container.registerSingleton<ISubscriptionChecker>(TOKENS.ISubscriptionChecker, SubscriptionChecker);
+  container.registerSingleton<IUserProfileRepository>(TOKENS.IUserProfileRepository, SupabaseUserProfileRepository);
 
   // ─── 1b. Repositories — blockchain indexing ────────────────────────────────
   container.registerSingleton<IIndexerCheckpointRepository>(TOKENS.IIndexerCheckpointRepository, SupabaseIndexerCheckpointRepository);
@@ -253,6 +262,12 @@ export function setupDependencyInjection(): void {
   container.registerSingleton(GetSubscriberHistoryUseCase);
   container.registerSingleton(StreamWalletDeploymentAdapter);
   container.registerSingleton(DeployStreamerWalletUseCase);
+
+  // ─── 9b. Use Cases — Users (profile resolution / display) ──────────────────
+  container.registerSingleton(MultiSourceUserDisplayFallback);
+  container.registerSingleton(ResolveUserProfileUseCase);
+  container.registerSingleton(ResolveUserProfilesBatchUseCase);
+  container.registerSingleton(UpsertUserProfileUseCase);
 
   // ─── 10. Use Cases — FanTokens ─────────────────────────────────────────────
   container.registerSingleton(GetUserFanTokenBalancesUseCase);

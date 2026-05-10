@@ -29,4 +29,12 @@ const handleMulter = (req: Request, res: Response, next: NextFunction) => {
 router.post('/avatar', handleMulter, userController.uploadAvatar.bind(userController));
 router.delete('/avatar', userController.deleteAvatar.bind(userController));
 
+// Profile read paths — public (no auth required, the data is display-only).
+router.get('/by-wallet/:address', userController.getProfileByWallet.bind(userController));
+router.post('/by-wallets', userController.getProfilesByWallets.bind(userController));
+
+// Profile write — auth required (the auth middleware upstream populates
+// `req.user.walletAddress`; the controller never trusts the body's wallet).
+router.post('/profile', userController.upsertOwnProfile.bind(userController));
+
 export { router as userRoutes };

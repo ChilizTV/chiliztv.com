@@ -6,4 +6,5 @@ export * from './matches';
 export * from './predictions';
 export * from './stream-wallet';
 export * from './streams';
+export * from './users';
 export * from './waitlist';

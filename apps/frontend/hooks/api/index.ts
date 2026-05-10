@@ -38,6 +38,11 @@ export {
   useDeployStreamerWallet,
 } from './useStreamWallet';
 export {
+  useUserProfile,
+  useUserProfilesBatch,
+  useUpsertUserProfile,
+} from './useUserProfile';
+export {
   useCheckWaitlistAccess,
   useWaitlistStats,
   useJoinWaitlist,

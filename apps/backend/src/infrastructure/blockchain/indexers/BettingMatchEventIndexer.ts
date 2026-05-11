@@ -19,6 +19,7 @@ import { PredictionStatus } from '@chiliztv/domain/predictions/value-objects/Pre
 import { ChatMessage, MessageType } from '@chiliztv/domain/chat/entities/ChatMessage';
 import { BaseIndexer } from './BaseIndexer';
 import { getTokenDecimals } from '../utils/getTokenDecimals';
+import { ResolveUserProfileUseCase } from '../../../application/users/use-cases/ResolveUserProfileUseCase';
 
 const BET_PLACED = parseAbiItem(
     'event BetPlaced(uint256 indexed marketId, address indexed user, uint256 betIndex, uint256 amount, uint64 selection, uint32 odds, uint16 oddsIndex)',
@@ -109,6 +110,8 @@ export class BettingMatchEventIndexer extends BaseIndexer {
         private readonly chat: IChatRepository,
         @inject(TOKENS.INetworkConfig)
         private readonly network: INetworkConfig,
+        @inject(ResolveUserProfileUseCase)
+        private readonly resolveProfile: ResolveUserProfileUseCase,
     ) {
         super({
             name: 'BettingMatchEvent',
@@ -345,7 +348,11 @@ export class BettingMatchEventIndexer extends BaseIndexer {
 
         const { subType, team } = this.selectionToPrediction(Number(args.selection), match);
         const oddsValue = Math.max(1.01, Number(args.odds) / 10000);
-        const username = await this.getUsernameForWallet(args.user)
+        // Route through the centralized resolver so the `users` cache stays
+        // authoritative — first hits the PK lookup, then falls back to
+        // chat/predictions/streams, and self-warms the cache on success.
+        const profile = await this.resolveProfile.execute(args.user);
+        const username = profile.username
             ?? `${args.user.slice(0, 6)}...${args.user.slice(-4)}`;
 
         const prediction = Prediction.reconstitute({
@@ -401,29 +408,6 @@ export class BettingMatchEventIndexer extends BaseIndexer {
             logger.error(`${this.indexerName}: failed to insert bet chat message`, {
                 error: err instanceof Error ? err.message : String(err),
             });
-        }
-    }
-
-    private async getUsernameForWallet(walletAddress: string): Promise<string | null> {
-        const addr = walletAddress.toLowerCase();
-        try {
-            const { data: chatRows } = await supabase
-                .from('chat_messages')
-                .select('username')
-                .eq('wallet_address', addr)
-                .order('created_at', { ascending: false })
-                .limit(1);
-            if (chatRows?.[0]?.username) return chatRows[0].username;
-
-            const { data: predRows } = await supabase
-                .from('predictions')
-                .select('username')
-                .eq('wallet_address', addr)
-                .order('placed_at', { ascending: false })
-                .limit(1);
-            return predRows?.[0]?.username ?? null;
-        } catch {
-            return null;
         }
     }
 

@@ -1,0 +1,25 @@
+# Caddy reverse proxy — HTTPS fronting for MediaMTX HLS
+#
+# The frontend chiliztv.com is served over HTTPS by Vercel, so the HLS playlist
+# must also be HTTPS or the browser blocks it (mixed content). Caddy auto-issues
+# a Let's Encrypt cert on first request and proxies to MediaMTX listening on
+# localhost:8888. RTMP stays in clear on :1935 (OBS clients, not the browser).
+#
+# Install location on the VPS: /etc/caddy/Caddyfile
+# Reload after edits: sudo systemctl reload caddy
+
+ingest.chiliztv.com {
+    reverse_proxy localhost:8888
+
+    encode gzip
+
+    header {
+        Access-Control-Allow-Origin "https://chiliztv.com"
+        Access-Control-Allow-Methods "GET, HEAD, OPTIONS"
+        Access-Control-Allow-Headers "Range"
+        Access-Control-Expose-Headers "Content-Length, Content-Range"
+    }
+
+    @options method OPTIONS
+    respond @options 204
+}

@@ -90,7 +90,7 @@ function Item({ match, now }: { match: FlatMatch; now: Date | null }) {
 }
 
 export function LiveTicker() {
-  const { data, isLoading } = useBrowseMatches();
+  const { data } = useBrowseMatches();
   const [now, setNow] = useState<Date | null>(null);
 
   // Tick `now` so the live-minute label refreshes without remounting.

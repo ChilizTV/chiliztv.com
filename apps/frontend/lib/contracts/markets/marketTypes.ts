@@ -1,5 +1,5 @@
 import { keccak256, toBytes } from 'viem';
-import type { MarketKey, MarketSpec, MarketOutcome } from './types';
+import type { MarketSpec, MarketOutcome } from './types';
 
 // Hashes are computed once at module load — viem's keccak256 is deterministic
 // and the strings match the `bytes32 public constant` declarations in

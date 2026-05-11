@@ -1,0 +1,46 @@
+# MediaMTX config — chiliztv beta
+# Reference: https://github.com/bluenviron/mediamtx#configuration
+#
+# Env substitution is enabled — values like ${VAR} are expanded from the .env
+# file loaded by docker compose. Backend webhook URLs and the publish secret
+# come from there.
+
+logLevel: info
+logDestinations: [stdout]
+logFile: ''
+
+# RTMP ingest (OBS streamers push here)
+rtmp: yes
+rtmpAddress: :1935
+
+# HLS playback (browser viewers fetch here, fronted by Caddy in HTTPS)
+hls: yes
+hlsAddress: :8888
+hlsAlwaysRemux: yes
+hlsVariant: lowLatency
+hlsSegmentCount: 7
+hlsSegmentDuration: 1s
+
+# Admin API (port restricted in the host firewall, never proxied through Caddy)
+api: yes
+apiAddress: :9997
+
+# Auth via backend webhook — the chiliztv backend validates the stream key
+# against the streams table. Viewers (read/playback) are always allowed by the
+# backend without a DB lookup.
+authMethod: http
+authHTTPAddress: https://api.chiliztv.com/mediamtx/auth?secret=${MEDIAMTX_PUBLISH_SECRET}
+
+paths:
+  # Catch-all path — any stream key that isn't pre-declared lands here.
+  all_others:
+    # Publisher connected: notify backend to flip stream status to live.
+    runOnReady: >
+      curl -fsS -X POST
+      "https://api.chiliztv.com/mediamtx/connect?path=$MTX_PATH&secret=${MEDIAMTX_PUBLISH_SECRET}"
+    runOnReadyRestart: no
+
+    # Publisher disconnected: notify backend to flip status to ended.
+    runOnNotReady: >
+      curl -fsS -X POST
+      "https://api.chiliztv.com/mediamtx/disconnect?path=$MTX_PATH&secret=${MEDIAMTX_PUBLISH_SECRET}"

@@ -57,10 +57,10 @@ export function GateInline({ centered = false }: Props) {
     return (
       <div className={centered ? "text-center" : ""}>
         <div className="font-mono-ctv mb-1 text-[10px] uppercase tracking-[0.18em] text-[#2dd4a4]">
-          You're on the list
+          You&apos;re on the list
         </div>
         <p className="text-[13px] font-light text-white/55">
-          We'll reach out when your spot opens.
+          We&apos;ll reach out when your spot opens.
         </p>
       </div>
     );

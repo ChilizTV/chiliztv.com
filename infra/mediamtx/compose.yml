@@ -1,0 +1,19 @@
+services:
+  mediamtx:
+    image: bluenviron/mediamtx:latest
+    container_name: mediamtx
+    restart: unless-stopped
+    # host networking is required: MediaMTX exposes several listeners (RTMP 1935,
+    # HLS 8888, API 9997) and NAT introduces latency on the RTMP ingest.
+    # UFW on the host firewalls everything that doesn't need to be public.
+    network_mode: host
+    env_file:
+      - .env
+    volumes:
+      - ./mediamtx.yml:/mediamtx.yml:ro
+      - mediamtx-recordings:/recordings
+    environment:
+      MTX_LOGLEVEL: info
+
+volumes:
+  mediamtx-recordings:

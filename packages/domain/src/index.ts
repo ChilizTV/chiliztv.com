@@ -49,6 +49,7 @@ export * from './follows/repositories/IFollowRepository';
 // Streams
 export * from './streams/entities/Stream';
 export * from './streams/repositories/IStreamRepository';
+export * from './streams/policies/wasInterrupted';
 
 // Blockchain indexing — policies
 export * from './blockchain-indexing/policies/selectionToBetLabel';
@@ -61,3 +62,6 @@ export * from './stream-wallet/repositories/IStreamWalletRepository';
 // Waitlist
 export * from './waitlist/entities/WaitlistEntry';
 export * from './waitlist/repositories/IWaitlistRepository';
+
+// Access gate
+export * from './access/ports/IAccessCodeVerifier';

@@ -11,6 +11,8 @@ router.post('/', streamController.createStream.bind(streamController));
 router.get('/preferred', streamController.getPreferredStream.bind(streamController));
 router.get('/', streamController.getActiveStreams.bind(streamController));
 router.delete('/', streamController.endStream.bind(streamController));
+router.post('/beacon', streamController.beacon.bind(streamController));
+router.post('/:id/heartbeat', streamController.heartbeat.bind(streamController));
 router.put('/:streamId/viewers', streamController.updateViewerCount.bind(streamController));
 router.post('/:id/join', streamController.joinViewer.bind(streamController));
 router.post('/:id/leave', streamController.leaveViewer.bind(streamController));

@@ -17,6 +17,8 @@ import {
   AboutLiveTabs,
 } from "./sections";
 import { StreamSwitcherSheet, StartStreamSheet } from "./sheets";
+import { StreamInterruptedBanner } from "@/components/features/streaming/StreamInterruptedBanner";
+import { StreamStatus, wasInterrupted } from "@chiliztv/domain";
 import { GhostBtn, PrimaryBtn } from "./primitives";
 import {
   useIsFollowing,
@@ -107,7 +109,13 @@ export default function LiveDetailsPage({ id }: LiveDetailsPageProps) {
   const [showDonationDialog, setShowDonationDialog] = useState(false);
   const [showSubscriptionDialog, setShowSubscriptionDialog] = useState(false);
   const [streamerPreviewEl, setStreamerPreviewEl] = useState<HTMLDivElement | null>(null);
+  const [interruptedBanner, setInterruptedBanner] = useState(false);
   const endStreamRef = useRef<(() => Promise<void>) | null>(null);
+  // True from the moment the user clicks an explicit End affordance and for
+  // the few seconds the poll takes to catch up. wasInterrupted() consumes it
+  // to suppress the banner on user-initiated transitions (cf. D5 / R11).
+  const userInitiatedEndRef = useRef(false);
+  const lastMyStreamRef = useRef<LiveStream | null>(null);
 
   const isStreamer = !!myStream && !!user?.userId;
   const chatStreamId = myStream?.id ?? selectedStream?.id;
@@ -146,13 +154,19 @@ export default function LiveDetailsPage({ id }: LiveDetailsPageProps) {
   const handleStreamSelect = (stream: LiveStream) => setSelectedStream(stream);
 
   const handleStreamCreated = (stream: LiveStream) => {
+    userInitiatedEndRef.current = false;
+    setInterruptedBanner(false);
+    lastMyStreamRef.current = stream;
     setSelectedStream(stream);
     setMyStream(stream);
   };
 
   const handleStreamEnded = () => {
+    userInitiatedEndRef.current = true;
+    lastMyStreamRef.current = null;
     setSelectedStream(null);
     setMyStream(null);
+    setInterruptedBanner(false);
   };
 
   if (!id) return null;
@@ -213,6 +227,18 @@ export default function LiveDetailsPage({ id }: LiveDetailsPageProps) {
       />
 
       <main className="mx-auto max-w-[1600px] px-6 py-6 sm:px-10 sm:py-8">
+        {interruptedBanner && (
+          <div className="mb-5">
+            <StreamInterruptedBanner
+              onRestart={() => {
+                setInterruptedBanner(false);
+                setShowStartSheet(true);
+              }}
+              onDismiss={() => setInterruptedBanner(false)}
+            />
+          </div>
+        )}
+
         <StreamShelf
           activeStream={selectedStream}
           isOwnStream={isOwnSelectedStream}
@@ -336,6 +362,19 @@ export default function LiveDetailsPage({ id }: LiveDetailsPageProps) {
         initialStreamId={initialStreamId}
         onStreamSelect={handleStreamSelect}
         onOwnStreamDetected={(stream) => {
+          const prev = lastMyStreamRef.current;
+          lastMyStreamRef.current = stream;
+          // Detect a silent drop: previously LIVE browser stream, now absent,
+          // and the user hasn't clicked End. Show the interrupted banner.
+          if (stream === null && prev) {
+            const interrupted = wasInterrupted({
+              previousStatus: StreamStatus.LIVE,
+              nextStatus: StreamStatus.ENDED,
+              sourceType: prev.sourceType,
+              userInitiated: userInitiatedEndRef.current,
+            });
+            if (interrupted) setInterruptedBanner(true);
+          }
           setMyStream(stream);
           setSelectedStream((prev) => {
             if (stream && prev === null) return stream;

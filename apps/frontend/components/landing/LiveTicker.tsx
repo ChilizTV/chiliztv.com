@@ -12,6 +12,40 @@ import {
 
 const TICK_MS = 30_000;
 
+interface MockItem {
+  home: string;
+  away: string;
+  league: string;
+  odds: string;
+  time: string;
+}
+
+const MOCK_MATCHES: MockItem[] = [
+  { home: 'REAL', away: 'MCI',  league: 'UEFA CL',  odds: '2.15 / 3.40 / 3.20', time: '20:45' },
+  { home: 'PSG',  away: 'BAR',  league: 'UEFA CL',  odds: '2.80 / 3.20 / 2.60', time: '20:45' },
+  { home: 'LIV',  away: 'ATM',  league: 'UEFA CL',  odds: '1.95 / 3.50 / 4.10', time: '18:30' },
+  { home: 'BVB',  away: 'INT',  league: 'UEFA CL',  odds: '2.40 / 3.10 / 3.00', time: '20:45' },
+  { home: 'ARS',  away: 'GAL',  league: 'UEFA EL',  odds: '1.80 / 3.60 / 4.50', time: '21:00' },
+  { home: 'ACM',  away: 'BEN',  league: 'UEFA EL',  odds: '2.25 / 3.30 / 3.10', time: '18:30' },
+];
+
+function MockItem({ m }: { m: MockItem }) {
+  return (
+    <span className="inline-flex items-center gap-3">
+      <span className="text-white/45">{m.time}</span>
+      <span className="font-bold text-white">
+        {m.home}{' '}
+        <span className="font-bold text-[#E8001D]">vs</span>{' '}
+        {m.away}
+      </span>
+      <span className="text-[#2A2A2A]">·</span>
+      <span>{m.odds}</span>
+      <span className="text-[#2A2A2A]">·</span>
+      <span className="text-white/45">{m.league}</span>
+    </span>
+  );
+}
+
 const abbr = (name: string) =>
   name.replace(/[^A-Za-z]/g, '').slice(0, 4).toUpperCase();
 
@@ -87,23 +121,11 @@ export function LiveTicker() {
     return [...live, ...upcoming, ...rest];
   }, [allMatches]);
 
-  // Keep the bar visible while loading / when empty so the page chrome
-  // doesn't reflow on hydrate.
-  if (items.length === 0) {
-    return (
-      <div
-        className="relative z-[4] overflow-hidden border-y border-[#1E1E1E] bg-[#111] py-[14px]"
-        aria-label="Live matches ticker"
-      >
-        <div className="font-mono-ctv text-center text-[12px] uppercase tracking-[0.18em] text-white/45">
-          {isLoading ? 'Loading matches…' : 'No matches right now — check back soon.'}
-        </div>
-      </div>
-    );
-  }
-
+  const useMocks = items.length === 0;
   // Duplicate so the CSS keyframe seamlessly translates by -50%.
-  const loop = [...items, ...items];
+  const loop = useMocks
+    ? [...MOCK_MATCHES, ...MOCK_MATCHES]
+    : [...items, ...items];
 
   return (
     <div
@@ -120,9 +142,11 @@ export function LiveTicker() {
         className="ctv-marquee font-mono-ctv flex gap-12 whitespace-nowrap text-[12px] font-medium uppercase tracking-[0.06em] text-white/65"
         role="marquee"
       >
-        {loop.map((m, i) => (
-          <Item key={`${m.id}-${i}`} match={m} now={now} />
-        ))}
+        {useMocks
+          ? loop.map((m, i) => <MockItem key={i} m={m as MockItem} />)
+          : loop.map((m, i) => (
+              <Item key={`${(m as FlatMatch).id}-${i}`} match={m as FlatMatch} now={now} />
+            ))}
       </div>
     </div>
   );

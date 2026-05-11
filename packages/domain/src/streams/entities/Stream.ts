@@ -4,6 +4,13 @@ export enum StreamStatus {
   ENDED   = 'ended',
 }
 
+/**
+ * Discriminates the publisher path. Immutable post-creation.
+ *  - 'obs'     — RTMP via mediamtx; lifecycle driven by webhooks.
+ *  - 'browser' — WHIP/WebRTC; requires client heartbeat + beacon for cleanup.
+ */
+export type SourceType = 'obs' | 'browser';
+
 export interface StreamProps {
   id: string;
   matchId: number;
@@ -15,6 +22,7 @@ export interface StreamProps {
   title?: string;
   thumbnailUrl?: string;
   status: StreamStatus;
+  sourceType: SourceType;
   lastHeartbeatAt?: Date;
   viewerCount: number;
   endedAt?: Date;
@@ -75,6 +83,10 @@ export class Stream {
     return this.props.streamerId;
   }
 
+  getSourceType(): SourceType {
+    return this.props.sourceType;
+  }
+
   /** Backward-compatible helper. Returns true only when status is LIVE. */
   isLive(): boolean {
     return this.props.status === StreamStatus.LIVE;
@@ -91,6 +103,7 @@ export class Stream {
       hlsUrl: this.props.hlsUrl,
       title: this.props.title,
       status: this.props.status,
+      sourceType: this.props.sourceType,
       isLive: this.props.status === StreamStatus.LIVE,
       thumbnailUrl: this.props.thumbnailUrl ?? null,
       lastHeartbeatAt: this.props.lastHeartbeatAt,

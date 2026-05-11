@@ -1,4 +1,5 @@
 export { authRoutes } from './auth.routes';
+export { accessRoutes } from './access.routes';
 export { predictionRoutes } from './prediction.routes';
 export { matchRoutes } from './match.routes';
 export { chatRoutes } from './chat.routes';

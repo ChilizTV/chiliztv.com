@@ -51,6 +51,46 @@ export class StreamLifecycleService {
     }
   }
 
+  /**
+   * Browser-stream keepalive. Ownership-checked: the streamerId in the
+   * request body must match the row owner before we touch `last_heartbeat_at`.
+   * Returns false when the stream is missing, not LIVE, or owned by someone else.
+   */
+  async heartbeat(streamId: string, streamerId: string): Promise<boolean> {
+    const stream = await this.streamRepository.findById(streamId);
+    if (!stream) {
+      logger.debug('heartbeat: stream not found', { streamId });
+      return false;
+    }
+    if (stream.getStreamerId() !== streamerId) {
+      logger.warn('heartbeat: streamerId mismatch — denied', { streamId, owner: stream.getStreamerId(), claimant: streamerId });
+      return false;
+    }
+    if (stream.getStatus() !== StreamStatus.LIVE) {
+      logger.debug('heartbeat: stream not LIVE — skipping', { streamId, status: stream.getStatus() });
+      return false;
+    }
+    stream.heartbeat();
+    await this.streamRepository.update(stream);
+    return true;
+  }
+
+  /**
+   * Used by the no-auth beacon endpoint. Verifies ownership before ending —
+   * an attacker who guesses `{ streamId, streamerId }` cannot terminate
+   * someone else's stream. Returns the stream when ended, null when rejected.
+   */
+  async endStreamViaBeacon(streamId: string, streamerId: string): Promise<boolean> {
+    const stream = await this.streamRepository.findById(streamId);
+    if (!stream) return false;
+    if (stream.getStreamerId() !== streamerId) return false;
+    if (stream.getStatus() !== StreamStatus.LIVE) return true; // idempotent
+    stream.end();
+    await this.streamRepository.update(stream);
+    logger.info('Stream ended via beacon', { streamId, streamerId });
+    return true;
+  }
+
   async endStreamIfNeeded(streamKey: string): Promise<void> {
     const stream = await this.streamRepository.findByStreamKey(streamKey);
     if (!stream) {
@@ -69,6 +109,23 @@ export class StreamLifecycleService {
     logger.info('Stream lifecycle change', {
       streamKey,
       previousStatus,
+      newStatus: StreamStatus.ENDED,
+    });
+  }
+
+  /**
+   * Used by the stale cleanup job to retire CREATED placeholders that never
+   * had a publisher attach. Distinct from `endStreamIfNeeded` (LIVE-only).
+   */
+  async endStaleCreated(streamKey: string): Promise<void> {
+    const stream = await this.streamRepository.findByStreamKey(streamKey);
+    if (!stream) return;
+    if (stream.getStatus() !== StreamStatus.CREATED) return;
+    stream.end();
+    await this.streamRepository.update(stream);
+    logger.info('Orphan CREATED stream ended', {
+      streamKey,
+      previousStatus: StreamStatus.CREATED,
       newStatus: StreamStatus.ENDED,
     });
   }

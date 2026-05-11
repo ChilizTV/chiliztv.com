@@ -42,9 +42,6 @@ export {
   useUserProfilesBatch,
   useUpsertUserProfile,
 } from './useUserProfile';
-export {
-  useCheckWaitlistAccess,
-  useWaitlistStats,
-  useJoinWaitlist,
-} from './useWaitlist';
+export { useJoinWaitlist } from './useWaitlist';
+export { useAccessStatus, useRedeemAccessCode } from './useAccessCode';
 export { usePrices, usePrice } from './usePrices';

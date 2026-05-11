@@ -3,10 +3,9 @@ import { container } from 'tsyringe';
 import { WaitlistController } from '../controllers/waitlist.controller';
 
 const router = Router();
-const waitlistController = container.resolve(WaitlistController);
+const ctrl = () => container.resolve(WaitlistController);
 
-router.post('/', waitlistController.joinWaitlist.bind(waitlistController));
-router.get('/check-access', waitlistController.checkAccess.bind(waitlistController));
-router.get('/stats', waitlistController.getStats.bind(waitlistController));
+router.post('/', (req, res, next) => ctrl().joinWaitlist(req, res, next));
+router.get('/stats', (req, res, next) => ctrl().getStats(req, res, next));
 
 export { router as waitlistRoutes };

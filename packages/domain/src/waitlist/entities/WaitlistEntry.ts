@@ -2,8 +2,6 @@ export interface WaitlistEntryProps {
   id: string;
   email: string;
   walletAddress?: string;
-  source?: string;
-  hasAccess: boolean;
   createdAt: Date;
 }
 
@@ -22,29 +20,15 @@ export class WaitlistEntry {
     return new WaitlistEntry(props);
   }
 
-  getId(): string {
-    return this.props.id;
-  }
+  getId(): string { return this.props.id; }
+  getEmail(): string { return this.props.email; }
+  getWalletAddress(): string | undefined { return this.props.walletAddress; }
 
-  getEmail(): string {
-    return this.props.email;
-  }
-
-  getWalletAddress(): string | undefined {
-    return this.props.walletAddress;
-  }
-
-  hasAccess(): boolean {
-    return this.props.hasAccess;
-  }
-
-  toJSON(): any {
+  toJSON() {
     return {
       id: this.props.id,
       email: this.props.email,
       walletAddress: this.props.walletAddress,
-      source: this.props.source,
-      hasAccess: this.props.hasAccess,
       createdAt: this.props.createdAt,
     };
   }

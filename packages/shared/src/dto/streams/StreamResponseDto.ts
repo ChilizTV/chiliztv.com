@@ -16,6 +16,8 @@ export interface StreamResponseDto {
   /** URL HLS publique pour la lecture du stream. Absente avant le démarrage. */
   hlsUrl?: string;
   status: StreamStatus;
+  /** Publisher path. Discriminates cleanup + UI behavior (banner, OBS-first repositioning). */
+  sourceType: 'obs' | 'browser';
   /** true si status === StreamStatus.LIVE */
   isLive: boolean;
   viewerCount: number;

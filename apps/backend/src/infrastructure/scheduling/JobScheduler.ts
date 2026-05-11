@@ -5,6 +5,7 @@ import { ResolveMarketsJob } from './jobs/ResolveMarketsJob';
 import { CloseLiveMarketsJob } from './jobs/CloseLiveMarketsJob';
 import { CleanupStreamsJob } from './jobs/CleanupStreamsJob';
 import { StaleStreamCleanupJob } from './jobs/StaleStreamCleanupJob';
+import { OldEndedStreamsCleanupJob } from './jobs/OldEndedStreamsCleanupJob';
 import { SettlePredictionsJob } from './jobs/SettlePredictionsJob';
 import { ViewerReconcileJob } from './jobs/ViewerReconcileJob';
 import { ComputeApyJob } from './jobs/ComputeApyJob';
@@ -27,6 +28,7 @@ export class JobScheduler {
         private readonly closeLiveMarketsJob: CloseLiveMarketsJob,
         private readonly cleanupStreamsJob: CleanupStreamsJob,
         private readonly staleStreamCleanupJob: StaleStreamCleanupJob,
+        private readonly oldEndedStreamsCleanupJob: OldEndedStreamsCleanupJob,
         private readonly settlePredictionsJob: SettlePredictionsJob,
         private readonly viewerReconcileJob: ViewerReconcileJob,
         private readonly computeApyJob: ComputeApyJob,
@@ -57,6 +59,12 @@ export class JobScheduler {
             'StaleStreamCleanup',
             this.staleStreamCleanupJob.getSchedule(),
             () => this.staleStreamCleanupJob.execute()
+        );
+
+        this.startCronJob(
+            'OldEndedStreamsCleanup',
+            this.oldEndedStreamsCleanupJob.getSchedule(),
+            () => this.oldEndedStreamsCleanupJob.execute()
         );
 
         this.startCronJob(

@@ -23,6 +23,7 @@ export class CreateStreamUseCase {
       hlsUrl: `/live/${streamKey}/index.m3u8`,
       title: dto.title,
       status: StreamStatus.CREATED,
+      sourceType: dto.sourceType ?? 'obs',
       viewerCount: 0,
     });
 

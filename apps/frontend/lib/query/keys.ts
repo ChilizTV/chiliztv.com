@@ -39,8 +39,10 @@ export const queryKeys = {
   },
   waitlist: {
     all: ['waitlist'] as const,
-    access: () => [...queryKeys.waitlist.all, 'access'] as const,
-    stats: () => [...queryKeys.waitlist.all, 'stats'] as const,
+  },
+  access: {
+    all: ['access'] as const,
+    granted: () => [...queryKeys.access.all, 'granted'] as const,
   },
   fanTokens: {
     all: ['fanTokens'] as const,

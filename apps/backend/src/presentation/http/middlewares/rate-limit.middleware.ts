@@ -88,6 +88,40 @@ export const chatLimiter = rateLimit({
 });
 
 /**
+ * Access code redeem — 5 attempts / min / IP (short window),
+ * plus 20 / hour / IP (long window, skipSuccessfulRequests keeps legit users free).
+ * Two limiters are applied in series via accessCodeLimiter export.
+ */
+const accessCodeShortLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: isDevelopment ? 200 : 5,
+  message: {
+    success: false,
+    error: { code: 'AUTH_RATE_LIMIT_EXCEEDED', message: 'Too many attempts, please wait 1 minute' },
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+  skip: () => RATE_LIMIT_DISABLED,
+});
+
+const accessCodeHourLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: isDevelopment ? 2000 : 20,
+  message: {
+    success: false,
+    error: { code: 'AUTH_RATE_LIMIT_EXCEEDED', message: 'Too many attempts, please wait 1 hour' },
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+  skipSuccessfulRequests: true,
+  skip: () => RATE_LIMIT_DISABLED,
+});
+
+import { RequestHandler } from 'express';
+
+export const accessCodeLimiter: RequestHandler[] = [accessCodeShortLimiter, accessCodeHourLimiter];
+
+/**
  * Stream creation rate limiter - strict limits
  * 5 streams per hour per IP
  */

@@ -45,15 +45,15 @@ export function StartStreamSheet({
       visible={open}
       onClose={onClose}
       width={900}
-      eyebrow="Streamer console · Self-hosted"
+      eyebrow="Streamer console · OBS-first"
       title={
         <>
-          Go <span className="text-[#E8001D]">live.</span>
+          Go <span className="text-[#E8001D]">live</span> with OBS.
         </>
       }
       footer={
         <div className="font-mono-ctv text-[10px] uppercase tracking-[0.16em] text-white/45">
-          By going live you confirm you have the right to broadcast this content.
+          Start OBS now and click Begin Streaming. The page will switch when we detect your feed. · By going live you confirm you have the right to broadcast this content.
         </div>
       }
     >

@@ -46,4 +46,6 @@ export async function setAuthToken(token: string): Promise<void> {
 export async function clearAuthToken(): Promise<void> {
   if (typeof window === 'undefined') return;
   localStorage.removeItem(AUTH_TOKEN_KEY);
+  // Notify the auth provider so it can re-generate if a wallet is still connected.
+  window.dispatchEvent(new Event('auth:jwt:cleared'));
 }

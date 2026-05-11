@@ -38,8 +38,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       try {
         const existingToken = await getAuthToken();
         if (existingToken) {
-          setAuthState({ isAuthenticated: true, isLoading: false });
-          return;
+          // Verify the token isn't expired before trusting it.
+          try {
+            const { exp } = JSON.parse(atob(existingToken.split('.')[1])) as { exp?: number };
+            if (!exp || exp * 1000 > Date.now()) {
+              setAuthState({ isAuthenticated: true, isLoading: false });
+              return;
+            }
+          } catch {
+            // Malformed token — fall through to regenerate.
+          }
+          await clearAuthToken();
         }
 
         await authenticateWallet(primaryWallet.address);
@@ -54,6 +63,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
 
     authenticate();
+  }, [primaryWallet?.address]);
+
+  // Re-generate JWT when the API client clears it mid-session (e.g. after a 401).
+  useEffect(() => {
+    const handle = () => {
+      if (primaryWallet?.address) {
+        authenticateWallet(primaryWallet.address)
+          .then(() => setAuthState({ isAuthenticated: true, isLoading: false }))
+          .catch(() => setAuthState({ isAuthenticated: false, isLoading: false }));
+      } else {
+        setAuthState({ isAuthenticated: false, isLoading: false });
+      }
+    };
+    window.addEventListener('auth:jwt:cleared', handle);
+    return () => window.removeEventListener('auth:jwt:cleared', handle);
   }, [primaryWallet?.address]);
 
   const login = async () => {

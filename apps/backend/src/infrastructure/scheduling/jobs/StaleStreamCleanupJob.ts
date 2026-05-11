@@ -8,8 +8,11 @@ import { logger } from '../../logging/logger';
 
 /**
  * Stale Stream Cleanup Job
- * Runs every 3 minutes. Auto-ends LIVE streams whose heartbeat is older than 5 minutes.
- * Catches OBS crashes where runOnDisconnect did not fire.
+ * Runs every 3 minutes. Two passes:
+ *  - LIVE browser streams with `last_heartbeat_at` > 5 min → end. OBS rows
+ *    are intentionally excluded (cf. D10) — their lifecycle is webhook-driven.
+ *  - CREATED orphans > 15 min → end. Covers setup placeholders abandoned
+ *    before the publisher ever connected.
  */
 @injectable()
 export class StaleStreamCleanupJob {
@@ -28,18 +31,31 @@ export class StaleStreamCleanupJob {
       const lifecycleService = container.resolve(StreamLifecycleService);
       const streamRepository = container.resolve<IStreamRepository>(TOKENS.IStreamRepository);
 
-      // Timeout = 5 minutes — tolerates OBS reconnects and brief network cuts
-      const fiveMinutesAgo = new Date(this.clock.now().getTime() - 5 * 60 * 1000);
-      const staleStreams = await streamRepository.findStaleLiveStreams(fiveMinutesAgo);
+      const now = this.clock.now();
+      const fiveMinutesAgo = new Date(now.getTime() - 5 * 60 * 1000);
+      const fifteenMinutesAgo = new Date(now.getTime() - 15 * 60 * 1000);
 
-      if (staleStreams.length === 0) return;
+      const [staleLive, staleCreated] = await Promise.all([
+        streamRepository.findStaleLiveStreams(fiveMinutesAgo),
+        streamRepository.findStaleCreatedStreams(fifteenMinutesAgo),
+      ]);
 
-      for (const stream of staleStreams) {
+      for (const stream of staleLive) {
         await lifecycleService.endStreamIfNeeded(stream.getStreamKey());
-        logger.warn('Stale stream auto-ended by cron', { streamKey: stream.getStreamKey() });
+        logger.warn('Stale LIVE stream auto-ended by cron', { streamKey: stream.getStreamKey() });
       }
 
-      logger.info('Stale stream cleanup completed', { count: staleStreams.length });
+      for (const stream of staleCreated) {
+        await lifecycleService.endStaleCreated(stream.getStreamKey());
+        logger.warn('Orphan CREATED stream auto-ended by cron', { streamKey: stream.getStreamKey() });
+      }
+
+      if (staleLive.length > 0 || staleCreated.length > 0) {
+        logger.info('Stale stream cleanup completed', {
+          endedLive: staleLive.length,
+          endedCreated: staleCreated.length,
+        });
+      }
     } catch (error) {
       logger.error('Stale stream cleanup job failed', {
         error: error instanceof Error ? error.message : 'Unknown error',

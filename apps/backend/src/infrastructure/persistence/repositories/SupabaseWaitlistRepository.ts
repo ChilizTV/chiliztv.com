@@ -8,19 +8,21 @@ interface WaitlistRow {
   id: string;
   email: string;
   wallet_address?: string;
-  source?: string;
-  has_access: boolean;
   created_at: string;
 }
 
 @injectable()
 export class SupabaseWaitlistRepository implements IWaitlistRepository {
   async save(entry: WaitlistEntry): Promise<WaitlistEntry> {
-    const row = this.toRow(entry);
-
+    const json = entry.toJSON();
     const { data, error } = await supabase
       .from('waitlist')
-      .insert(row)
+      .insert({
+        id: json.id,
+        email: json.email.toLowerCase(),
+        wallet_address: json.walletAddress?.toLowerCase(),
+        created_at: json.createdAt.toISOString(),
+      })
       .select()
       .single();
 
@@ -40,22 +42,7 @@ export class SupabaseWaitlistRepository implements IWaitlistRepository {
       .maybeSingle();
 
     if (error) {
-      logger.error('Failed to find entry by email', { error: error.message, email });
-      throw new Error('Failed to find waitlist entry');
-    }
-
-    return row ? this.toDomain(row) : null;
-  }
-
-  async findByWalletAddress(walletAddress: string): Promise<WaitlistEntry | null> {
-    const { data: row, error } = await supabase
-      .from('waitlist')
-      .select('*')
-      .eq('wallet_address', walletAddress.toLowerCase())
-      .maybeSingle();
-
-    if (error) {
-      logger.error('Failed to find entry by wallet', { error: error.message, walletAddress });
+      logger.error('Failed to find entry by email', { error: error.message });
       throw new Error('Failed to find waitlist entry');
     }
 
@@ -63,24 +50,16 @@ export class SupabaseWaitlistRepository implements IWaitlistRepository {
   }
 
   async getStats(): Promise<WaitlistStats> {
-    const { data: entries, error } = await supabase
+    const { count, error } = await supabase
       .from('waitlist')
-      .select('has_access');
+      .select('id', { count: 'exact', head: true });
 
     if (error) {
       logger.error('Failed to get waitlist stats', { error: error.message });
-      throw new Error('Failed to get stats');
+      throw new Error('Failed to get waitlist stats');
     }
 
-    const totalEntries = entries?.length || 0;
-    const withAccess = entries?.filter(e => e.has_access).length || 0;
-    const withoutAccess = totalEntries - withAccess;
-
-    return {
-      totalEntries,
-      withAccess,
-      withoutAccess,
-    };
+    return { totalEntries: count ?? 0 };
   }
 
   private toDomain(row: WaitlistRow): WaitlistEntry {
@@ -88,21 +67,7 @@ export class SupabaseWaitlistRepository implements IWaitlistRepository {
       id: row.id,
       email: row.email,
       walletAddress: row.wallet_address,
-      source: row.source,
-      hasAccess: row.has_access,
       createdAt: new Date(row.created_at),
     });
-  }
-
-  private toRow(entry: WaitlistEntry): any {
-    const json = entry.toJSON();
-    return {
-      id: json.id,
-      email: json.email.toLowerCase(),
-      wallet_address: json.walletAddress?.toLowerCase(),
-      source: json.source,
-      has_access: json.hasAccess,
-      created_at: json.createdAt.toISOString(),
-    };
   }
 }

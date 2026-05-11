@@ -1,6 +1,6 @@
 import { injectable } from 'tsyringe';
 import { supabaseClient as supabase } from '../../database/supabase/client';
-import { Stream, StreamStatus } from '@chiliztv/domain/streams/entities/Stream';
+import { SourceType, Stream, StreamStatus } from '@chiliztv/domain/streams/entities/Stream';
 import { IStreamRepository } from '@chiliztv/domain/streams/repositories/IStreamRepository';
 import { logger } from '../../logging/logger';
 
@@ -15,6 +15,7 @@ interface StreamRow {
   title?: string;
   thumbnail_url?: string;
   status: 'created' | 'live' | 'ended';
+  source_type: SourceType;
   last_heartbeat_at?: string;
   viewer_count: number;
   created_at: string;
@@ -58,14 +59,24 @@ export class SupabaseStreamRepository implements IStreamRepository {
 
   async findActiveByMatchIds(matchIds: number[]): Promise<Stream[]> {
     if (matchIds.length === 0) return [];
-    const { data: rows, error } = await supabase.from('live_streams').select('*').in('status', ['live', 'created']).in('match_id', matchIds).order('viewer_count', { ascending: false });
+    // Drop 'created' from the listing — those rows are setup placeholders
+    // and nothing is being published yet (cf. D8).
+    const { data: rows, error } = await supabase.from('live_streams').select('*').eq('status', 'live').in('match_id', matchIds).order('viewer_count', { ascending: false });
     if (error) { logger.error('Failed to find active streams by match ids', { error: error.message }); throw new Error('Failed to find active streams by match ids'); }
     return rows ? rows.map(row => this.toDomain(row)) : [];
   }
 
   async findStaleLiveStreams(olderThan: Date): Promise<Stream[]> {
-    const { data: rows, error } = await supabase.from('live_streams').select('*').eq('status', 'live').not('last_heartbeat_at', 'is', null).lt('last_heartbeat_at', olderThan.toISOString());
+    // Filter source_type='browser' — OBS streams have no client heartbeat;
+    // their lifecycle is driven by mediamtx webhooks (cf. D10).
+    const { data: rows, error } = await supabase.from('live_streams').select('*').eq('status', 'live').eq('source_type', 'browser').not('last_heartbeat_at', 'is', null).lt('last_heartbeat_at', olderThan.toISOString());
     if (error) { logger.error('Failed to find stale live streams', { error: error.message }); throw new Error('Failed to find stale live streams'); }
+    return rows ? rows.map(row => this.toDomain(row)) : [];
+  }
+
+  async findStaleCreatedStreams(olderThan: Date): Promise<Stream[]> {
+    const { data: rows, error } = await supabase.from('live_streams').select('*').eq('status', 'created').lt('created_at', olderThan.toISOString());
+    if (error) { logger.error('Failed to find stale created streams', { error: error.message }); throw new Error('Failed to find stale created streams'); }
     return rows ? rows.map(row => this.toDomain(row)) : [];
   }
 
@@ -93,6 +104,10 @@ export class SupabaseStreamRepository implements IStreamRepository {
     else if (row.status === 'created') status = StreamStatus.CREATED;
     else status = StreamStatus.ENDED;
 
+    // Pre-migration rows may have a NULL source_type column hydrated as undefined here;
+    // the SQL DEFAULT 'obs' covers new writes, this fallback covers stale reads.
+    const sourceType: SourceType = row.source_type === 'browser' ? 'browser' : 'obs';
+
     return Stream.reconstitute({
       id: row.id,
       matchId: row.match_id,
@@ -104,6 +119,7 @@ export class SupabaseStreamRepository implements IStreamRepository {
       title: row.title,
       thumbnailUrl: row.thumbnail_url,
       status,
+      sourceType,
       lastHeartbeatAt: row.last_heartbeat_at ? new Date(row.last_heartbeat_at) : undefined,
       viewerCount: row.viewer_count,
       endedAt: row.ended_at ? new Date(row.ended_at) : undefined,
@@ -124,6 +140,7 @@ export class SupabaseStreamRepository implements IStreamRepository {
       title: json.title || null,
       thumbnail_url: json.thumbnailUrl || null,
       status: json.status,
+      source_type: json.sourceType,
       last_heartbeat_at: json.lastHeartbeatAt ? json.lastHeartbeatAt.toISOString() : null,
       viewer_count: json.viewerCount,
       created_at: json.createdAt.toISOString(),

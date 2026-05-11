@@ -7,7 +7,14 @@ export interface IStreamRepository {
   findByStreamerId(streamerId: string): Promise<Stream | null>;
   findActiveStreams(): Promise<Stream[]>;
   findActiveByMatchIds(matchIds: number[]): Promise<Stream[]>;
+  /**
+   * LIVE rows with `last_heartbeat_at` older than `olderThan`. Filtered to
+   * `source_type='browser'` only — OBS lifecycles are driven by mediamtx
+   * webhooks, not by client heartbeat.
+   */
   findStaleLiveStreams(olderThan: Date): Promise<Stream[]>;
+  /** CREATED rows older than `olderThan` — orphans from a setup that never published. */
+  findStaleCreatedStreams(olderThan: Date): Promise<Stream[]>;
   findOldEndedStreams(before: Date): Promise<Stream[]>;
   delete(id: string): Promise<void>;
   update(stream: Stream): Promise<Stream>;

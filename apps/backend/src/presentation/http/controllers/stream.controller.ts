@@ -5,6 +5,7 @@ import { GetActiveStreamsUseCase } from '../../../application/streams/use-cases/
 import { GetPreferredStreamUseCase } from '../../../application/streams/use-cases/GetPreferredStreamUseCase';
 import { EndStreamUseCase } from '../../../application/streams/use-cases/EndStreamUseCase';
 import { UpdateViewerCountUseCase } from '../../../application/streams/use-cases/UpdateViewerCountUseCase';
+import { StreamLifecycleService } from '../../../infrastructure/services/StreamLifecycleService';
 import { ViewerSessionService } from '../../../infrastructure/services/ViewerSessionService';
 import { supabaseClient as supabase } from '../../../infrastructure/database/supabase/client';
 import { logger } from '../../../infrastructure/logging/logger';
@@ -22,13 +23,15 @@ export class StreamController {
     private readonly endStreamUseCase: EndStreamUseCase,
     @inject(UpdateViewerCountUseCase)
     private readonly updateViewerCountUseCase: UpdateViewerCountUseCase,
+    @inject(StreamLifecycleService)
+    private readonly lifecycleService: StreamLifecycleService,
     @inject(ViewerSessionService)
     private readonly viewerSessionService: ViewerSessionService,
   ) {}
 
   async createStream(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const { matchId, streamerId, streamerName, streamerWalletAddress, title } = req.body;
+      const { matchId, streamerId, streamerName, streamerWalletAddress, title, sourceType } = req.body;
 
       const stream = await this.createStreamUseCase.execute({
         matchId,
@@ -36,6 +39,7 @@ export class StreamController {
         streamerName,
         streamerWalletAddress,
         title,
+        sourceType: sourceType === 'browser' ? 'browser' : undefined,
       });
 
       res.status(201).json({
@@ -105,6 +109,52 @@ export class StreamController {
       res.json({ success: true, message: 'Viewer count updated' });
     } catch (error) {
       next(error);
+    }
+  }
+
+  async heartbeat(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { id } = req.params;
+      const { streamerId } = req.body as { streamerId?: string };
+      if (!streamerId) {
+        res.status(400).json({ error: 'streamerId required' });
+        return;
+      }
+      const ok = await this.lifecycleService.heartbeat(id, streamerId);
+      if (!ok) {
+        res.status(404).json({ error: 'Stream not found, not live, or ownership mismatch' });
+        return;
+      }
+      res.json({ success: true });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Beacon endpoint hit by `navigator.sendBeacon` on `pagehide` for browser
+   * streams. **No JWT** — sendBeacon strips Authorization. Sécurité = match
+   * `{ streamId, streamerId }` contre la row avant `end()`.
+   */
+  async beacon(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { streamId, streamerId } = req.body as { streamId?: string; streamerId?: string };
+      if (!streamId || !streamerId) {
+        res.status(204).end();
+        return;
+      }
+      // Resolve the stream row, verify ownership, then route through the
+      // standard end path (`endStreamIfNeeded` is idempotent + status-gated).
+      const stream = await this.lifecycleService.endStreamViaBeacon(streamId, streamerId);
+      if (!stream) {
+        logger.warn('beacon: rejected (not found or ownership mismatch)', { streamId, streamerId });
+      }
+      res.status(204).end();
+    } catch (error) {
+      // Beacon should never 500 — the browser is leaving the page anyway.
+      logger.error('beacon handler error', { error: error instanceof Error ? error.message : String(error) });
+      res.status(204).end();
+      next();
     }
   }
 

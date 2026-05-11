@@ -5,4 +5,5 @@ export {
   authLimiter,
   predictionsLimiter,
   chatLimiter,
+  accessCodeLimiter,
 } from './rate-limit.middleware';

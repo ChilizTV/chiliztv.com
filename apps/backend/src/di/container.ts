@@ -92,8 +92,10 @@ import { GetChatStatsUseCase } from '../application/chat/use-cases/GetChatStatsU
 
 // ─── Application — Waitlist ──────────────────────────────────────────────────
 import { JoinWaitlistUseCase } from '../application/waitlist/use-cases/JoinWaitlistUseCase';
-import { CheckAccessUseCase } from '../application/waitlist/use-cases/CheckAccessUseCase';
 import { GetWaitlistStatsUseCase } from '../application/waitlist/use-cases/GetWaitlistStatsUseCase';
+
+// ─── Application — Access ────────────────────────────────────────────────────
+import { RedeemAccessCodeUseCase } from '../application/access/use-cases/RedeemAccessCodeUseCase';
 
 // ─── Application — Streams ───────────────────────────────────────────────────
 import { CreateStreamUseCase } from '../application/streams/use-cases/CreateStreamUseCase';
@@ -156,9 +158,14 @@ import { RefreshTokenPricesJob } from '../infrastructure/scheduling/jobs/Refresh
 import { BackfillMarketLinesJob } from '../infrastructure/scheduling/jobs/BackfillMarketLinesJob';
 import { CleanupStreamsJob } from '../infrastructure/scheduling/jobs/CleanupStreamsJob';
 import { StaleStreamCleanupJob } from '../infrastructure/scheduling/jobs/StaleStreamCleanupJob';
+import { OldEndedStreamsCleanupJob } from '../infrastructure/scheduling/jobs/OldEndedStreamsCleanupJob';
 import { SettlePredictionsJob } from '../infrastructure/scheduling/jobs/SettlePredictionsJob';
 import { ComputeApyJob } from '../infrastructure/scheduling/jobs/ComputeApyJob';
 import { ViewerReconcileJob } from '../infrastructure/scheduling/jobs/ViewerReconcileJob';
+
+// ─── Infrastructure — Access ──────────────────────────────────────────────────
+import { IAccessCodeVerifier } from '@chiliztv/domain/access/ports/IAccessCodeVerifier';
+import { ScryptAccessCodeVerifier } from '../infrastructure/access/ScryptAccessCodeVerifier';
 
 // ─── Infrastructure — Services ───────────────────────────────────────────────
 import { ViewerSessionService } from '../infrastructure/services/ViewerSessionService';
@@ -178,6 +185,7 @@ import { MatchController } from '../presentation/http/controllers/match.controll
 import { ChatController } from '../presentation/http/controllers/chat.controller';
 import { WaitlistController } from '../presentation/http/controllers/waitlist.controller';
 import { AuthController } from '../presentation/http/controllers/auth.controller';
+import { AccessController } from '../presentation/http/controllers/access.controller';
 import { StreamController } from '../presentation/http/controllers/stream.controller';
 import { StreamWalletController } from '../presentation/http/controllers/stream-wallet.controller';
 import { FanTokensController } from '../presentation/http/controllers/fan-tokens.controller';
@@ -268,8 +276,11 @@ export function setupDependencyInjection(): void {
 
   // ─── 7. Use Cases — Waitlist ───────────────────────────────────────────────
   container.registerSingleton(JoinWaitlistUseCase);
-  container.registerSingleton(CheckAccessUseCase);
   container.registerSingleton(GetWaitlistStatsUseCase);
+
+  // ─── 7b. Access gate ───────────────────────────────────────────────────────
+  container.registerSingleton<IAccessCodeVerifier>(TOKENS.IAccessCodeVerifier, ScryptAccessCodeVerifier);
+  container.registerSingleton(RedeemAccessCodeUseCase);
 
   // ─── 8. Use Cases — Streams ────────────────────────────────────────────────
   container.registerSingleton(CreateStreamUseCase);
@@ -331,6 +342,7 @@ export function setupDependencyInjection(): void {
   container.registerSingleton(BackfillMarketLinesJob);
   container.registerSingleton(CleanupStreamsJob);
   container.registerSingleton(StaleStreamCleanupJob);
+  container.registerSingleton(OldEndedStreamsCleanupJob);
   container.registerSingleton(SettlePredictionsJob);
   container.registerSingleton(ViewerReconcileJob);
   container.registerSingleton(ComputeApyJob);
@@ -362,6 +374,7 @@ export function setupDependencyInjection(): void {
   container.registerSingleton(ChatController);
   container.registerSingleton(WaitlistController);
   container.registerSingleton(AuthController);
+  container.registerSingleton(AccessController);
   container.registerSingleton(StreamController);
   container.registerSingleton(StreamWalletController);
   container.registerSingleton(FanTokensController);

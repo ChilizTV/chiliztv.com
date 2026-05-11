@@ -35,7 +35,3 @@ export type {
   CreateStreamResponse,
   StreamListResponse,
 } from './stream.model';
-export type {
-  WaitlistEntry,
-  CreateWaitlistRequest,
-} from './waitlist.model';

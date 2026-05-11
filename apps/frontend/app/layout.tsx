@@ -6,7 +6,6 @@ import { AuthProvider } from "@/providers/auth-provider";
 import { QueryProvider } from "@/providers/query-provider";
 import { Toaster } from "@/components/ui/sonner";
 import { PoolStatusBanner } from "@/components/system/PoolStatusBanner";
-// import { WaitlistGuard } from "@/components/providers/WaitlistGuard";
 
 const lexend = Lexend({
   subsets: ["latin"],
@@ -51,9 +50,7 @@ export default function RootLayout({
           <AuthProvider>
             <QueryProvider>
               <PoolStatusBanner />
-              {/* <WaitlistGuard> */}
               {children}
-              {/* </WaitlistGuard> */}
               <Toaster position="top-right" richColors />
             </QueryProvider>
           </AuthProvider>

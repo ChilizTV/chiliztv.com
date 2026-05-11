@@ -8,12 +8,12 @@ import { securityHeadersMiddleware, env, setupDependencyInjection, container } f
 import { logger, createRequestLogger } from './src/infrastructure/logging';
 import { TOKENS } from '@chiliztv/domain/shared/tokens';
 import type { IClock } from '@chiliztv/domain/shared/ports/IClock';
-import { errorHandler, authenticate, globalLimiter, authLimiter, predictionsLimiter, chatLimiter } from './src/presentation/http/middlewares';
+import { errorHandler, authenticate, globalLimiter, authLimiter, predictionsLimiter, chatLimiter, accessCodeLimiter } from './src/presentation/http/middlewares';
 import { JobScheduler, BlockchainEventListener } from './src/infrastructure/services';
 import { CleanupOldMatchesUseCase } from './src/application/matches/use-cases/CleanupOldMatchesUseCase';
 config();
 setupDependencyInjection();
-import { authRoutes, predictionRoutes, matchRoutes, chatRoutes, waitlistRoutes, streamRoutes, streamWalletRoutes, fanTokensRoutes, followRoutes, poolRoutes, betRoutes, userRoutes, pricesRoutes } from './src/presentation/http/routes';
+import { authRoutes, accessRoutes, predictionRoutes, matchRoutes, chatRoutes, waitlistRoutes, streamRoutes, streamWalletRoutes, fanTokensRoutes, followRoutes, poolRoutes, betRoutes, userRoutes, pricesRoutes } from './src/presentation/http/routes';
 import { mediamtxWebhookRoutes } from './src/presentation/http/routes/mediamtx-webhook.routes';
 
 const app = express();
@@ -45,6 +45,7 @@ app.use(createRequestLogger(container.resolve<IClock>(TOKENS.IClock)));
 
 // Public routes (no authentication required)
 app.use('/auth', authLimiter, authRoutes);
+app.use('/access', accessCodeLimiter, accessRoutes);
 app.use('/waitlist', waitlistRoutes);
 
 app.get('/health', (req, res) => {
@@ -58,6 +59,9 @@ app.get('/health', (req, res) => {
 // Public stream routes (no auth needed to view streams)
 app.use('/stream', streamRoutes);
 
+// Public match data — read-only GETs, no write surface
+app.use('/matches', matchRoutes);
+
 // Public pool stats — APY snapshots, no auth required
 app.use('/pool', poolRoutes);
 
@@ -70,7 +74,6 @@ app.use('/mediamtx', mediamtxWebhookRoutes);
 // Global authentication middleware - all routes below require JWT
 app.use(authenticate);
 
-app.use('/matches', matchRoutes);
 app.use('/follows', followRoutes);
 app.use('/chat', chatLimiter, chatRoutes);
 app.use('/stream-wallet', streamWalletRoutes);

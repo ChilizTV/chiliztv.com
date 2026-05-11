@@ -39,6 +39,9 @@ export const TOKENS = {
 
   // Ports — time
   IClock:                  Symbol.for('IClock'),
+
+  // Ports — access gate
+  IAccessCodeVerifier:     Symbol.for('IAccessCodeVerifier'),
 } as const;
 
 export type TokenKey = keyof typeof TOKENS;

@@ -24,6 +24,11 @@ import {
   drawCombinedStream,
 } from "./utils";
 import { OBSSetupPanel } from "./OBSSetupPanel";
+import { useStreamHeartbeat } from "./hooks/useStreamHeartbeat";
+import { useBeaconOnUnload } from "./hooks/useBeaconOnUnload";
+
+// TODO(refactor): split StreamManager — exceeds 350 LOC soft limit (CLAUDE.md §3.3).
+// Candidate split: StreamManagerBrowser (WebRTC pipeline) + StreamManagerOBS (OBSSetupPanel host).
 
 interface StreamManagerProps {
   matchId: number;
@@ -49,8 +54,9 @@ export default function StreamManager({ matchId, onStreamCreated, onStreamEnded,
   const [error, setError] = useState<string | null>(null);
   const [title, setTitle] = useState("");
 
-  // Source and device state
-  const [sourceType, setSourceType] = useState<"camera" | "screen" | "both" | "obs">("camera");
+  // Source and device state — defaults to OBS (D9 OBS-first repositioning).
+  // Browser modes (camera/screen/both) are exposed as a secondary "Quick test" card.
+  const [sourceType, setSourceType] = useState<"camera" | "screen" | "both" | "obs">("obs");
   // OBS mode: holds the stream created for OBS (separate from WHIP streaming state)
   const [obsStream, setObsStream] = useState<LiveStream | null>(null);
   const [obsLoading, setObsLoading] = useState(false);
@@ -114,6 +120,20 @@ export default function StreamManager({ matchId, onStreamCreated, onStreamEnded,
     cameraSizeRef.current = cameraSize;
     cameraVisibleRef.current = cameraVisible;
   }, [cameraPosition, cameraSize, cameraVisible]);
+
+  // Browser-only lifecycle pings. OBS streams pass through mediamtx webhooks
+  // (auth/disconnect) and never call these endpoints.
+  const isBrowserPipeline = sourceType !== "obs";
+  useStreamHeartbeat({
+    streamId: stream?.id ?? null,
+    streamerId: user?.userId ?? null,
+    enabled: isStreaming && isBrowserPipeline,
+  });
+  useBeaconOnUnload({
+    streamId: stream?.id ?? null,
+    streamerId: user?.userId ?? null,
+    enabled: isStreaming && isBrowserPipeline,
+  });
 
   // Calculate canvas scale for overlay positioning.
   // The preview canvas is always 1280×720 internally (CSS scales to container).
@@ -270,6 +290,7 @@ export default function StreamManager({ matchId, onStreamCreated, onStreamEnded,
         streamerName: user.username || "Anonymous",
         streamerWalletAddress: primaryWallet?.address,
         title: title.trim() || undefined,
+        sourceType: "browser",
       });
 
       if (!createResponse.success || !createResponse.stream) {
@@ -486,7 +507,7 @@ export default function StreamManager({ matchId, onStreamCreated, onStreamEnded,
 
   if (isStreaming) {
     const previewElement = (
-      <div ref={previewContainerRef} className={`${portalTarget ? 'w-full h-full' : 'w-full aspect-video'} bg-black rounded-lg overflow-hidden border border-zinc-800 relative`}>
+      <div ref={previewContainerRef} className={`${portalTarget ? 'w-full h-full' : 'w-full aspect-video'} bg-black rounded-lg overflow-hidden border border-[#1E1E1E] relative`}>
         {sourceType === "both" && screenStream && cameraStream ? (
           <>
             <video
@@ -637,6 +658,7 @@ export default function StreamManager({ matchId, onStreamCreated, onStreamEnded,
                       streamerName: user.username ?? "Anonymous",
                       streamerWalletAddress: primaryWallet?.address,
                       title: title.trim() || undefined,
+                      sourceType: "obs",
                     });
                     if (res.success && res.stream) setObsStream(res.stream);
                   } finally {

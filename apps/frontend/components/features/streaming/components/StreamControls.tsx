@@ -1,9 +1,4 @@
-/**
- * @notice Stream controls for camera and microphone
- * @dev Toggle buttons for video/audio during stream
- */
-
-import { Button } from "@/components/ui/button";
+import { type ReactNode } from "react";
 import { Video, VideoOff, Mic, MicOff } from "lucide-react";
 
 interface StreamControlsProps {
@@ -17,10 +12,40 @@ interface StreamControlsProps {
   isStreaming?: boolean;
 }
 
-/**
- * @notice Render stream control buttons
- * @param props Control button configuration
- */
+function ControlButton({
+  active,
+  onClick,
+  activeIcon,
+  inactiveIcon,
+  ariaLabel,
+}: {
+  active: boolean;
+  onClick: () => void;
+  activeIcon: ReactNode;
+  inactiveIcon: ReactNode;
+  ariaLabel: string;
+}) {
+  return (
+    <button
+      type="button"
+      aria-label={ariaLabel}
+      onClick={onClick}
+      className="inline-flex items-center justify-center rounded-md border px-3 py-2 transition-colors"
+      style={
+        active
+          ? { background: "#E8001D", borderColor: "transparent", color: "#fff" }
+          : {
+              background: "#0d0d0d",
+              borderColor: "#2A2A2A",
+              color: "rgba(255,255,255,0.55)",
+            }
+      }
+    >
+      {active ? activeIcon : inactiveIcon}
+    </button>
+  );
+}
+
 export function StreamControls({
   sourceType,
   cameraEnabled,
@@ -31,62 +56,46 @@ export function StreamControls({
   onToggleCameraVisibility,
   isStreaming = false,
 }: StreamControlsProps) {
-  const getButtonClass = (enabled: boolean) => {
-    return enabled
-      ? "bg-blue-600 hover:bg-blue-700 text-white"
-      : "bg-zinc-800 border-zinc-700 text-gray-300 hover:bg-zinc-700";
-  };
-
-  // Controls for "both" mode while streaming
   if (sourceType === "both" && isStreaming) {
     return (
       <div className="flex gap-2">
-        <Button
-          type="button"
-          variant={cameraVisible ? "default" : "outline"}
-          onClick={onToggleCameraVisibility}
-          size="sm"
-          className={getButtonClass(cameraVisible ?? false)}
-        >
-          {cameraVisible ? <Video className="w-4 h-4" /> : <VideoOff className="w-4 h-4" />}
-        </Button>
-        <Button
-          type="button"
-          variant={microphoneEnabled ? "default" : "outline"}
+        <ControlButton
+          active={cameraVisible ?? false}
+          onClick={onToggleCameraVisibility ?? (() => {})}
+          activeIcon={<Video size={15} />}
+          inactiveIcon={<VideoOff size={15} />}
+          ariaLabel={cameraVisible ? "Hide camera overlay" : "Show camera overlay"}
+        />
+        <ControlButton
+          active={microphoneEnabled}
           onClick={onToggleMicrophone}
-          size="sm"
-          className={getButtonClass(microphoneEnabled)}
-        >
-          {microphoneEnabled ? <Mic className="w-4 h-4" /> : <MicOff className="w-4 h-4" />}
-        </Button>
+          activeIcon={<Mic size={15} />}
+          inactiveIcon={<MicOff size={15} />}
+          ariaLabel={microphoneEnabled ? "Mute microphone" : "Unmute microphone"}
+        />
       </div>
     );
   }
 
-  // Controls for setup (camera or both mode)
   if ((sourceType === "camera" || sourceType === "both") && !isStreaming) {
     return (
       <div className="flex gap-2">
         {sourceType === "camera" && (
-          <Button
-            type="button"
-            variant={cameraEnabled ? "default" : "outline"}
+          <ControlButton
+            active={cameraEnabled}
             onClick={onToggleCamera}
-            size="sm"
-            className={getButtonClass(cameraEnabled)}
-          >
-            {cameraEnabled ? <Video className="w-4 h-4" /> : <VideoOff className="w-4 h-4" />}
-          </Button>
+            activeIcon={<Video size={15} />}
+            inactiveIcon={<VideoOff size={15} />}
+            ariaLabel={cameraEnabled ? "Disable camera" : "Enable camera"}
+          />
         )}
-        <Button
-          type="button"
-          variant={microphoneEnabled ? "default" : "outline"}
+        <ControlButton
+          active={microphoneEnabled}
           onClick={onToggleMicrophone}
-          size="sm"
-          className={getButtonClass(microphoneEnabled)}
-        >
-          {microphoneEnabled ? <Mic className="w-4 h-4" /> : <MicOff className="w-4 h-4" />}
-        </Button>
+          activeIcon={<Mic size={15} />}
+          inactiveIcon={<MicOff size={15} />}
+          ariaLabel={microphoneEnabled ? "Mute microphone" : "Unmute microphone"}
+        />
       </div>
     );
   }

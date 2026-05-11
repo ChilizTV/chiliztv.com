@@ -1,14 +1,9 @@
 import Image from "next/image";
-import Link from "next/link";
 import { BackgroundFX } from "./landing/BackgroundFX";
 import { SmokeBackground } from "./ui/spooky-smoke-animation";
+import { GateInline } from "./features/access/GateInline";
 
-const META = [
-  { label: "Streams live", value: "41", red: true },
-  { label: "Markets open", value: "12" },
-  { label: "Pool TVL", value: "$4.82M" },
-  { label: "Settled today", value: "2,184" },
-];
+const META_LABELS = ["Streams live", "Markets open", "Pool TVL", "Settled today"];
 
 export function HeroSection() {
   return (
@@ -60,47 +55,25 @@ export function HeroSection() {
               wager settles on Chiliz Chain.
             </p>
 
-            <div className="flex flex-wrap items-center gap-3">
-              <Link
-                href="/live"
-                className="inline-flex cursor-pointer items-center gap-[10px] rounded-md bg-[#E8001D] px-7 py-4 text-[14px] font-bold uppercase tracking-[0.06em] text-white transition-all hover:-translate-y-px hover:bg-[#FF1737]"
-                style={{ boxShadow: "0 8px 32px rgba(232,0,29,0.25)" }}
-              >
-                <span
-                  aria-hidden
-                  className="inline-block"
-                  style={{
-                    width: 0,
-                    height: 0,
-                    borderLeft: "8px solid #fff",
-                    borderTop: "5px solid transparent",
-                    borderBottom: "5px solid transparent",
-                  }}
-                />
-                Watch live
-              </Link>
-              <Link
-                href="/waitlist"
-                className="inline-flex cursor-pointer items-center rounded-md border border-[#2A2A2A] bg-transparent px-7 py-4 text-[14px] font-bold uppercase tracking-[0.06em] text-white transition-colors hover:border-[#E8001D]"
-              >
-                Join waitlist
-              </Link>
-            </div>
+            <GateInline />
 
-            <div className="mt-12 flex flex-wrap gap-8 border-t border-[#1E1E1E] pt-7">
-              {META.map(({ label, value, red }) => (
-                <div key={label}>
-                  <div className="font-mono-ctv mb-[6px] text-[10px] uppercase tracking-[0.14em] text-white/45">
-                    {label}
+            <div className="mt-12 border-t border-[#1E1E1E] pt-7">
+              <div className="font-mono-ctv mb-5 inline-flex items-center gap-2 text-[10px] uppercase tracking-[0.16em] text-[#E8001D]">
+                <span aria-hidden className="block h-0.5 w-3 bg-[#E8001D]" />
+                Beta · Live on Spicy testnet
+              </div>
+              <div className="flex flex-wrap gap-8">
+                {META_LABELS.map((label) => (
+                  <div key={label}>
+                    <div className="font-mono-ctv mb-1.5 text-[10px] uppercase tracking-[0.14em] text-white/45">
+                      {label}
+                    </div>
+                    <div className="font-display text-[28px] font-bold leading-none text-white/25">
+                      —
+                    </div>
                   </div>
-                  <div
-                    className="font-display text-[28px] font-bold leading-none"
-                    style={{ color: red ? "#E8001D" : "#fff" }}
-                  >
-                    {value}
-                  </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
           </div>
 

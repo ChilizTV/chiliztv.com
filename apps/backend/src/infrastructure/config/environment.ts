@@ -53,6 +53,12 @@ const envSchema = z.object({
 
   MEDIAMTX_API_URL: z.string().url().default('http://localhost:9997'),
   MEDIAMTX_PUBLISH_SECRET: z.string().optional(),
+
+  // Access code gate — must be generated with scripts/gen-access-code-hash.js
+  // Format: "<saltHex>:<scryptDerivedKeyHex>"  See docs/runbook-access-code.md.
+  ACCESS_CODE_HASH: z.string().min(64),
+  // Secret for signing the cwk_access session cookie (HS256 JWT). Min 32 chars.
+  ACCESS_CODE_COOKIE_SECRET: z.string().min(32),
 });
 
 export type Environment = z.infer<typeof envSchema>;

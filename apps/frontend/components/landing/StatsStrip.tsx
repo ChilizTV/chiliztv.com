@@ -1,8 +1,11 @@
+// 33 fan tokens (fanTokenAssets.ts) + USDC + CHZ
+const TOKEN_COUNT = 35;
+
 const STATS = [
-  { label: "Pool TVL", value: "$4.82M", delta: "▲ 12.4% · 30d" },
-  { label: "Predictions settled", value: "248,512", delta: "▲ all-time" },
-  { label: "LP yield", value: "18.4%", delta: "▲ trailing 30d" },
-  { label: "Tokens supported", value: "11", delta: "+ Chiliz Chain" },
+  { label: "Pool TVL",            value: "Beta", delta: "Live on Spicy testnet",  live: false },
+  { label: "Predictions settled", value: "Beta", delta: "Accumulating on-chain",  live: false },
+  { label: "LP yield",            value: "Beta", delta: "Rewards active soon",    live: false },
+  { label: "Tokens supported",    value: String(TOKEN_COUNT), delta: "+ Chiliz Chain", live: true },
 ];
 
 export function StatsStrip() {
@@ -14,7 +17,7 @@ export function StatsStrip() {
           "linear-gradient(90deg, rgba(232,0,29,0.04), transparent 50%, rgba(232,0,29,0.04))",
       }}
     >
-      {STATS.map(({ label, value, delta }, i) => (
+      {STATS.map(({ label, value, delta, live }, i) => (
         <div
           key={label}
           className="relative px-9 py-8"
@@ -30,7 +33,7 @@ export function StatsStrip() {
           <div className="font-display text-[44px] font-extrabold leading-none tracking-[-0.01em]">
             {value}
           </div>
-          <div className="font-mono-ctv mt-1.5 text-[11px] font-semibold text-[#2dd4a4]">
+          <div className={`font-mono-ctv mt-1.5 text-[11px] font-semibold ${live ? "text-[#2dd4a4]" : "text-white/45"}`}>
             {delta}
           </div>
           <span

@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { GateInline } from "@/components/features/access/GateInline";
 
 export function FinalCTA() {
   return (
@@ -27,35 +27,9 @@ export function FinalCTA() {
           <span className="text-[#E8001D]">Take a seat.</span>
         </h2>
         <p className="mx-auto mb-10 max-w-[520px] text-[18px] font-light leading-[1.5] text-white/65">
-          41 streams live. 12 markets open. $4.82M in the pool. The next match
-          starts in 14 minutes.
+          Join the waitlist or enter your access code to get in.
         </p>
-        <div className="flex flex-wrap items-center justify-center gap-3">
-          <Link
-            href="/live"
-            className="inline-flex cursor-pointer items-center gap-2.5 rounded-md bg-[#E8001D] px-7 py-4 text-[14px] font-bold uppercase tracking-[0.06em] text-white transition-all hover:-translate-y-px hover:bg-[#FF1737]"
-            style={{ boxShadow: "0 8px 32px rgba(232,0,29,0.25)" }}
-          >
-            <span
-              aria-hidden
-              className="inline-block"
-              style={{
-                width: 0,
-                height: 0,
-                borderLeft: "8px solid #fff",
-                borderTop: "5px solid transparent",
-                borderBottom: "5px solid transparent",
-              }}
-            />
-            Watch live
-          </Link>
-          <Link
-            href="/waitlist"
-            className="inline-flex cursor-pointer items-center rounded-md border border-[#2A2A2A] bg-transparent px-7 py-4 text-[14px] font-bold uppercase tracking-[0.06em] text-white transition-colors hover:border-[#E8001D]"
-          >
-            Join waitlist
-          </Link>
-        </div>
+        <GateInline centered />
       </div>
     </section>
   );

@@ -67,6 +67,7 @@ export class AccessController {
         sameSite: 'lax',
         maxAge: COOKIE_TTL_MS,
         path: '/',
+        domain: env.NODE_ENV === 'production' ? '.chiliztv.com' : undefined,
       });
 
       res.json({ success: true });

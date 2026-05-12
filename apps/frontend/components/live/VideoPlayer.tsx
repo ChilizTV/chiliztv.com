@@ -134,19 +134,24 @@ export default function VideoPlayer({
             const NATIVE_HLS_TIMEOUT_MS = 12_000;
             const safariWatchdog = setTimeout(() => {
                 if (cancelled) return;
-                fetch(playlistUrl, { method: 'HEAD' })
+                fetch(playlistUrl, { method: 'GET' })
                     .then(res => {
                         if (cancelled) return;
                         if (res.status === 404) {
                             console.warn('[VideoPlayer] Native HLS: playlist 404, marking stream ended');
                             setStreamEnded(true);
-                        } else if (!res.ok) {
+                            setIsLoading(false);
+                            setStatusMessage(null);
+                            return;
+                        }
+                        if (!res.ok) {
                             console.warn('[VideoPlayer] Native HLS: playlist status', res.status);
                             setError(`Failed to load stream (HTTP ${res.status})`);
-                        } else {
-                            console.warn('[VideoPlayer] Native HLS: playlist OK but no metadata after timeout');
-                            setError('Stream is reachable but not playing — try refreshing.');
+                            setIsLoading(false);
+                            setStatusMessage(null);
+                            return;
                         }
+                        console.warn('[VideoPlayer] Native HLS: playlist OK, awaiting metadata');
                         setIsLoading(false);
                         setStatusMessage(null);
                     })

@@ -14,32 +14,74 @@
 # Reload after edits: sudo systemctl reload caddy
 
 ingest.chiliztv.com {
+    # CORS — reflect the request Origin so both apex and www work. Browsers
+    # reject `Access-Control-Allow-Origin: *` when credentials (cookies) are
+    # sent, which Safari does for HLS. MediaMTX's own `hlsAllowOrigins: ['*']`
+    # is therefore stripped below to avoid the wildcard + credentials conflict.
+    header {
+        Access-Control-Allow-Origin {http.request.header.origin}
+        Access-Control-Allow-Credentials true
+        Access-Control-Allow-Methods "GET, HEAD, OPTIONS"
+        Access-Control-Allow-Headers "Range, Content-Type"
+        Access-Control-Expose-Headers "Content-Length, Content-Range"
+        Vary Origin
+    }
+
     # iOS Safari sends a one-shot probe `?cookieCheck=1` to verify cookie
     # availability before loading HLS. MediaMTX 1.18 returns 400 on unknown
-    # query params, which makes Safari abort. We intercept the probe at Caddy
-    # and answer 200 — Safari proceeds to fetch URLs without the param.
-    #
-    # `uri query -cookieCheck` was attempted but causes a 301 redirect loop
-    # (Safari re-adds the param on every retry).
+    # query params, so we intercept the probe at Caddy and return 200.
     @cookieCheck query cookieCheck=1
     handle @cookieCheck {
         respond 200
     }
-    handle {
-        reverse_proxy localhost:8888
+
+    # Preflight
+    @options method OPTIONS
+    handle @options {
+        respond 204
     }
+
+    # Default: proxy to MediaMTX, stripping its CORS headers (we set our own)
+    handle {
+        reverse_proxy localhost:8888 {
+            header_down -Access-Control-Allow-Origin
+            header_down -Access-Control-Allow-Credentials
+            header_down -Access-Control-Allow-Methods
+            header_down -Access-Control-Allow-Headers
+            header_down -Access-Control-Expose-Headers
+        }
+    }
+
     encode gzip
 }
 
 # WebRTC WHIP ingest — browser publishers POST their SDP offer here, MediaMTX
 # replies with the answer and (typically) a Location header for resource teardown.
-# CORS is owned by MediaMTX (`webrtcAllowOrigins: ['*']` in mediamtx.yml).
 whip.chiliztv.com {
+    header {
+        Access-Control-Allow-Origin {http.request.header.origin}
+        Access-Control-Allow-Credentials true
+        Access-Control-Allow-Methods "GET, POST, PATCH, DELETE, OPTIONS"
+        Access-Control-Allow-Headers "Content-Type, Authorization, If-Match"
+        Vary Origin
+    }
+
     @cookieCheck query cookieCheck=1
     handle @cookieCheck {
         respond 200
     }
+
+    @options method OPTIONS
+    handle @options {
+        respond 204
+    }
+
     handle {
-        reverse_proxy localhost:8889
+        reverse_proxy localhost:8889 {
+            header_down -Access-Control-Allow-Origin
+            header_down -Access-Control-Allow-Credentials
+            header_down -Access-Control-Allow-Methods
+            header_down -Access-Control-Allow-Headers
+        }
     }
 }

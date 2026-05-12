@@ -15,17 +15,15 @@ rtmpAddress: :1935
 
 # HLS playback (browser viewers fetch here, fronted by Caddy in HTTPS)
 #
-# `hlsPartDuration` is deliberately NOT set. With LL-HLS parts enabled,
-# MediaMTX emits parts whose durations drift slightly (216ms → 201ms → 217ms)
-# when the upstream encoder isn't perfectly stable — and iOS Safari rejects
-# playlists with variable part durations per Apple's HLS spec ("this will
-# cause an error in iOS clients"). Standard fmp4 segments avoid the issue at
-# the cost of ~2-3s extra latency. Acceptable for the beta.
+# `mpegts` variant emits classic .ts segments. iOS Safari native HLS supports
+# this since iOS 4 with no quirks, while fmp4 triggers
+# tolerates fmp4 fine, mobile Safari is much stricter.
+# Trade-off: slightly larger segments and ~3-5s latency, no LL-HLS parts.
 hls: yes
 hlsAddress: :8888
 hlsAlwaysRemux: yes
-hlsVariant: fmp4
-hlsSegmentCount: 7
+hlsVariant: mpegts
+hlsSegmentCount: 5
 hlsSegmentDuration: 2s
 hlsAllowOrigins: ['*']
 

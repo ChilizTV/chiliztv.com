@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { SectionHead } from "./SectionHead";
 
 const STEPS = [
@@ -114,6 +115,34 @@ export function HowItWorks() {
             </p>
           </div>
         ))}
+      </div>
+
+      <div className="mt-12 flex justify-center">
+        <div className="relative isolate inline-block">
+          <div
+            aria-hidden
+            className="absolute -inset-1 animate-pulse rounded-md bg-[#E8001D]/10 blur-md"
+          />
+          <Link
+            href="/how-it-works"
+            className="font-mono-ctv group relative inline-flex items-center gap-2.5 overflow-hidden rounded-md border border-[#E8001D]/60 bg-transparent px-6 py-3.5 text-[12px] font-bold uppercase tracking-[0.06em] text-white transition-all hover:-translate-y-px hover:border-[#E8001D]"
+            style={{
+              boxShadow: "0 0 8px rgba(232,0,29,0.18)",
+            }}
+          >
+            <span
+              aria-hidden
+              className="ctv-shine pointer-events-none absolute inset-y-0 -left-1/2 w-1/3 -skew-x-12 bg-white/10 blur-md"
+            />
+            <span className="relative">Read the full guide</span>
+            <span
+              aria-hidden
+              className="relative text-[#E8001D] transition-transform group-hover:translate-x-0.5"
+            >
+              →
+            </span>
+          </Link>
+        </div>
       </div>
     </section>
   );

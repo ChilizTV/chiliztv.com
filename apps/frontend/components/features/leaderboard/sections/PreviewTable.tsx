@@ -81,7 +81,7 @@ export function PreviewTable() {
 
             <div className="font-mono-ctv mt-5 flex items-center gap-2 text-[10px] uppercase tracking-[0.18em] text-white/45">
                 <span aria-hidden>ⓘ</span>
-                Mocked data shown for illustration. Bet to qualify when live.
+                Mocked data shown for illustration. Predict to qualify when live.
             </div>
         </section>
     );

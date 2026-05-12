@@ -17,7 +17,7 @@ interface SystemPalette {
 
 const SYSTEM_PALETTES: Partial<Record<SystemMessageType, SystemPalette>> = {
   [SystemMessageType.BET_PLACED]: {
-    label: "Bet",
+    label: "Prediction",
     bg: "rgba(232,0,29,0.07)",
     border: "rgba(232,0,29,0.4)",
     color: "#FF1737",

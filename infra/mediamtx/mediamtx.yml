@@ -28,10 +28,10 @@ apiAddress: :9997
 # Auth + path hooks are configured via MTX_* env vars in compose.yml because
 # MediaMTX does not perform ${VAR} substitution inside this YAML file. See
 # compose.yml: MTX_AUTHMETHOD, MTX_AUTHHTTPADDRESS,
-# MTX_PATHS_ALL_OTHERS_RUNONREADY, MTX_PATHS_ALL_OTHERS_RUNONNOTREADY.
+# MTX_PATHS_ALL_RUNONREADY, MTX_PATHS_ALL_RUNONNOTREADY.
 
 paths:
   # Catch-all path — any stream key that isn't pre-declared lands here.
   # runOnReady / runOnNotReady are injected via env override (see comment above).
-  all_others:
+  all:
     runOnReadyRestart: no

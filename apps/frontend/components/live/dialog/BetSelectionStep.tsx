@@ -24,8 +24,8 @@ interface BetSelectionStepProps {
 const STATE_HINT: Partial<Record<MarketState, string>> = {
     [MarketState.Suspended]: 'Market paused — odds being repriced. Try again in a minute.',
     [MarketState.Closed]: 'Market closed — awaiting resolution.',
-    [MarketState.Resolved]: 'This market has settled. View results in My Bets.',
-    [MarketState.Cancelled]: 'This market was cancelled. Refunds available in My Bets.',
+    [MarketState.Resolved]: 'This market has settled. View results in My Predictions.',
+    [MarketState.Cancelled]: 'This market was cancelled. Refunds available in My Predictions.',
 };
 
 /** Dispatcher — picks the right pick variant based on market type. */

@@ -76,7 +76,7 @@ function bettableBlockLabel(verdict: BettableResult, kickoffAt: string, now: Dat
       return 'Postponed';
     case 'UNKNOWN':
     default:
-      return 'Betting unavailable';
+      return 'Predictions unavailable';
   }
 }
 

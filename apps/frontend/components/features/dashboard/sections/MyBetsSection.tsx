@@ -99,7 +99,7 @@ export function MyBetsSection({ wallet, onPlaceFirstBet, onWatchLive }: MyBetsSe
     return (
         <section id="bets" className="relative z-[4] mx-auto max-w-[1400px] px-8 pb-4 pt-20 sm:px-14">
             <SectionHeadDash
-                eyebrow="Bets · Markets"
+                eyebrow="Predictions · Markets"
                 title={
                     <>
                         Your <span className="text-[#E8001D]">positions.</span>

@@ -72,7 +72,7 @@ export function MyBetsOnMatch({ contractAddress, walletAddress, onPickMarket }: 
     });
 
     if (!walletAddress) {
-        return <EmptyState lead="Connect your wallet to see your bets on this match." />;
+        return <EmptyState lead="Connect your wallet to see your predictions on this match." />;
     }
 
     if (isLoading && bets.length === 0) {
@@ -89,10 +89,10 @@ export function MyBetsOnMatch({ contractAddress, walletAddress, onPickMarket }: 
             <div className="flex flex-col items-center gap-3 px-4 py-10 text-center">
                 <span className="font-mono-ctv inline-flex items-center gap-2.5 text-[10px] font-bold uppercase tracking-[0.16em] text-[#E8001D]">
                     <span aria-hidden className="block h-0.5 w-4 bg-[#E8001D]" />
-                    No bets yet
+                    No predictions yet
                 </span>
                 <div className="font-display text-[20px] font-extrabold uppercase tracking-tight text-white">
-                    Place your first bet on this match
+                    Place your first prediction on this match
                 </div>
                 <div className="text-[12px] font-light text-white/55">
                     Pick an outcome from the Markets tab to get started.

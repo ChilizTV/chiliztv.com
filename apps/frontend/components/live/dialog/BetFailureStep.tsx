@@ -14,9 +14,9 @@ function fmtTx(hash: `0x${string}`) {
 }
 
 const TITLE_BY_KIND: Record<BetFailureStepProps['kind'], string> = {
-    rejected: 'Bet cancelled',
-    reverted: 'Bet failed',
-    unknown: 'Bet failed',
+    rejected: 'Prediction cancelled',
+    reverted: 'Prediction failed',
+    unknown: 'Prediction failed',
 };
 
 const LEAD_BY_KIND: Record<BetFailureStepProps['kind'], string> = {

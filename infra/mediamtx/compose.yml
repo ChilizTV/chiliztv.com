@@ -25,8 +25,8 @@ services:
       MTX_AUTHHTTPADDRESS: "https://api.chiliztv.com/mediamtx/auth?secret=${MEDIAMTX_PUBLISH_SECRET}"
       # `$$MTX_PATH` escapes docker-compose interpolation so MediaMTX sees the
       # literal `$MTX_PATH` and substitutes it at exec time with the actual path.
-      MTX_PATHS_ALL_OTHERS_RUNONREADY: 'curl -fsS -X POST "https://api.chiliztv.com/mediamtx/connect?path=$$MTX_PATH&secret=${MEDIAMTX_PUBLISH_SECRET}"'
-      MTX_PATHS_ALL_OTHERS_RUNONNOTREADY: 'curl -fsS -X POST "https://api.chiliztv.com/mediamtx/disconnect?path=$$MTX_PATH&secret=${MEDIAMTX_PUBLISH_SECRET}"'
+      MTX_PATHS_ALL_RUNONREADY: 'curl -fsS -X POST "https://api.chiliztv.com/mediamtx/connect?path=$$MTX_PATH&secret=${MEDIAMTX_PUBLISH_SECRET}"'
+      MTX_PATHS_ALL_RUNONNOTREADY: 'curl -fsS -X POST "https://api.chiliztv.com/mediamtx/disconnect?path=$$MTX_PATH&secret=${MEDIAMTX_PUBLISH_SECRET}"'
 
 volumes:
   mediamtx-recordings:

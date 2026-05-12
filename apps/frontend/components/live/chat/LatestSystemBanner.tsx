@@ -9,7 +9,7 @@ interface LatestSystemBannerProps {
 }
 
 const TYPE_LABEL: Partial<Record<SystemMessageType, string>> = {
-  [SystemMessageType.BET_PLACED]: "Bet placed",
+  [SystemMessageType.BET_PLACED]: "Prediction placed",
   [SystemMessageType.DONATION]: "Tip received",
   [SystemMessageType.SUBSCRIPTION]: "New subscriber",
 };
@@ -20,7 +20,7 @@ function labelFor(message: ChatMessage): string {
     return TYPE_LABEL[message.systemEventType]!;
   }
   const body = message.message.toLowerCase();
-  if (body.includes("prediction") || body.includes("bet")) return "Bet placed";
+  if (body.includes("prediction") || body.includes("bet")) return "Prediction placed";
   if (body.includes("tip") || body.includes("donat")) return "Tip received";
   if (body.includes("subscrib")) return "New subscriber";
   return "Event";

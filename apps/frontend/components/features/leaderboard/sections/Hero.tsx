@@ -94,7 +94,7 @@ export function Hero({ onNotify, onRules }: HeroProps) {
                         <div className="mt-4 grid grid-cols-3 gap-4">
                             <PoolFact label="Status" value="Soon" />
                             <PoolFact label="Cycle" value="Monthly" />
-                            <PoolFact label="Min bets" value="5" />
+                            <PoolFact label="Min predictions" value="5" />
                         </div>
                     </div>
                 </div>

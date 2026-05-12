@@ -122,16 +122,16 @@ function fmtUsd(n: number | null, dp = 2): string {
 function policyMessageFor(verdict: BettableResult, kickoffAt: string, now: Date): string {
   if (verdict.ok) return "";
   switch (verdict.reason) {
-    case "LIVE":           return "Live · Betting closed";
-    case "HALFTIME":       return "Halftime · Betting closed";
+    case "LIVE":           return "Live · Predictions closed";
+    case "HALFTIME":       return "Halftime · Predictions closed";
     case "KICKOFF_BUFFER": {
       const mins = Math.max(1, Math.ceil((new Date(kickoffAt).getTime() - now.getTime()) / 60_000));
-      return `Kicks off in ${mins}m · Betting closed`;
+      return `Kicks off in ${mins}m · Predictions closed`;
     }
     case "FINISHED":       return "Awaiting resolution";
     case "POSTPONED":      return "Postponed";
     case "UNKNOWN":
-    default:               return "Betting unavailable";
+    default:               return "Predictions unavailable";
   }
 }
 
@@ -208,7 +208,7 @@ export function MarketBetDialog({
     if (!isFootball) return;
     if (!marketSpec) {
       toast.warning("Market not available", {
-        description: "This market type isn't supported in the betting UI yet.",
+        description: "This market type isn't supported in the predictions UI yet.",
       });
       onClose();
     }
@@ -744,7 +744,7 @@ export function MarketBetDialog({
   const continueLabelByPhase: Record<Phase, string> = {
     pick: "Continue →",
     stake: "Review →",
-    review: needsApproval ? `Approve ${tokenLabel(token)}` : "Place bet",
+    review: needsApproval ? `Approve ${tokenLabel(token)}` : "Place prediction",
     success: "Close",
     failure: "Close",
   };
@@ -784,30 +784,30 @@ export function MarketBetDialog({
   const banner: string | null = (() => {
     if (bannerError) return bannerError;
     if (hasAnyOdds && !onChainOddsSet && phase !== "pick")
-      return "Odds posted in the back-office aren't yet synced on-chain — the contract would reject this bet. Ask the admin to run setOdds, then retry.";
+      return "Odds posted in the back-office aren't yet synced on-chain — the contract would reject this prediction. Ask the admin to run setOdds, then retry.";
     if (exceedsMarketLiabilityCap && maxMarketLiability !== null) {
       const remaining = maxMarketLiability > currentMarketLiability
         ? maxMarketLiability - currentMarketLiability
         : BigInt(0);
-      return `This market's liability cap is ${formatUsdc(maxMarketLiability, usdcDecimals)} USDC (pool × ${((maxMarketBps ?? 0) / 100).toFixed(1)}%). After existing bets, only ${formatUsdc(remaining, usdcDecimals)} USDC of new exposure fits. Reduce your stake or wait for the LP to deposit more.`;
+      return `This market's liability cap is ${formatUsdc(maxMarketLiability, usdcDecimals)} USDC (pool × ${((maxMarketBps ?? 0) / 100).toFixed(1)}%). After existing predictions, only ${formatUsdc(remaining, usdcDecimals)} USDC of new exposure fits. Reduce your stake or wait for the LP to deposit more.`;
     }
     if (stakeBelowMinimum && token.kind !== "USDC") {
       // Surface the actual swap quote so the user understands why their input
       // isn't enough — Kayen testnet pricing can be far below mainnet.
       const usdcOut = formatUsdc(expectedStakeUsdc, usdcDecimals);
-      return `${amount} ${tokenLabel(token)} swaps to ≈ ${usdcOut} USDC after Kayen — below the 0.10 USDC contract minimum. Bet a larger amount or switch to USDC.`;
+      return `${amount} ${tokenLabel(token)} swaps to ≈ ${usdcOut} USDC after Kayen — below the 0.10 USDC contract minimum. Predict a larger amount or switch to USDC.`;
     }
     if (stakeBelowMinimum)
       return `Stake below the contract minimum (0.10 USDC). Increase your amount.`;
     if (quotePending && phase !== "pick")
       return "Loading the FanX/Kayen quote — checking the swap output is above the 0.10 USDC minimum.";
     if (expectedStakeExceedsCap && maxBetAmountCapped)
-      return `Stake exceeds the pool's per-bet cap of ${formatUsdc(maxBetAmountCapped, usdcDecimals)} USDC. Try a smaller amount.`;
+      return `Stake exceeds the pool's per-prediction cap of ${formatUsdc(maxBetAmountCapped, usdcDecimals)} USDC. Try a smaller amount.`;
     if (insufficientLiquidity)
       return `Pool too thin for this stake. Free balance: ${formatUsdc(poolFreeBalance as bigint | undefined, usdcDecimals)} USDC.`;
     if (swapPathMissing) return `No FanX/Kayen liquidity for ${tokenLabel(token)} → USDC. Pick another token.`;
     if (usdcZeroBalance && phase === "stake")
-      return `You hold 0 USDC at ${chilizConfig.usdc.slice(0, 8)}…${chilizConfig.usdc.slice(-6)}. Acquire test USDC before betting.`;
+      return `You hold 0 USDC at ${chilizConfig.usdc.slice(0, 8)}…${chilizConfig.usdc.slice(-6)}. Acquire test USDC before predicting.`;
     return null;
   })();
 
@@ -824,7 +824,7 @@ export function MarketBetDialog({
         style={{ maxHeight: "90dvh", boxShadow: "0 30px 80px rgba(0,0,0,0.55)" }}
       >
         <DialogTitle className="sr-only">
-          Place bet — {selection.marketLabel} on {homeTeam ?? "Home"} vs {awayTeam ?? "Away"}
+          Place prediction — {selection.marketLabel} on {homeTeam ?? "Home"} vs {awayTeam ?? "Away"}
         </DialogTitle>
         {!isFootball ? (
           <UnsupportedSportPanel onClose={onClose} />
@@ -882,13 +882,13 @@ export function MarketBetDialog({
                     }}
                     role="status"
                   >
-                    {policyBlockMessage || "Betting closed"}
+                    {policyBlockMessage || "Predictions closed"}
                   </div>
                   <div className="font-display text-[22px] font-extrabold uppercase leading-tight tracking-tight text-white">
-                    {policyBlockMessage || "Betting closed"}
+                    {policyBlockMessage || "Predictions closed"}
                   </div>
                   <div className="max-w-[360px] text-[13px] leading-[1.55] text-white/55">
-                    This market is closed for new bets while the match is in play. Existing positions stay live and can still be claimed once the match resolves.
+                    This market is closed for new predictions while the match is in play. Existing positions stay live and can still be claimed once the match resolves.
                   </div>
                 </div>
               ) : null}

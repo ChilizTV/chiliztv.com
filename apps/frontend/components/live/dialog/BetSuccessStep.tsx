@@ -126,7 +126,7 @@ export function BetSuccessStep({
                     className="font-display rounded-md bg-[#E8001D] px-5 py-3 text-[13px] font-bold uppercase tracking-[0.06em] text-white hover:bg-[#FF1737]"
                     style={{ boxShadow: '0 8px 32px rgba(232,0,29,0.25)' }}
                 >
-                    View my bets →
+                    View my predictions →
                 </button>
             </div>
         </div>

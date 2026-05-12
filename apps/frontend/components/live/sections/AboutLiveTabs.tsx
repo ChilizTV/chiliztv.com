@@ -74,7 +74,7 @@ export function AboutLiveTabs({
           onClick={() => setTab("mybets")}
           badge={myBetsCount}
         >
-          My bet
+          My predictions
         </TabButton>
         <span className="font-mono-ctv ml-auto text-[10px] uppercase tracking-[0.16em] text-white/35">
           {tab === "markets" ? "Settled on Chiliz" : `${myBetsCount} positions`}

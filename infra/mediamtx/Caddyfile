@@ -5,21 +5,15 @@
 # a Let's Encrypt cert on first request and proxies to MediaMTX listening on
 # localhost:8888. RTMP stays in clear on :1935 (OBS clients, not the browser).
 #
+# CORS is handled by MediaMTX itself (`hlsAllowOrigins: ['*']` in mediamtx.yml).
+# We do NOT add Access-Control-* headers here — doing so would result in the
+# response carrying both MediaMTX's and Caddy's headers, which browsers reject
+# ("multiple values" error).
+#
 # Install location on the VPS: /etc/caddy/Caddyfile
 # Reload after edits: sudo systemctl reload caddy
 
 ingest.chiliztv.com {
     reverse_proxy localhost:8888
-
     encode gzip
-
-    header {
-        Access-Control-Allow-Origin "https://chiliztv.com"
-        Access-Control-Allow-Methods "GET, HEAD, OPTIONS"
-        Access-Control-Allow-Headers "Range"
-        Access-Control-Expose-Headers "Content-Length, Content-Range"
-    }
-
-    @options method OPTIONS
-    respond @options 204
 }

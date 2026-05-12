@@ -3,7 +3,8 @@ services:
     # ffmpeg variant: Alpine-based, includes ca-certificates so MediaMTX can
     # validate the Let's Encrypt cert when calling https://api.chiliztv.com.
     # The bare `:latest` image is `scratch`-based and has no CA bundle.
-    image: bluenviron/mediamtx:latest-ffmpeg
+
+    image: bluenviron/mediamtx:v1.16.0-ffmpeg
     container_name: mediamtx
     restart: unless-stopped
     # host networking is required: MediaMTX exposes several listeners (RTMP 1935,

@@ -181,7 +181,12 @@ export default function VideoPlayer({
             videoRef.current.addEventListener('error', () => {
                 clearTimeout(safariWatchdog);
                 if (!cancelled) {
-                    setError('Failed to load video stream');
+                    const mediaErr = videoRef.current?.error;
+                    const code = mediaErr?.code ?? 0;
+                    const detail = mediaErr?.message || 'no detail';
+                    const codeLabel = ['UNKNOWN', 'ABORTED', 'NETWORK', 'DECODE', 'UNSUPPORTED'][code] ?? 'UNKNOWN';
+                    console.error('[VideoPlayer] Native HLS error', { code, codeLabel, detail });
+                    setError(`Failed to load video (${codeLabel}: ${detail})`);
                     setIsLoading(false);
                     setStatusMessage(null);
                 }

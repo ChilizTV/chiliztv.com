@@ -126,7 +126,41 @@ export default function VideoPlayer({
         if (videoRef.current.canPlayType('application/vnd.apple.mpegurl')) {
             console.log('[VideoPlayer] Using native HLS (Safari)');
             videoRef.current.src = playlistUrl;
+
+            // Safari's native HLS loader stays silent when the playlist 404s or
+            // returns no segments — neither `loadedmetadata` nor `error` fires.
+            // Probe the URL ourselves; if it's not reachable, surface a state
+            // instead of leaving the spinner up forever.
+            const NATIVE_HLS_TIMEOUT_MS = 12_000;
+            const safariWatchdog = setTimeout(() => {
+                if (cancelled) return;
+                fetch(playlistUrl, { method: 'HEAD' })
+                    .then(res => {
+                        if (cancelled) return;
+                        if (res.status === 404) {
+                            console.warn('[VideoPlayer] Native HLS: playlist 404, marking stream ended');
+                            setStreamEnded(true);
+                        } else if (!res.ok) {
+                            console.warn('[VideoPlayer] Native HLS: playlist status', res.status);
+                            setError(`Failed to load stream (HTTP ${res.status})`);
+                        } else {
+                            console.warn('[VideoPlayer] Native HLS: playlist OK but no metadata after timeout');
+                            setError('Stream is reachable but not playing — try refreshing.');
+                        }
+                        setIsLoading(false);
+                        setStatusMessage(null);
+                    })
+                    .catch(err => {
+                        if (cancelled) return;
+                        console.error('[VideoPlayer] Native HLS: probe failed', err);
+                        setError('Cannot reach the stream server.');
+                        setIsLoading(false);
+                        setStatusMessage(null);
+                    });
+            }, NATIVE_HLS_TIMEOUT_MS);
+
             videoRef.current.addEventListener('loadedmetadata', () => {
+                clearTimeout(safariWatchdog);
                 if (!cancelled) {
                     console.log('[VideoPlayer] Native HLS: metadata loaded');
                     setIsLoading(false);
@@ -140,6 +174,7 @@ export default function VideoPlayer({
                 }
             }, { once: true });
             videoRef.current.addEventListener('error', () => {
+                clearTimeout(safariWatchdog);
                 if (!cancelled) {
                     setError('Failed to load video stream');
                     setIsLoading(false);

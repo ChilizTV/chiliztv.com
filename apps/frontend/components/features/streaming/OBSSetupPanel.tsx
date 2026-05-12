@@ -2,67 +2,25 @@
 
 import { useState, useEffect, useRef } from "react";
 import axios from "axios";
-import Hls from "hls.js";
-import { Copy, Eye, EyeOff, RefreshCw, Wifi, WifiOff, ChevronDown, ChevronUp, Tv2, Square } from "lucide-react";
+import { Copy, Eye, EyeOff, RefreshCw, Wifi, WifiOff, ChevronDown, ChevronUp, Tv2, Square, CheckCircle2 } from "lucide-react";
 import { streamViewerService, ApiService } from "@/services";
 
-function StreamerHlsPreview({ streamKey, isLive }: { streamKey: string; isLive: boolean }) {
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const hlsRef = useRef<Hls | null>(null);
-
-  useEffect(() => {
-    if (!isLive || !videoRef.current) return;
-
-    const mediamtxUrl = process.env.NEXT_PUBLIC_MEDIAMTX_URL ?? "http://localhost:8888";
-    const url = `${mediamtxUrl}/live/${streamKey}/index.m3u8`;
-    const video = videoRef.current;
-
-    if (Hls.isSupported()) {
-      const hls = new Hls({ lowLatencyMode: true });
-      hls.loadSource(url);
-      hls.attachMedia(video);
-      hlsRef.current = hls;
-    } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
-      video.src = url;
-    }
-
-    return () => {
-      hlsRef.current?.destroy();
-      hlsRef.current = null;
-    };
-  }, [isLive, streamKey]);
-
-  if (!isLive) {
-    return (
-      <div className="relative aspect-video w-full overflow-hidden rounded-md border border-[#1E1E1E] bg-[#0d0d0d]">
-        <div className="absolute inset-0 flex items-center justify-center">
-          <div className="text-center">
-            <Tv2 size={20} className="mx-auto mb-2 text-white/20" />
-            <p className="font-mono-ctv text-[10px] uppercase tracking-[0.14em] text-white/35">
-              Start streaming in OBS to see preview
-            </p>
-            <p className="font-mono-ctv mt-1 text-[9px] uppercase tracking-[0.12em] text-white/20">
-              HLS · ~3-5s delay
-            </p>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
+function StreamerLiveBanner({ isLive }: { isLive: boolean }) {
+  if (!isLive) return null;
   return (
-    <div className="relative aspect-video w-full overflow-hidden rounded-md border border-[#1E1E1E] bg-black">
-      <video
-        ref={videoRef}
-        autoPlay
-        muted
-        playsInline
-        controls={false}
-        className="h-full w-full object-contain"
-      />
-      <div className="font-mono-ctv pointer-events-none absolute left-2.5 top-2.5 inline-flex items-center gap-1.5 rounded bg-black/60 px-2 py-1 text-[9px] font-bold uppercase tracking-[0.14em] text-[#E8001D] backdrop-blur">
-        <span className="ctv-pulse-dot inline-block h-1.5 w-1.5 rounded-full bg-[#E8001D]" />
-        Live preview
+    <div
+      className="flex items-center gap-3 rounded-md border px-4 py-3"
+      style={{ borderColor: "rgba(45,212,164,0.35)", background: "rgba(45,212,164,0.08)" }}
+      role="status"
+    >
+      <CheckCircle2 size={18} className="shrink-0 text-[#2dd4a4]" />
+      <div className="min-w-0">
+        <div className="font-mono-ctv text-[10px] font-bold uppercase tracking-[0.16em] text-[#2dd4a4]">
+          You&apos;re live
+        </div>
+        <p className="mt-0.5 text-[12px] leading-[1.45] text-white/60">
+          OBS is publishing successfully. Viewers can now watch the stream on the live page.
+        </p>
       </div>
     </div>
   );
@@ -173,8 +131,8 @@ export function OBSSetupPanel({
       </div>
 
       <div className="space-y-4 p-5">
-        {/* Streamer preview (HLS) — confirms the publish reached the server */}
-        <StreamerHlsPreview streamKey={streamKey} isLive={isLive} />
+        {/* Live status banner — appears once the backend confirms publishing. */}
+        <StreamerLiveBanner isLive={isLive} />
 
         {/* Server field */}
         <div className="space-y-1.5">

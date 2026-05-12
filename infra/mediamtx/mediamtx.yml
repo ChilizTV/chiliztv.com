@@ -14,12 +14,17 @@ rtmp: yes
 rtmpAddress: :1935
 
 # HLS playback (browser viewers fetch here, fronted by Caddy in HTTPS)
+# `fmp4` variant emits standard segments. The lowLatency variant uses "parts"
+# whose durations drift slightly when the upstream RTMP source varies — Safari
+# native HLS (macOS + iOS) rejects this with a silent error and the player
+# stays black. fmp4 is the most compatible option; latency ~3-5s instead of
+# ~1-2s, acceptable for the beta.
 hls: yes
 hlsAddress: :8888
 hlsAlwaysRemux: yes
-hlsVariant: lowLatency
+hlsVariant: fmp4
 hlsSegmentCount: 7
-hlsSegmentDuration: 1s
+hlsSegmentDuration: 2s
 
 # Admin API (port restricted in the host firewall, never proxied through Caddy)
 api: yes

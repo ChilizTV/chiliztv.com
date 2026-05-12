@@ -5,4 +5,3 @@ export { DiscoverTicker } from "./DiscoverTicker";
 export { PoolPanel } from "./PoolPanel";
 export { MatchExplorer } from "./MatchExplorer";
 export { TopStreamersSection } from "./TopStreamersSection";
-export { DiscoverCTA } from "./DiscoverCTA";

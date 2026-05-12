@@ -250,12 +250,11 @@ function PoolBento({
   onJoin: () => void;
 }) {
   return (
-    <div className="grid auto-rows-[200px] grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-6">
+    <div className="grid auto-rows-auto grid-cols-1 gap-3 sm:grid-cols-2 lg:auto-rows-[200px] lg:grid-cols-6">
       {/* Hero TVL — 4×2 */}
       <div
-        className="relative overflow-hidden rounded-xl border border-[#1E1E1E] bg-[#111] sm:col-span-2 lg:col-span-4 lg:row-span-2"
+        className="relative overflow-hidden rounded-xl border border-[#1E1E1E] bg-[#111] p-6 sm:p-9 sm:col-span-2 lg:col-span-4 lg:row-span-2"
         style={{
-          padding: 36,
           background: "linear-gradient(135deg, #111, #0A0A0A)",
         }}
       >
@@ -274,7 +273,7 @@ function PoolBento({
         <div
           className="font-display text-white"
           style={{
-            fontSize: 96,
+            fontSize: "clamp(48px, 12vw, 96px)",
             lineHeight: 0.92,
             fontWeight: 800,
             letterSpacing: "-0.03em",
@@ -282,11 +281,11 @@ function PoolBento({
         >
           {data.tvl}
         </div>
-        <p className="mt-5 max-w-[460px] text-[15px] font-light leading-[1.55] text-white/65">
+        <p className="mt-4 max-w-[460px] text-[14px] font-light leading-[1.55] text-white/65 sm:mt-5 sm:text-[15px]">
           Stake USDC. Bookmake against every predictor on the platform. Yield
           accrues block-by-block as wagers settle.
         </p>
-        <div className="mt-9 flex flex-wrap items-center gap-3">
+        <div className="mt-6 flex flex-wrap items-center gap-3 sm:mt-9">
           <button
             type="button"
             onClick={onJoin}

@@ -345,34 +345,38 @@ export default function StreamManager({ matchId, onStreamCreated, onStreamEnded,
    * @notice Handle stream end
    */
   const handleEndStream = useCallback(async () => {
-    try {
-      const currentStreamValue = currentStreamRef.current;
-      const cameraStreamValue = cameraStreamRef.current;
-      const screenStreamValue = screenStreamRef.current;
-      const streamValue = streamRef.current;
-      const userValue = userRef.current;
+    const currentStreamValue = currentStreamRef.current;
+    const cameraStreamValue = cameraStreamRef.current;
+    const screenStreamValue = screenStreamRef.current;
+    const streamValue = streamRef.current;
+    const userValue = userRef.current;
 
-      if (!streamValue || !userValue || !userValue.userId) {
-        return;
-      }
-
-      streamClientService.stopStream();
-      await streamViewerService.endStream(streamValue.id, userValue.userId);
-
-      stopMediaStream(currentStreamValue);
-      stopMediaStream(cameraStreamValue);
-      stopMediaStream(screenStreamValue);
-
-      setCurrentStream(null);
-      setCameraStream(null);
-      setScreenStream(null);
-      setStream(null);
-      setIsStreaming(false);
-      onStreamEndedRef.current?.();
-    } catch (error) {
-      console.error("Error ending stream:", error);
-      setError("Failed to end stream");
+    if (!streamValue || !userValue || !userValue.userId) {
+      return;
     }
+
+    // Optimistic UI: clear local + parent state immediately so the user sees the
+    // stream disappear the moment they click "End stream". The backend call to
+    // mark the row as ended is fired in the background — MediaMTX will also
+    // detect the publisher drop and webhook the backend either way.
+    streamClientService.stopStream();
+    stopMediaStream(currentStreamValue);
+    stopMediaStream(cameraStreamValue);
+    stopMediaStream(screenStreamValue);
+
+    setCurrentStream(null);
+    setCameraStream(null);
+    setScreenStream(null);
+    setStream(null);
+    setIsStreaming(false);
+    onStreamEndedRef.current?.();
+
+    // Fire-and-forget — surface a console error if the API rejects.
+    streamViewerService
+      .endStream(streamValue.id, userValue.userId)
+      .catch((error) => {
+        console.error("Error ending stream on backend:", error);
+      });
   }, []);
 
   // Expose handleEndStream to parent via ref

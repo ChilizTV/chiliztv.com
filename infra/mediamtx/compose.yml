@@ -1,6 +1,9 @@
 services:
   mediamtx:
-    image: bluenviron/mediamtx:latest
+    # ffmpeg variant: Alpine-based, includes ca-certificates so MediaMTX can
+    # validate the Let's Encrypt cert when calling https://api.chiliztv.com.
+    # The bare `:latest` image is `scratch`-based and has no CA bundle.
+    image: bluenviron/mediamtx:latest-ffmpeg
     container_name: mediamtx
     restart: unless-stopped
     # host networking is required: MediaMTX exposes several listeners (RTMP 1935,
@@ -14,6 +17,16 @@ services:
       - mediamtx-recordings:/recordings
     environment:
       MTX_LOGLEVEL: info
+      # MediaMTX does NOT expand ${VAR} inside the YAML config. We override the
+      # secret-bearing fields via env vars instead — docker compose substitutes
+      # ${MEDIAMTX_PUBLISH_SECRET} from .env at container start, so MediaMTX
+      # receives the resolved value already.
+      MTX_AUTHMETHOD: http
+      MTX_AUTHHTTPADDRESS: "https://api.chiliztv.com/mediamtx/auth?secret=${MEDIAMTX_PUBLISH_SECRET}"
+      # `$$MTX_PATH` escapes docker-compose interpolation so MediaMTX sees the
+      # literal `$MTX_PATH` and substitutes it at exec time with the actual path.
+      MTX_PATHS_ALL_OTHERS_RUNONREADY: 'curl -fsS -X POST "https://api.chiliztv.com/mediamtx/connect?path=$$MTX_PATH&secret=${MEDIAMTX_PUBLISH_SECRET}"'
+      MTX_PATHS_ALL_OTHERS_RUNONNOTREADY: 'curl -fsS -X POST "https://api.chiliztv.com/mediamtx/disconnect?path=$$MTX_PATH&secret=${MEDIAMTX_PUBLISH_SECRET}"'
 
 volumes:
   mediamtx-recordings:

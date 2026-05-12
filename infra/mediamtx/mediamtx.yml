@@ -25,22 +25,13 @@ hlsSegmentDuration: 1s
 api: yes
 apiAddress: :9997
 
-# Auth via backend webhook — the chiliztv backend validates the stream key
-# against the streams table. Viewers (read/playback) are always allowed by the
-# backend without a DB lookup.
-authMethod: http
-authHTTPAddress: https://api.chiliztv.com/mediamtx/auth?secret=${MEDIAMTX_PUBLISH_SECRET}
+# Auth + path hooks are configured via MTX_* env vars in compose.yml because
+# MediaMTX does not perform ${VAR} substitution inside this YAML file. See
+# compose.yml: MTX_AUTHMETHOD, MTX_AUTHHTTPADDRESS,
+# MTX_PATHS_ALL_OTHERS_RUNONREADY, MTX_PATHS_ALL_OTHERS_RUNONNOTREADY.
 
 paths:
   # Catch-all path — any stream key that isn't pre-declared lands here.
+  # runOnReady / runOnNotReady are injected via env override (see comment above).
   all_others:
-    # Publisher connected: notify backend to flip stream status to live.
-    runOnReady: >
-      curl -fsS -X POST
-      "https://api.chiliztv.com/mediamtx/connect?path=$MTX_PATH&secret=${MEDIAMTX_PUBLISH_SECRET}"
     runOnReadyRestart: no
-
-    # Publisher disconnected: notify backend to flip status to ended.
-    runOnNotReady: >
-      curl -fsS -X POST
-      "https://api.chiliztv.com/mediamtx/disconnect?path=$MTX_PATH&secret=${MEDIAMTX_PUBLISH_SECRET}"

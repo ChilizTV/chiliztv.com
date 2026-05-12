@@ -9,7 +9,6 @@ import {
 } from "./domain";
 import {
   BackgroundFX,
-  DiscoverCTA,
   DiscoverTicker,
   MatchExplorer,
   PoolPanel,
@@ -44,10 +43,6 @@ export function DiscoverPage() {
 
   const allMatches = useMemo(() => flattenMatches(leagues), [leagues]);
   const topStreams = useMemo(() => buildStreams(allMatches, 8), [allMatches]);
-  const streamsLive = useMemo(
-    () => allMatches.flatMap((m) => m.streamsPreview).length,
-    [allMatches],
-  );
 
   return (
     <div
@@ -67,11 +62,6 @@ export function DiscoverPage() {
         isLoading={isLoading}
       />
       <TopStreamersSection streams={topStreams} />
-      <DiscoverCTA
-        liveCount={streamsLive}
-        marketsOpen={allMatches.length * 3}
-        tvl="$4.82M"
-      />
     </div>
   );
 }

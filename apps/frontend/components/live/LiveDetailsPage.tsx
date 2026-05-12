@@ -226,7 +226,7 @@ export default function LiveDetailsPage({ id }: LiveDetailsPageProps) {
         onBack={() => router.push("/live")}
       />
 
-      <main className="mx-auto max-w-[1600px] px-6 py-6 sm:px-10 sm:py-8">
+      <main className="mx-auto max-w-[1600px] px-3 py-4 sm:px-10 sm:py-8">
         {interruptedBanner && (
           <div className="mb-5">
             <StreamInterruptedBanner
@@ -271,9 +271,9 @@ export default function LiveDetailsPage({ id }: LiveDetailsPageProps) {
           }
         />
 
-        <div className="grid gap-6 lg:grid-cols-[1fr_360px] xl:grid-cols-[1fr_400px]">
+        <div className="grid gap-4 lg:grid-cols-[1fr_360px] lg:gap-6 xl:grid-cols-[1fr_400px]">
           {/* Main column */}
-          <div className="flex min-w-0 flex-col gap-5">
+          <div className="flex min-w-0 flex-col gap-3 lg:gap-5">
             <div className="overflow-hidden rounded-xl border border-[#1E1E1E] bg-[#0d0d0d]">
               {isStreamer ? (
                 <div
@@ -306,20 +306,11 @@ export default function LiveDetailsPage({ id }: LiveDetailsPageProps) {
               }
             />
 
-            <AboutLiveTabs
-              bettingContractAddress={matchData.contractAddress as Address | undefined}
-              walletAddress={walletAddress || undefined}
-              homeTeam={matchData.homeTeam}
-              awayTeam={matchData.awayTeam}
-              matchOdds={matchData.odds}
-              match={{ status: matchData.status, kickoffAt: matchData.startTime }}
-            />
-
-            {/* Mobile chat — anchored card */}
+            {/* Mobile chat — sits between the streamer strip and the markets */}
             <div className="lg:hidden">
               <div
                 className="flex flex-col overflow-hidden rounded-xl border border-[#1E1E1E] bg-[#0d0d0d]"
-                style={{ height: "min(70dvh, 640px)" }}
+                style={{ height: "min(55dvh, 480px)" }}
               >
                 <ChatPanel
                   matchId={id}
@@ -330,6 +321,15 @@ export default function LiveDetailsPage({ id }: LiveDetailsPageProps) {
                 />
               </div>
             </div>
+
+            <AboutLiveTabs
+              bettingContractAddress={matchData.contractAddress as Address | undefined}
+              walletAddress={walletAddress || undefined}
+              homeTeam={matchData.homeTeam}
+              awayTeam={matchData.awayTeam}
+              matchOdds={matchData.odds}
+              match={{ status: matchData.status, kickoffAt: matchData.startTime }}
+            />
           </div>
 
           {/* Chat sidebar (desktop) */}
@@ -362,7 +362,16 @@ export default function LiveDetailsPage({ id }: LiveDetailsPageProps) {
         initialStreamId={initialStreamId}
         onStreamSelect={handleStreamSelect}
         onOwnStreamDetected={(stream) => {
-          const prev = lastMyStreamRef.current;
+          const prev = lastMyStreamRef.current
+          
+          if (userInitiatedEndRef.current) {
+            if (stream === null) {
+              userInitiatedEndRef.current = false;
+              lastMyStreamRef.current = null;
+            }
+            return;
+          }
+
           lastMyStreamRef.current = stream;
           // Detect a silent drop: previously LIVE browser stream, now absent,
           // and the user hasn't clicked End. Show the interrupted banner.

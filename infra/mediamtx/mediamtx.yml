@@ -14,20 +14,15 @@ rtmp: yes
 rtmpAddress: :1935
 
 # HLS playback (browser viewers fetch here, fronted by Caddy in HTTPS)
-#
-# `mpegts` variant: legacy TS segments. Most tolerant of variable keyframe
-# intervals — fmp4 can refuse to emit any segment if OBS's keyframe spacing
-# doesn't align with hlsSegmentDuration. mpegts handles this gracefully.
-# Supported natively by Safari (incl. iOS) and via HLS.js everywhere else.
-#
-# `hlsSegmentDuration` should be slightly longer than OBS's keyframe interval.
-# OBS defaults to ~2s when set to "auto". 4s gives a safe margin.
+# Config aligned with apps/backend/mediamtx.yml (local dev) — same MediaMTX
+# server behavior, no surprises across environments.
 hls: yes
 hlsAddress: :8888
 hlsAlwaysRemux: yes
-hlsVariant: mpegts
-hlsSegmentCount: 3
-hlsSegmentDuration: 4s
+hlsSegmentCount: 7
+hlsSegmentDuration: 1s
+hlsPartDuration: 200ms
+hlsAllowOrigins: ['*']
 
 # Admin API (port restricted in the host firewall, never proxied through Caddy)
 api: yes

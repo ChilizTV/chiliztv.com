@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import { Copy, Eye, EyeOff, RefreshCw, Wifi, WifiOff, ChevronDown, ChevronUp, Tv2, Square, CheckCircle2 } from "lucide-react";
 import { streamViewerService, ApiService } from "@/services";
+import { LiveStream } from "@/models/stream.model";
 
 function StreamerLiveBanner({ isLive }: { isLive: boolean }) {
   if (!isLive) return null;
@@ -27,28 +28,32 @@ function StreamerLiveBanner({ isLive }: { isLive: boolean }) {
 }
 
 interface OBSSetupPanelProps {
-  streamKey: string;
+  cloudflareRtmpsUrl: string;
+  cloudflareRtmpsStreamKey: string;
+  cloudflareInputUid?: string;
   streamId: string;
   matchId: number;
   streamerId: string;
   streamerName: string;
   streamerWalletAddress?: string;
-  onStreamKeyRegenerated: (newKey: string, newStreamId: string) => void;
+  onStreamRegenerated: (newStream: LiveStream) => void;
   onStreamEnded: () => void;
+  onIsLiveChange?: (isLive: boolean) => void;
 }
 
 export function OBSSetupPanel({
-  streamKey,
+  cloudflareRtmpsUrl,
+  cloudflareRtmpsStreamKey,
+  cloudflareInputUid,
   streamId,
   matchId,
   streamerId,
   streamerName,
   streamerWalletAddress,
-  onStreamKeyRegenerated,
+  onStreamRegenerated,
   onStreamEnded,
+  onIsLiveChange,
 }: OBSSetupPanelProps) {
-  const rtmpServer = process.env.NEXT_PUBLIC_RTMP_URL ?? "rtmp://localhost:1935/live";
-  const fullUrl = `${rtmpServer}/${streamKey}`;
 
   const [keyVisible, setKeyVisible] = useState(false);
   const [isLive, setIsLive] = useState(false);
@@ -61,10 +66,16 @@ export function OBSSetupPanel({
     const poll = async () => {
       try {
         const response = await axios.get(`${ApiService.baseURL}/stream`, {
-          params: { streamerId },
+          params: {
+            streamerId,
+            ...(cloudflareInputUid ? { cloudflareInputUid } : {}),
+          },
         });
         const streams: { status: string }[] = response.data?.streams ?? [];
         const nowLive = streams.length > 0 && streams[0].status === "live";
+        if (nowLive !== isLiveRef.current) {
+          onIsLiveChange?.(nowLive);
+        }
         if (isLiveRef.current && !nowLive) {
           onStreamEnded();
         }
@@ -89,7 +100,7 @@ export function OBSSetupPanel({
   const handleRegenerate = async () => {
     setIsRegenerating(true);
     try {
-      await streamViewerService.endStream(streamId, streamerId);
+      await streamViewerService.endStream(streamId, streamerId, cloudflareInputUid);
       const createResponse = await streamViewerService.createStream({
         matchId,
         streamerId,
@@ -97,13 +108,19 @@ export function OBSSetupPanel({
         streamerWalletAddress,
       });
       if (createResponse.success && createResponse.stream) {
-        onStreamKeyRegenerated(createResponse.stream.streamKey, createResponse.stream.id);
+        onStreamRegenerated(createResponse.stream);
       }
     } catch (err) {
       console.error("Failed to regenerate stream key:", err);
     } finally {
       setIsRegenerating(false);
     }
+  };
+
+  const handleEndStream = async () => {
+    // Fire-and-forget: clean up the CF live input (and DB row if it exists).
+    streamViewerService.endStream(streamId, streamerId, cloudflareInputUid).catch(() => {});
+    onStreamEnded();
   };
 
   return (
@@ -141,11 +158,11 @@ export function OBSSetupPanel({
           </label>
           <div className="flex gap-2">
             <div className="font-mono-ctv flex-1 truncate rounded-md border border-[#2A2A2A] bg-[#0d0d0d] px-3 py-2 text-[11px] text-white/80 select-all">
-              {rtmpServer}
+              {cloudflareRtmpsUrl}
             </div>
             <button
               type="button"
-              onClick={() => copyToClipboard(rtmpServer, "server")}
+              onClick={() => copyToClipboard(cloudflareRtmpsUrl, "server")}
               className="font-mono-ctv inline-flex shrink-0 items-center gap-1.5 rounded-md border border-[#2A2A2A] bg-[#0d0d0d] px-3 py-2 text-[10px] font-bold uppercase tracking-[0.12em] text-white/65 transition-colors hover:border-[#3A3A3A] hover:text-white"
             >
               <Copy size={11} />
@@ -161,7 +178,7 @@ export function OBSSetupPanel({
           </label>
           <div className="flex gap-2">
             <div className="font-mono-ctv flex-1 truncate rounded-md border border-[#2A2A2A] bg-[#0d0d0d] px-3 py-2 text-[11px] text-white/80 select-all">
-              {keyVisible ? streamKey : "•".repeat(24)}
+              {keyVisible ? cloudflareRtmpsStreamKey : "•".repeat(24)}
             </div>
             <button
               type="button"
@@ -173,7 +190,7 @@ export function OBSSetupPanel({
             </button>
             <button
               type="button"
-              onClick={() => copyToClipboard(streamKey, "key")}
+              onClick={() => copyToClipboard(cloudflareRtmpsStreamKey, "key")}
               className="font-mono-ctv inline-flex shrink-0 items-center gap-1.5 rounded-md border border-[#2A2A2A] bg-[#0d0d0d] px-3 py-2 text-[10px] font-bold uppercase tracking-[0.12em] text-white/65 transition-colors hover:border-[#3A3A3A] hover:text-white"
             >
               <Copy size={11} />
@@ -182,9 +199,9 @@ export function OBSSetupPanel({
           </div>
         </div>
 
-        {/* Full URL */}
+        {/* Full RTMPS URL */}
         <p className="font-mono-ctv break-all text-[10px] text-white/30">
-          {fullUrl}
+          {cloudflareRtmpsUrl}/{"<stream_key>"}
         </p>
 
         {/* Regenerate */}
@@ -233,7 +250,7 @@ export function OBSSetupPanel({
         {/* End stream */}
         <button
           type="button"
-          onClick={onStreamEnded}
+          onClick={handleEndStream}
           className="font-mono-ctv inline-flex w-full items-center justify-center gap-2 rounded-md px-4 py-2.5 text-[11px] font-bold uppercase tracking-[0.14em] text-white transition-colors hover:bg-[#FF1737]"
           style={{ background: "#E8001D" }}
         >

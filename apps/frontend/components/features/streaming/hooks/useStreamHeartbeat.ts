@@ -13,7 +13,7 @@ const HEARTBEAT_INTERVAL_MS = 30_000;
 
 /**
  * Pings `POST /stream/:id/heartbeat` every 30s while `enabled` is true.
- * Browser-stream only — OBS lifecycles are driven by mediamtx webhooks
+ * Browser-stream only — OBS lifecycles are driven by Cloudflare Stream webhooks
  * and never call this hook.
  */
 export function useStreamHeartbeat({ streamId, streamerId, enabled }: UseStreamHeartbeatArgs) {

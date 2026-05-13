@@ -14,7 +14,7 @@ import { CleanupOldMatchesUseCase } from './src/application/matches/use-cases/Cl
 config();
 setupDependencyInjection();
 import { authRoutes, accessRoutes, predictionRoutes, matchRoutes, chatRoutes, waitlistRoutes, streamRoutes, streamWalletRoutes, fanTokensRoutes, followRoutes, poolRoutes, betRoutes, userRoutes, pricesRoutes } from './src/presentation/http/routes';
-import { mediamtxWebhookRoutes } from './src/presentation/http/routes/mediamtx-webhook.routes';
+import { cloudflareStreamWebhookRoutes } from './src/presentation/http/routes/cloudflare-stream-webhook.routes';
 
 const app = express();
 const server = http.createServer(app);
@@ -25,6 +25,10 @@ const allowedOrigins = env.ALLOWED_ORIGINS.split(',').map(origin => origin.trim(
 
 // Security headers (Helmet) - adapted for Web3/dev environment
 app.use(securityHeadersMiddleware);
+
+// Cloudflare Stream webhook — raw body required for HMAC verification.
+// Must be registered BEFORE the global bodyParser.json() middleware.
+app.use('/cloudflare-stream/webhook', express.raw({ type: 'application/json' }), cloudflareStreamWebhookRoutes);
 
 // Body parser
 app.use(bodyParser.json());
@@ -67,9 +71,6 @@ app.use('/pool', poolRoutes);
 
 // Public token prices — CoinGecko/Pyth cache, no auth required
 app.use('/prices', pricesRoutes);
-
-// Internal — mediamtx calls this to validate publishers
-app.use('/mediamtx', mediamtxWebhookRoutes);
 
 // Global authentication middleware - all routes below require JWT
 app.use(authenticate);

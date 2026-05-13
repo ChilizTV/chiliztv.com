@@ -49,9 +49,9 @@ export class StreamViewerService {
     /**
      * End/delete a stream
      */
-    async endStream(streamId: string, streamerId: string): Promise<{ success: boolean; message?: string; error?: string }> {
+    async endStream(streamId: string, streamerId: string, cloudflareInputUid?: string): Promise<{ success: boolean; message?: string; error?: string }> {
         try {
-            return await streamsApi.end(streamId, streamerId);
+            return await streamsApi.end(streamId, streamerId, cloudflareInputUid);
         } catch (error) {
             console.error('❌ Error ending stream:', error);
             return {
@@ -88,20 +88,9 @@ export class StreamViewerService {
         }
     }
 
-    /**
-     * Get stream playlist URL (served directly by mediamtx, not the backend)
-     */
-    getStreamPlaylistUrl(streamKey: string): string {
-        const mediamtxUrl = process.env.NEXT_PUBLIC_MEDIAMTX_URL ?? 'http://localhost:8888';
-        return `${mediamtxUrl}/live/${streamKey}/index.m3u8`;
-    }
-
-    /**
-     * Check if playlist file is available (with retry)
-     * Direct call to mediamtx — not routed through the backend API
-     */
-    async checkPlaylistAvailable(streamKey: string, maxRetries: number = 10, delay: number = 500): Promise<boolean> {
-        const playlistUrl = this.getStreamPlaylistUrl(streamKey);
+    /** Polls the given HLS URL until it returns 200 or the retry budget is exhausted. */
+    async checkPlaylistAvailable(hlsUrl: string, maxRetries: number = 10, delay: number = 500): Promise<boolean> {
+        const playlistUrl = hlsUrl;
 
         for (let i = 0; i < maxRetries; i++) {
             try {

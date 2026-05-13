@@ -119,53 +119,84 @@ export default function VideoPlayer({
         setError(null);
         setStatusMessage('Connecting to stream...');
 
-        const playlistUrl = streamViewerService.getStreamPlaylistUrl(stream.streamKey);
-        console.log('[VideoPlayer] Loading stream:', stream.streamKey, playlistUrl);
+        const playlistUrl = stream.cloudflarePlaybackHlsUrl ?? stream.hlsUrl ?? '';
+        console.log('[VideoPlayer] Loading stream:', stream.id, playlistUrl);
 
-        // Native HLS support (Safari)
+        // Native HLS support (Safari / WebKit)
         if (videoRef.current.canPlayType('application/vnd.apple.mpegurl')) {
-            console.log('[VideoPlayer] Using native HLS (Safari)');
-            videoRef.current.src = playlistUrl;
+            console.log('[VideoPlayer] Using native HLS, url:', playlistUrl);
 
-            // Safari's native HLS loader stays silent when the playlist 404s or
-            // returns no segments — neither `loadedmetadata` nor `error` fires.
-            // Probe the URL ourselves; if it's not reachable, surface a state
-            // instead of leaving the spinner up forever.
-            const NATIVE_HLS_TIMEOUT_MS = 12_000;
-            const safariWatchdog = setTimeout(() => {
-                if (cancelled) return;
-                fetch(playlistUrl, { method: 'GET' })
-                    .then(res => {
-                        if (cancelled) return;
-                        if (res.status === 404) {
-                            console.warn('[VideoPlayer] Native HLS: playlist 404, marking stream ended');
-                            setStreamEnded(true);
-                            setIsLoading(false);
-                            setStatusMessage(null);
-                            return;
+            let nativeRetry = 0;
+            const MAX_NATIVE_RETRIES = 5;
+            let safariWatchdog: ReturnType<typeof setTimeout> | null = null;
+            let nativeLoaded = false;
+
+            const loadNative = () => {
+                if (cancelled || !videoRef.current) return;
+                videoRef.current.src = playlistUrl;
+                videoRef.current.load();
+
+                // Safari stays silent when the playlist 404s — probe after 12s.
+                safariWatchdog = setTimeout(() => {
+                    if (cancelled) return;
+                    fetch(playlistUrl, { method: 'GET' })
+                        .then(res => {
+                            if (cancelled) return;
+                            if (res.status === 404) {
+                                setStreamEnded(true);
+                                setIsLoading(false);
+                                setStatusMessage(null);
+                                return;
+                            }
+                            if (!res.ok) {
+                                setError(`Failed to load stream (HTTP ${res.status})`);
+                                setIsLoading(false);
+                                setStatusMessage(null);
+                            }
+                        })
+                        .catch(() => {
+                            if (!cancelled) {
+                                setError('Cannot reach the stream server.');
+                                setIsLoading(false);
+                                setStatusMessage(null);
+                            }
+                        });
+                }, 12_000);
+            };
+
+            const handleNativeError = () => {
+                if (safariWatchdog !== null) clearTimeout(safariWatchdog);
+                if (cancelled || nativeLoaded) return;
+                const mediaErr = videoRef.current?.error;
+                const code = mediaErr?.code ?? 0;
+                const detail = mediaErr?.message || 'no detail';
+                const codeLabel = ['UNKNOWN', 'ABORTED', 'NETWORK', 'DECODE', 'UNSUPPORTED'][code] ?? 'UNKNOWN';
+                console.error('[VideoPlayer] Native HLS error', { code, codeLabel, detail });
+
+                // Code 4 (UNSUPPORTED / DEMUXER_ERROR_COULD_NOT_PARSE) often means
+                // CF Stream hasn't buffered enough segments yet right after OBS connects.
+                // Retry with a delay before surfacing the error to the user.
+                if (code === 4 && nativeRetry < MAX_NATIVE_RETRIES) {
+                    nativeRetry++;
+                    console.log(`[VideoPlayer] Native HLS: retrying ${nativeRetry}/${MAX_NATIVE_RETRIES}`);
+                    setStatusMessage(`Waiting for stream... (${nativeRetry}/${MAX_NATIVE_RETRIES})`);
+                    setTimeout(() => {
+                        if (!cancelled && videoRef.current) {
+                            videoRef.current.addEventListener('error', handleNativeError, { once: true });
+                            loadNative();
                         }
-                        if (!res.ok) {
-                            console.warn('[VideoPlayer] Native HLS: playlist status', res.status);
-                            setError(`Failed to load stream (HTTP ${res.status})`);
-                            setIsLoading(false);
-                            setStatusMessage(null);
-                            return;
-                        }
-                        console.warn('[VideoPlayer] Native HLS: playlist OK, awaiting metadata');
-                        setIsLoading(false);
-                        setStatusMessage(null);
-                    })
-                    .catch(err => {
-                        if (cancelled) return;
-                        console.error('[VideoPlayer] Native HLS: probe failed', err);
-                        setError('Cannot reach the stream server.');
-                        setIsLoading(false);
-                        setStatusMessage(null);
-                    });
-            }, NATIVE_HLS_TIMEOUT_MS);
+                    }, 2000);
+                    return;
+                }
+
+                setError(`Failed to load video (${codeLabel}: ${detail})`);
+                setIsLoading(false);
+                setStatusMessage(null);
+            };
 
             videoRef.current.addEventListener('loadedmetadata', () => {
-                clearTimeout(safariWatchdog);
+                if (safariWatchdog !== null) clearTimeout(safariWatchdog);
+                nativeLoaded = true;
                 if (!cancelled) {
                     console.log('[VideoPlayer] Native HLS: metadata loaded');
                     setIsLoading(false);
@@ -178,19 +209,9 @@ export default function VideoPlayer({
                     }
                 }
             }, { once: true });
-            videoRef.current.addEventListener('error', () => {
-                clearTimeout(safariWatchdog);
-                if (!cancelled) {
-                    const mediaErr = videoRef.current?.error;
-                    const code = mediaErr?.code ?? 0;
-                    const detail = mediaErr?.message || 'no detail';
-                    const codeLabel = ['UNKNOWN', 'ABORTED', 'NETWORK', 'DECODE', 'UNSUPPORTED'][code] ?? 'UNKNOWN';
-                    console.error('[VideoPlayer] Native HLS error', { code, codeLabel, detail });
-                    setError(`Failed to load video (${codeLabel}: ${detail})`);
-                    setIsLoading(false);
-                    setStatusMessage(null);
-                }
-            }, { once: true });
+            videoRef.current.addEventListener('error', handleNativeError, { once: true });
+
+            loadNative();
         } else if (Hls.isSupported()) {
             console.log('[VideoPlayer] Using HLS.js');
             const hls = new Hls({
@@ -275,7 +296,7 @@ export default function VideoPlayer({
                                     }
                                 }, 2000);
                             } else {
-                                // Stop requesting — lets mediamtx detect no readers → runOnNotReady fires
+                                // Stop requesting — CF Stream stops serving segments when no publisher is connected
                                 setStreamEnded(true);
                                 setIsLoading(false);
                                 setStatusMessage(null);
@@ -399,7 +420,7 @@ export default function VideoPlayer({
                     )}
 
                     {streamEnded && (
-                        <div className="absolute inset-0 flex flex-col items-center justify-center z-10 p-6 bg-gradient-to-b from-zinc-900/95 via-zinc-950/98 to-black animate-in fade-in duration-500">
+                        <div className="absolute inset-0 flex flex-col items-center justify-center z-10 p-6 bg-linear-to-b from-zinc-900/95 via-zinc-950/98 to-black animate-in fade-in duration-500">
                             <div className="flex flex-col items-center gap-4 text-center max-w-xs">
                                 <div className="rounded-full bg-zinc-800 p-4">
                                     <VideoOff className="w-10 h-10 text-zinc-400" />

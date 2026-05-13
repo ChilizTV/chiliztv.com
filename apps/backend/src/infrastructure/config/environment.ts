@@ -51,8 +51,11 @@ const envSchema = z.object({
 
   LOG_LEVEL: z.enum(['debug', 'info', 'warn', 'error']).default('info'),
 
-  MEDIAMTX_API_URL: z.string().url().default('http://localhost:9997'),
-  MEDIAMTX_PUBLISH_SECRET: z.string().optional(),
+  // Cloudflare Stream
+  CLOUDFLARE_ACCOUNT_ID: z.string().min(1),
+  CLOUDFLARE_STREAM_API_TOKEN: z.string().min(1),
+  CLOUDFLARE_STREAM_WEBHOOK_SECRET: z.string().min(1),
+  CLOUDFLARE_STREAM_CUSTOMER_SUBDOMAIN: z.string().min(1),
 
   // Access code gate — must be generated with scripts/gen-access-code-hash.js
   // Format: "<saltHex>:<scryptDerivedKeyHex>"  See docs/runbook-access-code.md.

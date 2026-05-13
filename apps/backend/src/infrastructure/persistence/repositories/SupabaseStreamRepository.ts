@@ -20,6 +20,11 @@ interface StreamRow {
   viewer_count: number;
   created_at: string;
   ended_at?: string;
+  cloudflare_input_uid?: string;
+  cloudflare_rtmps_url?: string;
+  cloudflare_rtmps_stream_key?: string;
+  cloudflare_playback_hls_url?: string;
+  cloudflare_webrtc_publish_url?: string;
 }
 
 @injectable()
@@ -51,6 +56,13 @@ export class SupabaseStreamRepository implements IStreamRepository {
     return row ? this.toDomain(row) : null;
   }
 
+  async findByCloudflareInputUid(uid: string): Promise<Stream | null> {
+    const { data: row, error } = await supabase
+      .from('live_streams').select('*').eq('cloudflare_input_uid', uid).maybeSingle();
+    if (error) { logger.error('Failed to find stream by CF input uid', { error: error.message, uid }); throw new Error('Failed to find stream'); }
+    return row ? this.toDomain(row) : null;
+  }
+
   async findActiveStreams(): Promise<Stream[]> {
     const { data: rows, error } = await supabase.from('live_streams').select('*').eq('status', 'live').order('created_at', { ascending: false });
     if (error) { logger.error('Failed to find active streams', { error: error.message }); throw new Error('Failed to find active streams'); }
@@ -68,9 +80,16 @@ export class SupabaseStreamRepository implements IStreamRepository {
 
   async findStaleLiveStreams(olderThan: Date): Promise<Stream[]> {
     // Filter source_type='browser' — OBS streams have no client heartbeat;
-    // their lifecycle is driven by mediamtx webhooks (cf. D10).
+    // their lifecycle is driven by provider webhooks.
     const { data: rows, error } = await supabase.from('live_streams').select('*').eq('status', 'live').eq('source_type', 'browser').not('last_heartbeat_at', 'is', null).lt('last_heartbeat_at', olderThan.toISOString());
     if (error) { logger.error('Failed to find stale live streams', { error: error.message }); throw new Error('Failed to find stale live streams'); }
+    return rows ? rows.map(row => this.toDomain(row)) : [];
+  }
+
+  async findLiveCloudflareStreams(): Promise<Stream[]> {
+    const { data: rows, error } = await supabase
+      .from('live_streams').select('*').eq('status', 'live').not('cloudflare_input_uid', 'is', null);
+    if (error) { logger.error('Failed to find live CF streams', { error: error.message }); throw new Error('Failed to find live CF streams'); }
     return rows ? rows.map(row => this.toDomain(row)) : [];
   }
 
@@ -124,27 +143,37 @@ export class SupabaseStreamRepository implements IStreamRepository {
       viewerCount: row.viewer_count,
       endedAt: row.ended_at ? new Date(row.ended_at) : undefined,
       createdAt: new Date(row.created_at),
+      cloudflareInputUid: row.cloudflare_input_uid,
+      cloudflareRtmpsUrl: row.cloudflare_rtmps_url,
+      cloudflareRtmpsStreamKey: row.cloudflare_rtmps_stream_key,
+      cloudflarePlaybackHlsUrl: row.cloudflare_playback_hls_url,
+      cloudflareWebRtcPublishUrl: row.cloudflare_webrtc_publish_url,
     });
   }
 
-  private toRow(stream: Stream): any {
+  private toRow(stream: Stream): Omit<StreamRow, never> {
     const json = stream.toJSON();
     return {
       id: json.id,
       match_id: json.matchId,
       streamer_id: json.streamerId,
       streamer_name: json.streamerName,
-      streamer_wallet_address: json.streamerWalletAddress?.toLowerCase() || null,
+      streamer_wallet_address: json.streamerWalletAddress?.toLowerCase() || undefined,
       stream_key: json.streamKey,
       hls_playlist_url: json.hlsUrl,
-      title: json.title || null,
-      thumbnail_url: json.thumbnailUrl || null,
+      title: json.title || undefined,
+      thumbnail_url: json.thumbnailUrl ?? undefined,
       status: json.status,
       source_type: json.sourceType,
-      last_heartbeat_at: json.lastHeartbeatAt ? json.lastHeartbeatAt.toISOString() : null,
+      last_heartbeat_at: json.lastHeartbeatAt ? (json.lastHeartbeatAt as Date).toISOString() : undefined,
       viewer_count: json.viewerCount,
-      created_at: json.createdAt.toISOString(),
-      ended_at: json.endedAt ? json.endedAt.toISOString() : null,
+      created_at: (json.createdAt as Date).toISOString(),
+      ended_at: json.endedAt ? (json.endedAt as Date).toISOString() : undefined,
+      cloudflare_input_uid: json.cloudflareInputUid,
+      cloudflare_rtmps_url: json.cloudflareRtmpsUrl,
+      cloudflare_rtmps_stream_key: json.cloudflareRtmpsStreamKey,
+      cloudflare_playback_hls_url: json.cloudflarePlaybackHlsUrl,
+      cloudflare_webrtc_publish_url: json.cloudflareWebRtcPublishUrl,
     };
   }
 }

@@ -49,6 +49,7 @@ export * from './follows/repositories/IFollowRepository';
 // Streams
 export * from './streams/entities/Stream';
 export * from './streams/repositories/IStreamRepository';
+export * from './streams/ports/IStreamingService';
 export * from './streams/policies/wasInterrupted';
 
 // Blockchain indexing — policies

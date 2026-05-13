@@ -10,7 +10,7 @@ import { logger } from '../../logging/logger';
  * Stale Stream Cleanup Job
  * Runs every 3 minutes. Two passes:
  *  - LIVE browser streams with `last_heartbeat_at` > 5 min → end. OBS rows
- *    are intentionally excluded (cf. D10) — their lifecycle is webhook-driven.
+ *    are excluded — their lifecycle is driven by provider webhooks (Cloudflare Stream).
  *  - CREATED orphans > 15 min → end. Covers setup placeholders abandoned
  *    before the publisher ever connected.
  */
@@ -41,7 +41,7 @@ export class StaleStreamCleanupJob {
       ]);
 
       for (const stream of staleLive) {
-        await lifecycleService.endStreamIfNeeded(stream.getStreamKey());
+        await lifecycleService.endStaleLive(stream.getStreamKey());
         logger.warn('Stale LIVE stream auto-ended by cron', { streamKey: stream.getStreamKey() });
       }
 

@@ -3,10 +3,7 @@
 /**
  * StreamClientService — WHIP WebRTC publisher
  *
- * Replaces the previous Socket.IO + Canvas JPEG pipeline.
- * The public API is unchanged so StreamManager.tsx requires no modifications.
- *
- * Browser → canvas.captureStream() → RTCPeerConnection → WHIP → mediamtx
+ * Browser → canvas.captureStream() → RTCPeerConnection → WHIP → Cloudflare Stream
  */
 export class StreamClientService {
   private peerConnection: RTCPeerConnection | null = null;
@@ -22,19 +19,14 @@ export class StreamClientService {
   private readonly height = 720;
   private readonly fps = 25;
 
-  /** WHIP ingest base URL — mediamtx WebRTC server (port 8889, separate from HLS on 8888) */
-  private get mediamtxWhipUrl(): string {
-    return process.env.NEXT_PUBLIC_MEDIAMTX_WHIP_URL ?? 'http://localhost:8889';
-  }
-
   // ── Public API ───────────────────
 
-  async startStream(streamKey: string, mediaStream: MediaStream): Promise<void> {
-    await this.publishViaWhip(streamKey, this.buildSimpleCanvasStream(mediaStream));
+  async startStream(whipUrl: string, mediaStream: MediaStream): Promise<void> {
+    await this.publishViaWhip(whipUrl, this.buildSimpleCanvasStream(mediaStream));
   }
 
   async startStreamWithOverlay(
-    streamKey: string,
+    whipUrl: string,
     screenStream: MediaStream,
     cameraStream: MediaStream,
     cameraPosition: { x: number; y: number },
@@ -48,7 +40,7 @@ export class StreamClientService {
     this.overlaySize = cameraSize;
     this.overlayVisible = cameraVisible;
     await this.publishViaWhip(
-      streamKey,
+      whipUrl,
       this.buildOverlayCanvasStream(screenStream, cameraStream, microphoneStream),
     );
   }
@@ -164,17 +156,17 @@ export class StreamClientService {
   }
 
   /**
-   * Publishes a MediaStream to mediamtx via the WHIP protocol.
+   * Publishes a MediaStream via the WHIP protocol.
    * WHIP = WebRTC HTTP Ingest Protocol (single POST with SDP offer/answer).
    */
-  private async publishViaWhip(streamKey: string, mediaStream: MediaStream): Promise<void> {
+  private async publishViaWhip(whipUrl: string, mediaStream: MediaStream): Promise<void> {
     this.peerConnection = new RTCPeerConnection({ iceServers: [] });
 
     for (const track of mediaStream.getTracks()) {
       this.peerConnection.addTrack(track, mediaStream);
     }
 
-    // Force H.264 for video — mediamtx HLS muxer skips VP8/VP9, only packages H.264/H.265
+    // Force H.264 — Cloudflare Stream transcoder requires H.264 baseline; VP8/VP9 are rejected
     const videoTransceiver = this.peerConnection
       .getTransceivers()
       .find((t) => t.sender.track?.kind === 'video');
@@ -198,7 +190,7 @@ export class StreamClientService {
       });
     });
 
-    const response = await fetch(`${this.mediamtxWhipUrl}/live/${streamKey}/whip`, {
+    const response = await fetch(whipUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/sdp' },
       body: this.peerConnection.localDescription!.sdp,

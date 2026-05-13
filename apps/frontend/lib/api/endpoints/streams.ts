@@ -61,8 +61,10 @@ export const streamsApi = {
   /**
    * @notice Ends/deletes a stream
    */
-  end: async (streamId: string, streamerId: string): Promise<EndStreamResponse> => {
-    return apiClient.delete<EndStreamResponse>('/stream', { data: { streamId, streamerId } } as never);
+  end: async (streamId: string, streamerId: string, cloudflareInputUid?: string): Promise<EndStreamResponse> => {
+    return apiClient.delete<EndStreamResponse>('/stream', {
+      data: { streamId, streamerId, ...(cloudflareInputUid ? { cloudflareInputUid } : {}) },
+    } as never);
   },
 
   /**

@@ -1,3 +1,5 @@
+import { LiveInputResult } from '../ports/IStreamingService';
+
 export enum StreamStatus {
   CREATED = 'created',
   LIVE    = 'live',
@@ -6,7 +8,7 @@ export enum StreamStatus {
 
 /**
  * Discriminates the publisher path. Immutable post-creation.
- *  - 'obs'     — RTMP via mediamtx; lifecycle driven by webhooks.
+ *  - 'obs'     — RTMP/RTMPS via the streaming provider; lifecycle driven by webhooks.
  *  - 'browser' — WHIP/WebRTC; requires client heartbeat + beacon for cleanup.
  */
 export type SourceType = 'obs' | 'browser';
@@ -27,6 +29,12 @@ export interface StreamProps {
   viewerCount: number;
   endedAt?: Date;
   createdAt: Date;
+  // Cloudflare Stream fields — populated when created via CloudflareStreamService
+  cloudflareInputUid?: string;
+  cloudflareRtmpsUrl?: string;
+  cloudflareRtmpsStreamKey?: string;
+  cloudflarePlaybackHlsUrl?: string;
+  cloudflareWebRtcPublishUrl?: string;
 }
 
 export class Stream {
@@ -63,6 +71,16 @@ export class Stream {
     this.props.lastHeartbeatAt = new Date();
   }
 
+  /** Populate all Cloudflare Stream fields from a live input creation result. */
+  attachCloudflareInput(result: LiveInputResult): void {
+    this.props.cloudflareInputUid = result.uid;
+    this.props.cloudflareRtmpsUrl = result.rtmpsUrl;
+    this.props.cloudflareRtmpsStreamKey = result.rtmpsStreamKey;
+    this.props.cloudflarePlaybackHlsUrl = result.playbackHlsUrl;
+    this.props.cloudflareWebRtcPublishUrl = result.webRtcPublishUrl;
+    this.props.hlsUrl = result.playbackHlsUrl;
+  }
+
   getStatus(): StreamStatus {
     return this.props.status;
   }
@@ -87,29 +105,19 @@ export class Stream {
     return this.props.sourceType;
   }
 
+  getCloudflareInputUid(): string | undefined {
+    return this.props.cloudflareInputUid;
+  }
+
   /** Backward-compatible helper. Returns true only when status is LIVE. */
   isLive(): boolean {
     return this.props.status === StreamStatus.LIVE;
   }
 
-  toJSON(): any {
+  toJSON(): StreamProps & { isLive: boolean } {
     return {
-      id: this.props.id,
-      matchId: this.props.matchId,
-      streamerId: this.props.streamerId,
-      streamerName: this.props.streamerName,
-      streamerWalletAddress: this.props.streamerWalletAddress,
-      streamKey: this.props.streamKey,
-      hlsUrl: this.props.hlsUrl,
-      title: this.props.title,
-      status: this.props.status,
-      sourceType: this.props.sourceType,
+      ...this.props,
       isLive: this.props.status === StreamStatus.LIVE,
-      thumbnailUrl: this.props.thumbnailUrl ?? null,
-      lastHeartbeatAt: this.props.lastHeartbeatAt,
-      viewerCount: this.props.viewerCount,
-      endedAt: this.props.endedAt,
-      createdAt: this.props.createdAt,
     };
   }
 }

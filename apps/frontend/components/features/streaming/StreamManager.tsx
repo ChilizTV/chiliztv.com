@@ -9,6 +9,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { Play, Square, Loader2, CheckCircle, Tv2, Video } from "lucide-react";
 import { streamClientService, streamViewerService } from "@/services";
+import VideoPlayer from "@/components/live/VideoPlayer";
 import { LiveStream } from "@/models/stream.model";
 import { useDynamicContext } from "@dynamic-labs/sdk-react-core";
 import {
@@ -59,6 +60,7 @@ export default function StreamManager({ matchId, onStreamCreated, onStreamEnded,
   const [sourceType, setSourceType] = useState<"camera" | "screen" | "both" | "obs">("obs");
   // OBS mode: holds the stream created for OBS (separate from WHIP streaming state)
   const [obsStream, setObsStream] = useState<LiveStream | null>(null);
+  const [obsIsLive, setObsIsLive] = useState(false);
   const [obsLoading, setObsLoading] = useState(false);
   const [cameraEnabled, setCameraEnabled] = useState(true);
   const [microphoneEnabled, setMicrophoneEnabled] = useState(true);
@@ -121,8 +123,8 @@ export default function StreamManager({ matchId, onStreamCreated, onStreamEnded,
     cameraVisibleRef.current = cameraVisible;
   }, [cameraPosition, cameraSize, cameraVisible]);
 
-  // Browser-only lifecycle pings. OBS streams pass through mediamtx webhooks
-  // (auth/disconnect) and never call these endpoints.
+  // Browser-only lifecycle pings. OBS stream lifecycle is driven by Cloudflare Stream webhooks
+  // and never calls these endpoints.
   const isBrowserPipeline = sourceType !== "obs";
   useStreamHeartbeat({
     streamId: stream?.id ?? null,
@@ -315,7 +317,7 @@ export default function StreamManager({ matchId, onStreamCreated, onStreamEnded,
         }
 
         await streamClientService.startStreamWithOverlay(
-          newStream.streamKey,
+          newStream.cloudflareWebRtcPublishUrl ?? '',
           streamResult.screenStream,
           streamResult.cameraStream,
           cameraPosition,
@@ -326,7 +328,7 @@ export default function StreamManager({ matchId, onStreamCreated, onStreamEnded,
           streamResult.microphoneStream
         );
       } else {
-        await streamClientService.startStream(newStream.streamKey, streamResult.stream);
+        await streamClientService.startStream(newStream.cloudflareWebRtcPublishUrl ?? '', streamResult.stream);
       }
 
       setIsStreaming(true);
@@ -357,8 +359,8 @@ export default function StreamManager({ matchId, onStreamCreated, onStreamEnded,
 
     // Optimistic UI: clear local + parent state immediately so the user sees the
     // stream disappear the moment they click "End stream". The backend call to
-    // mark the row as ended is fired in the background — MediaMTX will also
-    // detect the publisher drop and webhook the backend either way.
+    // mark the row as ended is fired in the background — Cloudflare Stream will
+    // also webhook the backend on publisher disconnect.
     streamClientService.stopStream();
     stopMediaStream(currentStreamValue);
     stopMediaStream(cameraStreamValue);
@@ -622,18 +624,17 @@ export default function StreamManager({ matchId, onStreamCreated, onStreamEnded,
         {sourceType === "obs" ? (
           obsStream ? (
             <OBSSetupPanel
-              streamKey={obsStream.streamKey}
+              cloudflareRtmpsUrl={obsStream.cloudflareRtmpsUrl ?? ''}
+              cloudflareRtmpsStreamKey={obsStream.cloudflareRtmpsStreamKey ?? ''}
+              cloudflareInputUid={obsStream.cloudflareInputUid}
               streamId={obsStream.id}
               matchId={matchId}
               streamerId={user?.userId ?? ""}
               streamerName={user?.username ?? "Anonymous"}
               streamerWalletAddress={primaryWallet?.address}
-              onStreamKeyRegenerated={(newKey, newStreamId) =>
-                setObsStream((prev) =>
-                  prev ? { ...prev, streamKey: newKey, id: newStreamId } : null,
-                )
-              }
-              onStreamEnded={() => setObsStream(null)}
+              onIsLiveChange={setObsIsLive}
+              onStreamRegenerated={(newStream) => { setObsStream(newStream); setObsIsLive(false); }}
+              onStreamEnded={() => { setObsStream(null); setObsIsLive(false); }}
             />
           ) : (
             <div>
@@ -741,44 +742,53 @@ export default function StreamManager({ matchId, onStreamCreated, onStreamEnded,
           <span aria-hidden className="block h-0.5 w-4 bg-white/25" />
           Preview
         </div>
-        <div className="relative aspect-video w-full overflow-hidden rounded-lg border border-[#1E1E1E] bg-black">
-          <span
-            aria-hidden
-            className="absolute inset-0"
-            style={{
-              background:
-                "radial-gradient(60% 70% at 50% 50%, rgba(232,0,29,0.18), transparent 65%), linear-gradient(180deg, #1A0509 0%, #03110b 100%)",
-            }}
+        {sourceType === "obs" && obsStream && obsIsLive ? (
+          <VideoPlayer
+            stream={obsStream}
+            autoplay
+            showControls={false}
+            className="w-full rounded-lg overflow-hidden"
           />
-          <div className="absolute inset-0 flex flex-col items-center justify-center gap-2">
-            {sourceType === "obs" ? (
-              <>
-                <Tv2 size={28} className="text-white/55" />
-                <span className="font-mono-ctv text-[10px] uppercase tracking-[0.18em] text-white/45">
-                  Waiting for OBS to connect…
-                </span>
-              </>
-            ) : (
-              <>
-                <Video size={28} className="text-white/55" />
-                <span className="font-mono-ctv text-[10px] uppercase tracking-[0.18em] text-white/45">
-                  Camera will activate on Go live
-                </span>
-              </>
-            )}
-          </div>
-          <div className="absolute left-3 top-3">
-            <span className="font-mono-ctv inline-flex items-center gap-1.5 rounded-md border px-2 py-1 text-[10px] font-bold uppercase tracking-[0.14em]"
+        ) : (
+          <div className="relative aspect-video w-full overflow-hidden rounded-lg border border-[#1E1E1E] bg-black">
+            <span
+              aria-hidden
+              className="absolute inset-0"
               style={{
-                color: "#fff",
-                background: "rgba(0,0,0,0.45)",
-                borderColor: "rgba(255,255,255,0.18)",
+                background:
+                  "radial-gradient(60% 70% at 50% 50%, rgba(232,0,29,0.18), transparent 65%), linear-gradient(180deg, #1A0509 0%, #03110b 100%)",
               }}
-            >
-              <span className="h-1.5 w-1.5 rounded-full bg-white/55" /> Off-air
-            </span>
+            />
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-2">
+              {sourceType === "obs" ? (
+                <>
+                  <Tv2 size={28} className="text-white/55" />
+                  <span className="font-mono-ctv text-[10px] uppercase tracking-[0.18em] text-white/45">
+                    {obsStream ? "Waiting for OBS to connect…" : "Get a stream key to start"}
+                  </span>
+                </>
+              ) : (
+                <>
+                  <Video size={28} className="text-white/55" />
+                  <span className="font-mono-ctv text-[10px] uppercase tracking-[0.18em] text-white/45">
+                    Camera will activate on Go live
+                  </span>
+                </>
+              )}
+            </div>
+            <div className="absolute left-3 top-3">
+              <span className="font-mono-ctv inline-flex items-center gap-1.5 rounded-md border px-2 py-1 text-[10px] font-bold uppercase tracking-[0.14em]"
+                style={{
+                  color: "#fff",
+                  background: "rgba(0,0,0,0.45)",
+                  borderColor: "rgba(255,255,255,0.18)",
+                }}
+              >
+                <span className="h-1.5 w-1.5 rounded-full bg-white/55" /> Off-air
+              </span>
+            </div>
           </div>
-        </div>
+        )}
 
         <div className="rounded-md border border-[#1E1E1E] bg-[#111] p-4">
           <div className="font-mono-ctv inline-flex items-center gap-2.5 text-[10px] font-bold uppercase tracking-[0.16em] text-[#F5C518]">

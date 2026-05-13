@@ -10,9 +10,14 @@ export class GetActiveStreamsUseCase {
     private readonly streamRepository: IStreamRepository
   ) {}
 
-  async execute(matchId?: number): Promise<Stream[]> {
+  async execute(matchId?: number, streamerId?: string): Promise<Stream[]> {
     if (matchId) {
       return this.streamRepository.findActiveByMatchIds([matchId]);
+    }
+    if (streamerId) {
+      // OBSSetupPanel polls this to detect when a LIVE stream appears for the streamer.
+      const stream = await this.streamRepository.findByStreamerId(streamerId);
+      return stream ? [stream] : [];
     }
     return this.streamRepository.findActiveStreams();
   }

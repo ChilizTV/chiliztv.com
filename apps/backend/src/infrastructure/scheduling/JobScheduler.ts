@@ -8,6 +8,7 @@ import { StaleStreamCleanupJob } from './jobs/StaleStreamCleanupJob';
 import { OldEndedStreamsCleanupJob } from './jobs/OldEndedStreamsCleanupJob';
 import { SettlePredictionsJob } from './jobs/SettlePredictionsJob';
 import { ViewerReconcileJob } from './jobs/ViewerReconcileJob';
+import { CloudflareReconcileJob } from './jobs/CloudflareReconcileJob';
 import { ComputeApyJob } from './jobs/ComputeApyJob';
 import { RefreshTokenPricesJob } from './jobs/RefreshTokenPricesJob';
 import { BackfillMarketLinesJob } from './jobs/BackfillMarketLinesJob';
@@ -31,6 +32,7 @@ export class JobScheduler {
         private readonly oldEndedStreamsCleanupJob: OldEndedStreamsCleanupJob,
         private readonly settlePredictionsJob: SettlePredictionsJob,
         private readonly viewerReconcileJob: ViewerReconcileJob,
+        private readonly cloudflareReconcileJob: CloudflareReconcileJob,
         private readonly computeApyJob: ComputeApyJob,
         private readonly refreshTokenPricesJob: RefreshTokenPricesJob,
         private readonly backfillMarketLinesJob: BackfillMarketLinesJob,
@@ -71,6 +73,12 @@ export class JobScheduler {
             'ViewerReconcile',
             this.viewerReconcileJob.getSchedule(),
             () => this.viewerReconcileJob.execute()
+        );
+
+        this.startCronJob(
+            'CloudflareReconcile',
+            this.cloudflareReconcileJob.getSchedule(),
+            () => this.cloudflareReconcileJob.execute()
         );
 
         // Interval-based jobs

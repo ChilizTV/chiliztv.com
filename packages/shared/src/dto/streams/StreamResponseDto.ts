@@ -7,11 +7,7 @@ export interface StreamResponseDto {
   streamerName: string;
   /** Wallet address du streamer */
   streamerWalletAddress?: string;
-  /**
-   * Clé OBS/RTMP du stream. Présente dans toutes les réponses backend
-   * (via Stream.toJSON()) car mediamtx en a besoin côté client pour
-   * construire l'URL HLS.
-   */
+  /** RTMP stream key. For Cloudflare Stream, this is the CF RTMP key. */
   streamKey: string;
   /** URL HLS publique pour la lecture du stream. Absente avant le démarrage. */
   hlsUrl?: string;
@@ -29,6 +25,12 @@ export interface StreamResponseDto {
   endedAt?: string;
   /** ISO 8601 — dernier heartbeat reçu */
   lastHeartbeatAt?: string;
+  // Cloudflare Stream fields — present when created via CloudflareStreamService
+  cloudflareInputUid?: string;
+  cloudflareRtmpsUrl?: string;
+  cloudflareRtmpsStreamKey?: string;
+  cloudflarePlaybackHlsUrl?: string;
+  cloudflareWebRtcPublishUrl?: string;
 }
 
 export interface StreamListResponseDto {

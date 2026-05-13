@@ -162,6 +162,7 @@ import { OldEndedStreamsCleanupJob } from '../infrastructure/scheduling/jobs/Old
 import { SettlePredictionsJob } from '../infrastructure/scheduling/jobs/SettlePredictionsJob';
 import { ComputeApyJob } from '../infrastructure/scheduling/jobs/ComputeApyJob';
 import { ViewerReconcileJob } from '../infrastructure/scheduling/jobs/ViewerReconcileJob';
+import { CloudflareReconcileJob } from '../infrastructure/scheduling/jobs/CloudflareReconcileJob';
 
 // ─── Infrastructure — Access ──────────────────────────────────────────────────
 import { IAccessCodeVerifier } from '@chiliztv/domain/access/ports/IAccessCodeVerifier';
@@ -170,6 +171,8 @@ import { ScryptAccessCodeVerifier } from '../infrastructure/access/ScryptAccessC
 // ─── Infrastructure — Services ───────────────────────────────────────────────
 import { ViewerSessionService } from '../infrastructure/services/ViewerSessionService';
 import { StreamLifecycleService } from '../infrastructure/services/StreamLifecycleService';
+import { IStreamingService } from '@chiliztv/domain/streams/ports/IStreamingService';
+import { CloudflareStreamService } from '../infrastructure/streaming/CloudflareStreamService';
 
 // ─── Infrastructure — Blockchain ─────────────────────────────────────────────
 import { BlockchainEventListener } from '../infrastructure/blockchain/BlockchainEventListener';
@@ -180,6 +183,7 @@ import { ChilizSwapRouterIndexer } from '../infrastructure/blockchain/indexers/C
 import { StreamWalletIndexer } from '../infrastructure/blockchain/indexers/StreamWalletIndexer';
 
 // ─── Presentation — Controllers ──────────────────────────────────────────────
+import { CloudflareStreamWebhookController } from '../presentation/http/controllers/cloudflare-stream-webhook.controller';
 import { PredictionController } from '../presentation/http/controllers/prediction.controller';
 import { MatchController } from '../presentation/http/controllers/match.controller';
 import { ChatController } from '../presentation/http/controllers/chat.controller';
@@ -190,7 +194,6 @@ import { StreamController } from '../presentation/http/controllers/stream.contro
 import { StreamWalletController } from '../presentation/http/controllers/stream-wallet.controller';
 import { FanTokensController } from '../presentation/http/controllers/fan-tokens.controller';
 import { FollowController } from '../presentation/http/controllers/follow.controller';
-import { MediamtxWebhookController } from '../presentation/http/controllers/mediamtx-webhook.controller';
 import { PoolController } from '../presentation/http/controllers/pool.controller';
 import { BetController } from '../presentation/http/controllers/bet.controller';
 import { UserController } from '../presentation/http/controllers/user.controller';
@@ -214,6 +217,7 @@ export function setupDependencyInjection(): void {
   container.registerSingleton<IBlockchainService>(TOKENS.IBlockchainService, ViemBlockchainService);
   container.registerSingleton<IIncidentReporter>(TOKENS.IIncidentReporter, LogIncidentReporter);
   container.registerSingleton<IClock>(TOKENS.IClock, SystemClock);
+  container.registerSingleton<IStreamingService>(TOKENS.IStreamingService, CloudflareStreamService);
 
   // ─── 1. Repositories (Symbol tokens) ───────────────────────────────────────
   container.registerSingleton<IPredictionRepository>(TOKENS.IPredictionRepository, SupabasePredictionRepository);
@@ -345,6 +349,7 @@ export function setupDependencyInjection(): void {
   container.registerSingleton(OldEndedStreamsCleanupJob);
   container.registerSingleton(SettlePredictionsJob);
   container.registerSingleton(ViewerReconcileJob);
+  container.registerSingleton(CloudflareReconcileJob);
   container.registerSingleton(ComputeApyJob);
   container.registerSingleton(JobScheduler);
 
@@ -368,7 +373,7 @@ export function setupDependencyInjection(): void {
   container.registerSingleton(ResetTestDataCommand);
 
   // ─── 16. Presentation — Controllers ────────────────────────────────────────
-  container.registerSingleton(MediamtxWebhookController);
+  container.registerSingleton(CloudflareStreamWebhookController);
   container.registerSingleton(PredictionController);
   container.registerSingleton(MatchController);
   container.registerSingleton(ChatController);

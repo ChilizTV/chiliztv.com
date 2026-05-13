@@ -72,7 +72,31 @@ export class StreamController {
     try {
       const matchIdRaw = req.query['matchId'] as string | undefined;
       const matchId = matchIdRaw ? parseInt(matchIdRaw) : undefined;
-      const streams = await this.getActiveStreamsUseCase.execute(matchId);
+      const streamerId = req.query['streamerId'] as string | undefined;
+      const cloudflareInputUid = req.query['cloudflareInputUid'] as string | undefined;
+
+      let streams = await this.getActiveStreamsUseCase.execute(matchId, streamerId);
+
+      if (streamerId && cloudflareInputUid) {
+        if (streams.length === 0) {
+          // OBS not connected yet — check CF API and create the LIVE row if connected.
+          await this.lifecycleService.startStreamByLiveInput(cloudflareInputUid);
+          streams = await this.getActiveStreamsUseCase.execute(matchId, streamerId);
+        } else {
+          // OBS is LIVE in DB — verify CF still shows the publisher connected.
+          // Ends the DB row immediately when OBS stops (webhook delivery fallback).
+          const obsLive = streams.find(
+            s =>
+              s.getCloudflareInputUid() === cloudflareInputUid &&
+              s.isLive() &&
+              s.getSourceType() === 'obs',
+          );
+          if (obsLive) {
+            await this.lifecycleService.checkAndEndIfDisconnected(cloudflareInputUid);
+            streams = await this.getActiveStreamsUseCase.execute(matchId, streamerId);
+          }
+        }
+      }
 
       res.json({
         success: true,
@@ -86,9 +110,9 @@ export class StreamController {
 
   async endStream(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const { streamId, streamKey } = req.body;
+      const { streamId, streamKey, cloudflareInputUid } = req.body;
 
-      await this.endStreamUseCase.execute({ streamId, streamKey });
+      await this.endStreamUseCase.execute({ streamId, streamKey, cloudflareInputUid });
 
       res.json({
         success: true,
@@ -143,8 +167,8 @@ export class StreamController {
         res.status(204).end();
         return;
       }
-      // Resolve the stream row, verify ownership, then route through the
-      // standard end path (`endStreamIfNeeded` is idempotent + status-gated).
+      // Resolve the stream row, verify ownership, then end it.
+      // endStreamViaBeacon is idempotent and status-gated.
       const stream = await this.lifecycleService.endStreamViaBeacon(streamId, streamerId);
       if (!stream) {
         logger.warn('beacon: rejected (not found or ownership mismatch)', { streamId, streamerId });

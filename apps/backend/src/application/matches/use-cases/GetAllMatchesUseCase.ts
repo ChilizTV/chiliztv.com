@@ -16,9 +16,8 @@ export class GetAllMatchesUseCase {
 
   async execute(): Promise<Match[]> {
     const now = this.clock.now();
-    return await this.matchRepository.findByDateRange(
-      MatchFetchWindow.fetchFrom(now),
-      MatchFetchWindow.fetchTo(now),
+    return await this.matchRepository.findFromDate(
+      MatchFetchWindow.displayFrom(now),
     );
   }
 }

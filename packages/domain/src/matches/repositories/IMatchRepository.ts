@@ -10,6 +10,12 @@ export interface MatchStats {
 export interface IMatchRepository {
   findAll(): Promise<Match[]>;
   findByDateRange(from: Date, to: Date): Promise<Match[]>;
+  /**
+   * Matches with `matchDate >= from`, no upper bound. Used by the front-facing
+   * display path so every future match is surfaced regardless of how far out
+   * its kickoff sits; the sync job alone caps how far ahead we ingest.
+   */
+  findFromDate(from: Date): Promise<Match[]>;
   findById(id: number): Promise<Match | null>;
   findByApiFootballId(apiId: number): Promise<Match | null>;
   findByLeagueId(leagueId: number): Promise<Match[]>;

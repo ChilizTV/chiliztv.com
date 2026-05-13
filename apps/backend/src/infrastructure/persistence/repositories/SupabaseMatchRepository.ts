@@ -161,6 +161,21 @@ export class SupabaseMatchRepository implements IMatchRepository {
     return rows ? rows.map(row => this.toDomain(row)) : [];
   }
 
+  async findFromDate(from: Date): Promise<Match[]> {
+    const { data: rows, error } = await supabase
+      .from('matches')
+      .select('*')
+      .gte('match_date', from.toISOString())
+      .order('match_date', { ascending: true });
+
+    if (error) {
+      logger.error('Failed to find matches from date', { error: error.message });
+      throw new Error('Failed to find matches');
+    }
+
+    return rows ? rows.map(row => this.toDomain(row)) : [];
+  }
+
   async findById(id: number): Promise<Match | null> {
     const { data: row, error } = await supabase
       .from('matches')

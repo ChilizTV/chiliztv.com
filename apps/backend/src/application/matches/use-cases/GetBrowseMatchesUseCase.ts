@@ -25,9 +25,8 @@ export class GetBrowseMatchesUseCase {
 
   async execute(): Promise<BrowseMatchesResponseDto> {
     const now = this.clock.now();
-    const matches = await this.matchRepository.findByDateRange(
-      MatchFetchWindow.fetchFrom(now),
-      MatchFetchWindow.fetchTo(now),
+    const matches = await this.matchRepository.findFromDate(
+      MatchFetchWindow.displayFrom(now),
     );
 
     // live_streams.match_id references api_football_id (integer), not the UUID primary key

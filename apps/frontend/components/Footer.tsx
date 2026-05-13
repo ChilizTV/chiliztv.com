@@ -82,7 +82,7 @@ export function Footer() {
               <Link
                 key={href}
                 href={href}
-                className="font-mono-ctv text-[10px] font-bold uppercase tracking-[0.18em] text-white/45 transition-colors hover:text-white"
+                className="font-mono-ctv group relative text-[11px] font-bold uppercase tracking-[0.18em] text-white/75 transition-colors hover:text-white after:absolute after:-bottom-1.5 after:left-0 after:right-0 after:h-px after:scale-x-0 after:bg-[#E8001D] after:transition-transform after:duration-200 hover:after:scale-x-100"
               >
                 {label}
               </Link>

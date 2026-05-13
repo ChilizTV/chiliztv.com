@@ -77,14 +77,14 @@ export function HeroSection() {
             </div>
           </div>
 
-          {/* Right — odds card */}
+          {/* Right — odds card (desktop only) */}
           <Image
             src="/oddsCard.png"
             alt="Live odds — Bayern Munich vs Barcelona"
             width={1200}
             height={780}
             priority
-            className="w-full"
+            className="hidden w-full lg:block"
           />
         </header>
       </section>

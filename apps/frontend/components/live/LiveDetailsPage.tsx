@@ -4,7 +4,7 @@ import { useDynamicContext } from "@dynamic-labs/sdk-react-core";
 import { useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Eye, Square, Video } from "lucide-react";
-import { ChatPanel } from "./chat";
+import { ChatPanel, MobileChatFab, MobileChatBottomSheet } from "./chat";
 import {
   VideoPlayer,
   StreamWalletButton,
@@ -108,6 +108,7 @@ export default function LiveDetailsPage({ id }: LiveDetailsPageProps) {
   const [showStartSheet, setShowStartSheet] = useState(false);
   const [showDonationDialog, setShowDonationDialog] = useState(false);
   const [showSubscriptionDialog, setShowSubscriptionDialog] = useState(false);
+  const [showMobileChat, setShowMobileChat] = useState(false);
   const [streamerPreviewEl, setStreamerPreviewEl] = useState<HTMLDivElement | null>(null);
   const [interruptedBanner, setInterruptedBanner] = useState(false);
   const endStreamRef = useRef<(() => Promise<void>) | null>(null);
@@ -306,22 +307,6 @@ export default function LiveDetailsPage({ id }: LiveDetailsPageProps) {
               }
             />
 
-            {/* Mobile chat — sits between the streamer strip and the markets */}
-            <div className="lg:hidden">
-              <div
-                className="flex flex-col overflow-hidden rounded-xl border border-[#1E1E1E] bg-[#0d0d0d]"
-                style={{ height: "min(55dvh, 480px)" }}
-              >
-                <ChatPanel
-                  matchId={id}
-                  streamId={chatStreamId}
-                  userId={user?.userId ?? ""}
-                  username={String(user?.username ?? "")}
-                  walletAddress={walletAddress}
-                />
-              </div>
-            </div>
-
             <AboutLiveTabs
               bettingContractAddress={matchData.contractAddress as Address | undefined}
               walletAddress={walletAddress || undefined}
@@ -430,6 +415,23 @@ export default function LiveDetailsPage({ id }: LiveDetailsPageProps) {
           streamerHandle={streamForDonateSubscribe.streamerName}
         />
       )}
+
+      <MobileChatFab
+        onClick={() => setShowMobileChat(true)}
+        hidden={showMobileChat}
+      />
+      <MobileChatBottomSheet
+        open={showMobileChat}
+        onClose={() => setShowMobileChat(false)}
+      >
+        <ChatPanel
+          matchId={id}
+          streamId={chatStreamId}
+          userId={user?.userId ?? ""}
+          username={String(user?.username ?? "")}
+          walletAddress={walletAddress}
+        />
+      </MobileChatBottomSheet>
 
     </div>
   );

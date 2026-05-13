@@ -6,3 +6,5 @@ export { ChatMessageList } from "./ChatMessageList";
 export { ChatMessageItem } from "./ChatMessageItem";
 export { LatestSystemBanner } from "./LatestSystemBanner";
 export { NewMessagesPill } from "./NewMessagesPill";
+export { MobileChatFab } from "./MobileChatFab";
+export { MobileChatBottomSheet } from "./MobileChatBottomSheet";

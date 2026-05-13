@@ -45,26 +45,26 @@ export function Header() {
                     {/* Desktop Navigation */}
                     <nav className="hidden md:flex flex-row items-center gap-x-8">
                         <button
-                            className="font-mono-ctv text-[11px] font-bold uppercase tracking-[0.18em] text-white/55 transition-colors hover:text-white cursor-pointer"
+                            className="font-mono-ctv group relative text-[12px] font-bold uppercase tracking-[0.18em] text-white transition-colors hover:text-[#E8001D] cursor-pointer after:absolute after:-bottom-1.5 after:left-0 after:right-0 after:h-0.5 after:scale-x-0 after:bg-[#E8001D] after:transition-transform after:duration-200 hover:after:scale-x-100"
                             onClick={() => router.push("/how-it-works")}
                         >
                             How it works
                         </button>
                         <button
-                            className="font-mono-ctv text-[11px] font-bold uppercase tracking-[0.18em] text-white/55 transition-colors hover:text-white cursor-pointer"
+                            className="font-mono-ctv group relative text-[12px] font-bold uppercase tracking-[0.18em] text-white transition-colors hover:text-[#E8001D] cursor-pointer after:absolute after:-bottom-1.5 after:left-0 after:right-0 after:h-0.5 after:scale-x-0 after:bg-[#E8001D] after:transition-transform after:duration-200 hover:after:scale-x-100"
                             onClick={() => router.push("/browse")}
                         >
                             Discover
                         </button>
                         <button
-                            className="font-mono-ctv text-[11px] font-bold uppercase tracking-[0.18em] text-white/55 transition-colors hover:text-white cursor-pointer"
+                            className="font-mono-ctv group relative text-[12px] font-bold uppercase tracking-[0.18em] text-white transition-colors hover:text-[#E8001D] cursor-pointer after:absolute after:-bottom-1.5 after:left-0 after:right-0 after:h-0.5 after:scale-x-0 after:bg-[#E8001D] after:transition-transform after:duration-200 hover:after:scale-x-100"
                             onClick={() => router.push("/leaderboard")}
                         >
                             Leaderboard
                         </button>
                         {connected && (
                             <button
-                                className="font-mono-ctv text-[11px] font-bold uppercase tracking-[0.18em] text-white/55 transition-colors hover:text-white cursor-pointer"
+                                className="font-mono-ctv group relative text-[12px] font-bold uppercase tracking-[0.18em] text-white transition-colors hover:text-[#E8001D] cursor-pointer after:absolute after:-bottom-1.5 after:left-0 after:right-0 after:h-0.5 after:scale-x-0 after:bg-[#E8001D] after:transition-transform after:duration-200 hover:after:scale-x-100"
                                 onClick={() => router.push("/dashboard")}
                             >
                                 Dashboard
@@ -118,7 +118,7 @@ export function Header() {
                                     router.push("/how-it-works");
                                     setMenuOpen(false);
                                 }}
-                                className="font-mono-ctv text-[11px] font-bold uppercase tracking-[0.18em] text-white/55 transition-colors hover:text-white text-left"
+                                className="font-mono-ctv text-[11px] font-bold uppercase tracking-[0.18em] text-white/80 transition-colors hover:text-white text-left"
                             >
                                 How it works
                             </button>
@@ -127,7 +127,7 @@ export function Header() {
                                     router.push("/browse");
                                     setMenuOpen(false);
                                 }}
-                                className="font-mono-ctv text-[11px] font-bold uppercase tracking-[0.18em] text-white/55 transition-colors hover:text-white text-left"
+                                className="font-mono-ctv text-[11px] font-bold uppercase tracking-[0.18em] text-white/80 transition-colors hover:text-white text-left"
                             >
                                 Discover
                             </button>
@@ -136,7 +136,7 @@ export function Header() {
                                     router.push("/leaderboard");
                                     setMenuOpen(false);
                                 }}
-                                className="font-mono-ctv text-[11px] font-bold uppercase tracking-[0.18em] text-white/55 transition-colors hover:text-white text-left"
+                                className="font-mono-ctv text-[11px] font-bold uppercase tracking-[0.18em] text-white/80 transition-colors hover:text-white text-left"
                             >
                                 Leaderboard
                             </button>
@@ -146,7 +146,7 @@ export function Header() {
                                         router.push("/dashboard");
                                         setMenuOpen(false);
                                     }}
-                                    className="font-mono-ctv text-[11px] font-bold uppercase tracking-[0.18em] text-white/55 transition-colors hover:text-white text-left"
+                                    className="font-mono-ctv text-[11px] font-bold uppercase tracking-[0.18em] text-white/80 transition-colors hover:text-white text-left"
                                 >
                                     Dashboard
                                 </button>

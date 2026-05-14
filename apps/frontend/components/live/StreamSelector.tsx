@@ -1,8 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef, useCallback } from 'react';
-import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+import { Card, CardContent, Button } from '@chiliztv/ui';
 import { Loader2, Radio } from 'lucide-react';
 import { streamViewerService } from '@/services';
 import { LiveStream } from '@/models/stream.model';

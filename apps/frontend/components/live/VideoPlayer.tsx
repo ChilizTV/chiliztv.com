@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent } from '@chiliztv/ui';
 import { Loader2, AlertCircle, Eye, Play, Volume2, VolumeX, VideoOff, Tv2 } from 'lucide-react';
 import Hls from 'hls.js';
 import { LiveStream } from '@/models/stream.model';

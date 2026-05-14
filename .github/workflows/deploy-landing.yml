@@ -50,6 +50,12 @@ jobs:
 
       - name: Build landing (static export)
         run: pnpm --filter "@chiliztv.com/landing" build
+        env:
+          NEXT_PUBLIC_APP_URL: ${{ github.event_name == 'pull_request' && 'https://app-staging.chiliztv.com' || 'https://app.chiliztv.com' }}
+          NEXT_PUBLIC_API_URL: ${{ github.event_name == 'pull_request' && 'https://api-staging.chiliztv.com' || 'https://api.chiliztv.com' }}
+          NEXT_PUBLIC_DYNAMIC_ENVIRONMENT_ID: 8d9de814-ed4b-479a-ab44-277b7ca94076
+          NEXT_PUBLIC_STAGING_DYNAMIC_ENVIRONMENT_ID: 8d9de814-ed4b-479a-ab44-277b7ca94076
+          NEXT_PUBLIC_STAGING: ${{ github.event_name == 'pull_request' && 'true' || 'false' }}
 
       - name: Deploy to Cloudflare Pages
         id: deploy

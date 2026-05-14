@@ -151,6 +151,8 @@ jobs:
       - name: Build
         env:
           NEXT_PUBLIC_DYNAMIC_ENVIRONMENT_ID: 00000000-0000-0000-0000-000000000000
+          NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder-anon-key
         run: pnpm --filter "@chiliztv.com/frontend" build
 
   # ── Build — landing ──────────────────────────────────────────────────────────

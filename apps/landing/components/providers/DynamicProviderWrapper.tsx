@@ -27,8 +27,9 @@ export default function DynamicProviderWrapper({
     process.env.NEXT_PUBLIC_STAGING === "true"
       ? process.env.NEXT_PUBLIC_STAGING_DYNAMIC_ENVIRONMENT_ID ??
         process.env.NEXT_PUBLIC_DYNAMIC_ENVIRONMENT_ID ??
-        ""
-      : process.env.NEXT_PUBLIC_DYNAMIC_ENVIRONMENT_ID ?? "";
+        "00000000-0000-0000-0000-000000000000"
+      : process.env.NEXT_PUBLIC_DYNAMIC_ENVIRONMENT_ID ??
+        "00000000-0000-0000-0000-000000000000";
 
   const dynamicSettings = {
     environmentId,

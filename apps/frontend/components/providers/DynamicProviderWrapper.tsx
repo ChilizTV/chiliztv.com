@@ -20,14 +20,9 @@ export default function DynamicSolanaWalletProvider({ children }: Readonly<{ chi
     const disableOnramps = process.env.NEXT_PUBLIC_DISABLE_ONRAMPS === "true" || isDevelopment;
     
     // Récupérer l'environment ID avec une valeur par défaut pour éviter undefined
-    const environmentId = process.env.NEXT_PUBLIC_STAGING === "true" 
-        ? (process.env.NEXT_PUBLIC_STAGING_DYNAMIC_ENVIRONMENT_ID || process.env.NEXT_PUBLIC_DYNAMIC_ENVIRONMENT_ID || "")
-        : (process.env.NEXT_PUBLIC_DYNAMIC_ENVIRONMENT_ID || "");
-
-    // Vérifier que l'environment ID est défini
-    if (!environmentId) {
-        console.warn('⚠️ NEXT_PUBLIC_DYNAMIC_ENVIRONMENT_ID n\'est pas défini dans les variables d\'environnement');
-    }
+    const environmentId = process.env.NEXT_PUBLIC_STAGING === "true"
+        ? (process.env.NEXT_PUBLIC_STAGING_DYNAMIC_ENVIRONMENT_ID || process.env.NEXT_PUBLIC_DYNAMIC_ENVIRONMENT_ID || "00000000-0000-0000-0000-000000000000")
+        : (process.env.NEXT_PUBLIC_DYNAMIC_ENVIRONMENT_ID || "00000000-0000-0000-0000-000000000000");
     
     const dynamicSettings = {
         environmentId: environmentId,

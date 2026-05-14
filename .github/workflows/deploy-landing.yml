@@ -1,0 +1,116 @@
+name: Deploy landing — Cloudflare Pages
+
+# apps/landing/ is created at J4 (split landing refactor).
+# This workflow is inactive until that directory exists.
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+      - 'apps/landing/**'
+      - 'packages/ui/**'
+  push:
+    branches:
+      - main
+    paths:
+      - 'apps/landing/**'
+      - 'packages/ui/**'
+
+concurrency:
+  group: deploy-landing-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  # ── Build + deploy (both PR preview and prod push) ─────────────────────────
+  # Cloudflare Pages auto-creates preview URLs for non-main branches.
+  # On push to main, the same deploy targets the production alias.
+  build-deploy:
+    name: ${{ github.event_name == 'pull_request' && 'Preview deploy' || 'Production deploy' }}
+    runs-on: ubuntu-latest
+    environment: ${{ github.event_name == 'push' && 'production' || '' }}
+    outputs:
+      deployment_url: ${{ steps.deploy.outputs.deployment-url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.28.1
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Build landing (static export)
+        run: pnpm --filter "@chiliztv.com/landing" build
+
+      - name: Deploy to Cloudflare Pages
+        id: deploy
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: >
+            pages deploy apps/landing/out
+            --project-name=${{ secrets.CF_PAGES_PROJECT_NAME }}
+            ${{ github.event_name == 'push' && '--branch=main' || format('--branch={0}', github.head_ref) }}
+            --commit-hash=${{ github.sha }}
+
+  # ── Comment PR with preview URL ───────────────────────────────────────────
+  comment-preview:
+    name: Comment preview URL
+    runs-on: ubuntu-latest
+    needs: build-deploy
+    if: github.event_name == 'pull_request'
+    steps:
+      - name: Comment PR with preview URL
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const url = '${{ needs.build-deploy.outputs.deployment_url }}';
+            const body = `## Landing preview\n\n🔗 **CF Pages preview:** ${url || '_(URL not available — check workflow logs)_'}\n\n_Deployed from commit \`${{ github.sha }}\`_`;
+            const comments = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+            const existing = comments.data.find(c => c.body.startsWith('## Landing preview'));
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body,
+              });
+            }
+
+  # ── Smoke (prod only) ─────────────────────────────────────────────────────
+  smoke:
+    name: Smoke
+    runs-on: ubuntu-latest
+    needs: build-deploy
+    if: github.event_name == 'push'
+    steps:
+      - name: GET https://chiliztv.com
+        run: |
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 15 https://chiliztv.com)
+          if [ "$STATUS" = "200" ]; then
+            echo "Landing smoke passed (HTTP $STATUS)"
+          else
+            echo "Landing smoke failed (HTTP $STATUS)"
+            exit 1
+          fi

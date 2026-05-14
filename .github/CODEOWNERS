@@ -1,0 +1,19 @@
+# Default owner for everything not otherwise matched.
+* @Antonybyrt
+
+# Smart contracts — owner is the contract deployer.
+apps/smart-contracts/ @helder77270
+
+# Backend DDD layers — structural changes require review.
+apps/backend/src/domain/       @Antonybyrt
+apps/backend/src/application/  @Antonybyrt
+packages/domain/               @Antonybyrt
+packages/shared/               @Antonybyrt
+
+# Blockchain package (ABIs, chain config) — coupled to deployed contracts.
+packages/blockchain/ @Antonybyrt
+
+# CI/CD and infra — all changes require maintainer review.
+.github/   @Antonybyrt
+Dockerfile @Antonybyrt
+turbo.json @Antonybyrt

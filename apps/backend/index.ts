@@ -16,24 +16,26 @@ setupDependencyInjection();
 import { authRoutes, accessRoutes, predictionRoutes, matchRoutes, chatRoutes, waitlistRoutes, streamRoutes, streamWalletRoutes, fanTokensRoutes, followRoutes, poolRoutes, betRoutes, userRoutes, pricesRoutes } from './src/presentation/http/routes';
 import { cloudflareStreamWebhookRoutes } from './src/presentation/http/routes/cloudflare-stream-webhook.routes';
 
+// Controls which responsibilities this process takes on.
+// api    — HTTP server only (no background jobs or listeners)
+// worker — background jobs + blockchain listeners + /health only
+// all    — everything (default, used in local dev and single-process deploy)
+const PROCESS_ROLE = (process.env.PROCESS_ROLE ?? 'all') as 'api' | 'worker' | 'all';
+
 const app = express();
 const server = http.createServer(app);
 const PORT = env.PORT;
 
-// Parse allowed origins from environment variable (comma-separated)
 const allowedOrigins = env.ALLOWED_ORIGINS.split(',').map(origin => origin.trim());
 
-// Security headers (Helmet) - adapted for Web3/dev environment
 app.use(securityHeadersMiddleware);
 
 // Cloudflare Stream webhook — raw body required for HMAC verification.
 // Must be registered BEFORE the global bodyParser.json() middleware.
 app.use('/cloudflare-stream/webhook', express.raw({ type: 'application/json' }), cloudflareStreamWebhookRoutes);
 
-// Body parser
 app.use(bodyParser.json());
 
-// CORS with whitelist (replaces permissive cors())
 app.use(cors({
     origin: allowedOrigins,
     credentials: true,
@@ -41,101 +43,88 @@ app.use(cors({
     allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
-// Global rate limiting
 app.use(globalLimiter);
-
-// Request logging with correlation IDs
 app.use(createRequestLogger(container.resolve<IClock>(TOKENS.IClock)));
-
-// Public routes (no authentication required)
-app.use('/auth', authLimiter, authRoutes);
-app.use('/access', accessCodeLimiter, accessRoutes);
-app.use('/waitlist', waitlistRoutes);
 
 app.get('/health', (req, res) => {
     res.json({
         status: 'ok',
+        role: PROCESS_ROLE,
         timestamp: Date.now(),
         version: '2.0.0',
     });
 });
 
-// Public stream routes (no auth needed to view streams)
-app.use('/stream', streamRoutes);
+if (PROCESS_ROLE === 'api' || PROCESS_ROLE === 'all') {
+    // Public routes (no authentication required)
+    app.use('/auth', authLimiter, authRoutes);
+    app.use('/access', accessCodeLimiter, accessRoutes);
+    app.use('/waitlist', waitlistRoutes);
+    app.use('/stream', streamRoutes);
+    app.use('/matches', matchRoutes);
+    app.use('/pool', poolRoutes);
+    app.use('/prices', pricesRoutes);
 
-// Public match data — read-only GETs, no write surface
-app.use('/matches', matchRoutes);
+    // All routes below require JWT
+    app.use(authenticate);
 
-// Public pool stats — APY snapshots, no auth required
-app.use('/pool', poolRoutes);
+    app.use('/follows', followRoutes);
+    app.use('/chat', chatLimiter, chatRoutes);
+    app.use('/stream-wallet', streamWalletRoutes);
+    app.use('/fan-tokens', fanTokensRoutes);
+    app.use('/predictions', predictionsLimiter, predictionRoutes);
+    app.use('/bets', betRoutes);
+    app.use('/users', userRoutes);
 
-// Public token prices — CoinGecko/Pyth cache, no auth required
-app.use('/prices', pricesRoutes);
-
-// Global authentication middleware - all routes below require JWT
-app.use(authenticate);
-
-app.use('/follows', followRoutes);
-app.use('/chat', chatLimiter, chatRoutes);
-app.use('/stream-wallet', streamWalletRoutes);
-app.use('/fan-tokens', fanTokensRoutes);
-
-app.use('/predictions', predictionsLimiter, predictionRoutes);
-app.use('/bets', betRoutes);
-app.use('/users', userRoutes);
-
-app.get('/supabase-status', (req, res) => {
-    res.json({
-        success: true,
-        message: 'Supabase Chat service is running',
-        realtime: true,
-        port: PORT
+    app.get('/supabase-status', (_req, res) => {
+        res.json({
+            success: true,
+            message: 'Supabase Chat service is running',
+            realtime: true,
+            port: PORT
+        });
     });
-});
 
-app.get('/', (req, res) => {
-    res.json({
-        success: true,
-        message: 'Football Chat API with Supabase Realtime',
-        version: '2.0.0',
-        endpoints: {
-            matches: '/matches',
-            chat: '/chat',
-            stream: '/stream',
-            supabaseStatus: '/supabase-status'
-        }
+    app.get('/', (_req, res) => {
+        res.json({
+            success: true,
+            message: 'Football Chat API with Supabase Realtime',
+            version: '2.0.0',
+            endpoints: {
+                matches: '/matches',
+                chat: '/chat',
+                stream: '/stream',
+                supabaseStatus: '/supabase-status'
+            }
+        });
     });
-});
+}
 
-// Global error handler - MUST be after all routes
+// Global error handler — must be registered after all routes
 app.use(errorHandler);
 
 server.listen(PORT, () => {
-    logger.info('Server started successfully', {
+    logger.info('Server started', {
         port: PORT,
+        role: PROCESS_ROLE,
         environment: env.NODE_ENV,
-        endpoints: {
-            matches: '/matches',
-            chat: '/chat',
-            stream: '/stream',
-            streamWallet: '/stream-wallet',
-            predictions: '/predictions',
-        },
     });
 
-    // Clean up matches outside 24h window on startup
-    const cleanupUseCase = container.resolve(CleanupOldMatchesUseCase);
-    cleanupUseCase.cleanupOutside24Hours().catch((err: Error) => {
-        logger.error('Startup cleanup failed', { error: err.message });
-    });
+    // Startup cleanup runs for api and all roles (not needed on worker-only)
+    if (PROCESS_ROLE === 'api' || PROCESS_ROLE === 'all') {
+        const cleanupUseCase = container.resolve(CleanupOldMatchesUseCase);
+        cleanupUseCase.cleanupOutside24Hours().catch((err: Error) => {
+            logger.error('Startup cleanup failed', { error: err.message });
+        });
+    }
 
-    // Start all scheduled jobs
-    const jobScheduler = container.resolve(JobScheduler);
-    jobScheduler.start();
+    if (PROCESS_ROLE === 'worker' || PROCESS_ROLE === 'all') {
+        const jobScheduler = container.resolve(JobScheduler);
+        jobScheduler.start();
 
-    // Start blockchain event listeners
-    const blockchainEventListener = container.resolve(BlockchainEventListener);
-    blockchainEventListener.start().catch((error: Error) => {
-        logger.error('Failed to start blockchain event listeners', { error: error.message });
-    });
+        const blockchainEventListener = container.resolve(BlockchainEventListener);
+        blockchainEventListener.start().catch((error: Error) => {
+            logger.error('Failed to start blockchain event listeners', { error: error.message });
+        });
+    }
 });

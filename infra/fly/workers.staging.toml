@@ -1,0 +1,35 @@
+# Fly.io config — chiliztv-workers-staging
+# Staging only. Production config lives in workers.prod.toml (created at J8).
+# Deploy via: flyctl deploy --config infra/fly/workers.staging.toml
+
+app = "chiliztv-workers-staging"
+primary_region = "cdg"
+
+[build]
+  # Image is reused from the API build — same backend image, different PROCESS_ROLE.
+
+[env]
+  NODE_ENV = "production"
+  PORT = "3001"
+  # Workers process: runs JobScheduler + BlockchainEventListener, serves /health only.
+  PROCESS_ROLE = "worker"
+
+[http_service]
+  internal_port = 3001
+  force_https = true
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 0
+  processes = ["app"]
+
+  [[http_service.checks]]
+    grace_period = "15s"
+    interval = "30s"
+    method = "GET"
+    path = "/health"
+    timeout = "5s"
+
+[[vm]]
+  memory = "512mb"
+  cpu_kind = "shared"
+  cpus = 1

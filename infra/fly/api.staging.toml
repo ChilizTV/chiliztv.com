@@ -1,0 +1,35 @@
+# Fly.io config — chiliztv-api-staging
+# Staging only. Production config lives in api.prod.toml (created at J8).
+# Deploy via: flyctl deploy --config infra/fly/api.staging.toml
+
+app = "chiliztv-api-staging"
+primary_region = "cdg"
+
+[build]
+  # Image is pre-built and pushed to GHCR by deploy-api.yml.
+  # The `image` field is overridden at deploy time via --image flag.
+
+[env]
+  NODE_ENV = "production"
+  PORT = "3001"
+  PROCESS_ROLE = "api"
+
+[http_service]
+  internal_port = 3001
+  force_https = true
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 0
+  processes = ["app"]
+
+  [[http_service.checks]]
+    grace_period = "10s"
+    interval = "30s"
+    method = "GET"
+    path = "/health"
+    timeout = "5s"
+
+[[vm]]
+  memory = "512mb"
+  cpu_kind = "shared"
+  cpus = 1

@@ -1,0 +1,85 @@
+name: Security — dependencies
+
+on:
+  schedule:
+    # Weekly on Monday at 08:00 UTC (after security-contracts.yml at 06:00)
+    - cron: '0 8 * * 1'
+  workflow_dispatch:
+
+concurrency:
+  group: security-deps
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  pnpm-audit:
+    name: pnpm audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.28.1
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Audit production dependencies
+        id: audit
+        run: |
+          pnpm audit --prod --json > audit-report.json 2>&1 || true
+          # Fail if any high or critical vulnerabilities are found
+          HIGH=$(cat audit-report.json | node -e "
+            const d=require('fs').readFileSync('/dev/stdin','utf8');
+            try {
+              const r=JSON.parse(d);
+              const advisories=r.advisories||{};
+              const count=Object.values(advisories).filter(a=>['high','critical'].includes(a.severity)).length;
+              process.stdout.write(String(count));
+            } catch { process.stdout.write('0'); }
+          ")
+          echo "high_count=$HIGH" >> "$GITHUB_OUTPUT"
+          echo "Found $HIGH high/critical vulnerabilities"
+
+      - name: Upload audit report
+        uses: actions/upload-artifact@v4
+        with:
+          name: pnpm-audit-report
+          path: audit-report.json
+          retention-days: 30
+
+      - name: Open issue on high/critical vulnerabilities
+        if: steps.audit.outputs.high_count != '0'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const count = '${{ steps.audit.outputs.high_count }}';
+            const title = `[Security] ${count} high/critical npm vulnerabilities — ${new Date().toISOString().split('T')[0]}`;
+            const body = [
+              `## pnpm audit found ${count} high/critical vulnerabilities`,
+              '',
+              `**Run:** ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}`,
+              '',
+              'Download the `pnpm-audit-report` artifact from the run above for the full report.',
+              '',
+              '### Action required',
+              '- [ ] Review each vulnerability',
+              '- [ ] Update affected packages or apply patches',
+              '- [ ] Re-run `pnpm audit --prod` to verify the fix',
+            ].join('\n');
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title,
+              body,
+              labels: ['security', 'dependencies'],
+            });

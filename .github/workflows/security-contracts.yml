@@ -1,0 +1,103 @@
+name: Security — smart contracts
+
+on:
+  schedule:
+    # Weekly on Monday at 06:00 UTC
+    - cron: '0 6 * * 1'
+  workflow_dispatch:
+
+concurrency:
+  group: security-contracts
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  slither:
+    name: Slither analysis
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+
+      - name: Install Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Slither
+        run: pip install slither-analyzer
+
+      - name: Run Slither
+        id: slither
+        working-directory: apps/smart-contracts/chiliz-tv
+        run: |
+          slither . --json slither-report.json 2>&1 || true
+          echo "exit_code=$?" >> "$GITHUB_OUTPUT"
+
+      - name: Upload Slither report
+        uses: actions/upload-artifact@v4
+        with:
+          name: slither-report
+          path: apps/smart-contracts/chiliz-tv/slither-report.json
+          retention-days: 30
+
+      - name: Open issue on critical findings
+        if: steps.slither.outputs.exit_code != '0'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const title = `[Security] Slither findings — ${new Date().toISOString().split('T')[0]}`;
+            const body = [
+              '## Slither analysis found issues',
+              '',
+              `**Run:** ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}`,
+              '',
+              'Download the `slither-report` artifact from the run above for the full JSON report.',
+              '',
+              '### Action required',
+              '- [ ] Review findings',
+              '- [ ] Classify severity (informational / low / medium / high / critical)',
+              '- [ ] Fix or accept with documented rationale',
+            ].join('\n');
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title,
+              body,
+              labels: ['security', 'contracts'],
+            });
+
+  mythril:
+    name: Mythril analysis
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Mythril
+        run: pip install mythril
+
+      - name: Run Mythril on contracts
+        id: mythril
+        working-directory: apps/smart-contracts/chiliz-tv/src
+        run: |
+          myth analyze **/*.sol --solv 0.8.24 --output jsonv2 > mythril-report.json 2>&1 || true
+          echo "exit_code=$?" >> "$GITHUB_OUTPUT"
+
+      - name: Upload Mythril report
+        uses: actions/upload-artifact@v4
+        with:
+          name: mythril-report
+          path: apps/smart-contracts/chiliz-tv/src/mythril-report.json
+          retention-days: 30

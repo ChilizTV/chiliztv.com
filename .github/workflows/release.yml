@@ -1,0 +1,307 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  packages: write
+  deployments: write
+  id-token: write
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ghcr.io/chiliztv/chiliztv-backend
+
+jobs:
+  # ── Validate tag ──────────────────────────────────────────────────────────
+  validate:
+    name: Validate tag
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.semver.outputs.version }}
+      prerelease: ${{ steps.semver.outputs.prerelease }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Assert tag is reachable from main
+        run: |
+          git fetch origin main
+          if ! git merge-base --is-ancestor "${{ github.sha }}" origin/main; then
+            echo "Tag ${{ github.ref_name }} is not on main — aborting."
+            exit 1
+          fi
+
+      - name: Parse semver
+        id: semver
+        run: |
+          TAG="${{ github.ref_name }}"
+          # Strip leading 'v'
+          VERSION="${TAG#v}"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          # Detect prerelease (e.g. v1.0.0-rc.1)
+          if echo "$VERSION" | grep -qE '-(alpha|beta|rc)'; then
+            echo "prerelease=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "prerelease=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  # ── Retag image :main → :vX.Y.Z ──────────────────────────────────────────
+  retag-image:
+    name: Retag image
+    runs-on: ubuntu-latest
+    needs: validate
+    steps:
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Retag :main → :${{ github.ref_name }}
+        run: |
+          docker pull ${{ env.IMAGE_NAME }}:main
+          docker tag  ${{ env.IMAGE_NAME }}:main ${{ env.IMAGE_NAME }}:${{ github.ref_name }}
+          docker push ${{ env.IMAGE_NAME }}:${{ github.ref_name }}
+
+  # ── Sign image with cosign (Sigstore keyless) ─────────────────────────────
+  sign-image:
+    name: Sign image
+    runs-on: ubuntu-latest
+    needs: retag-image
+    steps:
+      - name: Install cosign
+        uses: sigstore/cosign-installer@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Sign image (keyless OIDC)
+        run: cosign sign --yes ${{ env.IMAGE_NAME }}:${{ github.ref_name }}
+
+  # ── Verify image signature before deploying ───────────────────────────────
+  verify-image:
+    name: Verify image signature
+    runs-on: ubuntu-latest
+    needs: sign-image
+    steps:
+      - name: Install cosign
+        uses: sigstore/cosign-installer@v3
+
+      - name: Verify signature
+        run: |
+          cosign verify \
+            --certificate-identity-regexp="https://github.com/${{ github.repository }}/.github/workflows/release.yml" \
+            --certificate-oidc-issuer="https://token.actions.githubusercontent.com" \
+            ${{ env.IMAGE_NAME }}:${{ github.ref_name }}
+
+  # ── Deploy API to production ──────────────────────────────────────────────
+  deploy-api-prod:
+    name: Deploy API (prod)
+    runs-on: ubuntu-latest
+    needs: [validate, verify-image]
+    if: needs.validate.outputs.prerelease == 'false'
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install flyctl
+        uses: superfly/flyctl-actions/setup-flyctl@master
+
+      - name: Deploy API
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+        run: |
+          flyctl deploy \
+            --config infra/fly/api.prod.toml \
+            --image ${{ env.IMAGE_NAME }}:${{ github.ref_name }} \
+            --strategy rolling \
+            --wait-timeout 180
+
+      - name: Smoke — GET /health
+        run: |
+          for i in 1 2 3 4 5; do
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 https://api.chiliztv.com/health)
+            if [ "$STATUS" = "200" ]; then
+              echo "API health check passed (attempt $i)"
+              exit 0
+            fi
+            sleep 15
+          done
+          echo "API health check failed"
+          exit 1
+
+  # ── Deploy workers to production ──────────────────────────────────────────
+  deploy-workers-prod:
+    name: Deploy workers (prod)
+    runs-on: ubuntu-latest
+    needs: [validate, verify-image]
+    if: needs.validate.outputs.prerelease == 'false'
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install flyctl
+        uses: superfly/flyctl-actions/setup-flyctl@master
+
+      - name: Deploy workers
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+        run: |
+          flyctl deploy \
+            --config infra/fly/workers.prod.toml \
+            --image ${{ env.IMAGE_NAME }}:${{ github.ref_name }} \
+            --strategy immediate \
+            --wait-timeout 180
+
+      - name: Smoke — GET /health
+        run: |
+          for i in 1 2 3 4 5; do
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 https://workers.chiliztv.com/health)
+            if [ "$STATUS" = "200" ]; then
+              echo "Workers health check passed (attempt $i)"
+              exit 0
+            fi
+            sleep 15
+          done
+          echo "Workers health check failed"
+          exit 1
+
+  # ── Promote Vercel staging → production ───────────────────────────────────
+  deploy-app-prod:
+    name: Deploy app (prod)
+    runs-on: ubuntu-latest
+    needs: validate
+    if: needs.validate.outputs.prerelease == 'false'
+    environment: production
+    steps:
+      - name: Download staging deployment URL
+        id: download
+        uses: dawidd6/action-download-artifact@v6
+        with:
+          name: staging-deployment-url
+          workflow: deploy-app.yml
+          branch: main
+          path: .
+        continue-on-error: true
+
+      - name: Promote staging URL to production
+        id: promote
+        if: steps.download.outcome == 'success'
+        run: |
+          STAGING_URL=$(cat staging-deployment-url.txt)
+          echo "Promoting $STAGING_URL to production"
+          pnpm dlx vercel promote "$STAGING_URL" --token=${{ secrets.VERCEL_TOKEN }}
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID_APP }}
+
+      # Fallback: full prod build+deploy when no staging artefact is available.
+      - uses: actions/checkout@v4
+        if: steps.download.outcome != 'success'
+
+      - uses: pnpm/action-setup@v4
+        if: steps.download.outcome != 'success'
+        with:
+          version: 10.28.1
+
+      - uses: actions/setup-node@v4
+        if: steps.download.outcome != 'success'
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install (fallback)
+        if: steps.download.outcome != 'success'
+        run: pnpm install --frozen-lockfile
+
+      - name: Build + deploy to prod (fallback)
+        if: steps.download.outcome != 'success'
+        run: |
+          pnpm dlx vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
+          pnpm dlx vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
+          pnpm dlx vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }}
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID_APP }}
+
+  # ── Sentry release ────────────────────────────────────────────────────────
+  sentry-release:
+    name: Sentry release
+    runs-on: ubuntu-latest
+    needs: [deploy-api-prod, deploy-app-prod]
+    if: needs.validate.outputs.prerelease == 'false'
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Create Sentry release
+        uses: getsentry/sentry-release-action@v3
+        if: ${{ secrets.SENTRY_AUTH_TOKEN != '' }}
+        with:
+          environment: production
+          version: ${{ github.ref_name }}
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_ORG: chiliztv
+          SENTRY_PROJECT: chiliztv-backend
+
+  # ── Create GitHub Release ─────────────────────────────────────────────────
+  create-github-release:
+    name: GitHub Release
+    runs-on: ubuntu-latest
+    needs: [deploy-api-prod, deploy-workers-prod, deploy-app-prod]
+    if: needs.validate.outputs.prerelease == 'false'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create ${{ github.ref_name }} \
+            --title "Release ${{ github.ref_name }}" \
+            --notes-file CHANGELOG.md \
+            --verify-tag
+
+  # ── Discord notification ──────────────────────────────────────────────────
+  notify-discord:
+    name: Notify Discord
+    runs-on: ubuntu-latest
+    needs: [create-github-release]
+    if: always() && needs.validate.outputs.prerelease == 'false'
+    steps:
+      - name: Post release notification
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          STATUS: ${{ contains(needs.*.result, 'failure') && 'FAILED' || 'SUCCESS' }}
+          COLOR: ${{ contains(needs.*.result, 'failure') && '15158332' || '3066993' }}
+        run: |
+          curl -s -X POST "$DISCORD_WEBHOOK_URL" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "embeds": [{
+                "title": "Release '"${{ github.ref_name }}"' — '"$STATUS"'",
+                "color": '"$COLOR"',
+                "fields": [
+                  {"name": "Version", "value": "'"${{ github.ref_name }}"'", "inline": true},
+                  {"name": "Status", "value": "'"$STATUS"'", "inline": true},
+                  {"name": "Release", "value": "[View release]('"${{ github.server_url }}/${{ github.repository }}/releases/tag/${{ github.ref_name }})"'", "inline": false}
+                ]
+              }]
+            }'

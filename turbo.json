@@ -15,8 +15,6 @@
     "JWT_EXPIRY",
     "PORT",
     "ALLOWED_ORIGINS",
-    "MEDIAMTX_API_URL",
-    "MEDIAMTX_PUBLISH_SECRET",
     "LOG_LEVEL"
   ],
   "tasks": {

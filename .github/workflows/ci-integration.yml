@@ -1,0 +1,71 @@
+name: Integration tests
+
+on:
+  push:
+    branches:
+      - main
+  schedule:
+    # Nightly at 02:00 UTC
+    - cron: '0 2 * * *'
+
+concurrency:
+  group: ci-integration-main
+  # Do not cancel a nightly run that may have started before a push run.
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  integration:
+    name: Integration tests
+    runs-on: ubuntu-latest
+    environment: staging
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.28.1
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+
+      - name: Cache Foundry artifacts
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.foundry/cache
+            apps/smart-contracts/chiliz-tv/cache
+            apps/smart-contracts/chiliz-tv/out
+          key: foundry-${{ runner.os }}-${{ hashFiles('apps/smart-contracts/chiliz-tv/foundry.toml', 'apps/smart-contracts/chiliz-tv/src/**/*.sol') }}
+          restore-keys: foundry-${{ runner.os }}-
+
+      - name: Install Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Start Supabase local stack
+        run: supabase start
+
+      - name: Run integration tests
+        # Runbook: apps/backend/docs/SMOKE_integration.md
+        run: pnpm test:integration
+        env:
+          SUPABASE_URL: http://localhost:54321
+          SUPABASE_ANON_KEY: ${{ env.SUPABASE_ANON_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ env.SUPABASE_SERVICE_ROLE_KEY }}
+          NODE_ENV: test
+
+      - name: Stop Supabase local stack
+        if: always()
+        run: supabase stop

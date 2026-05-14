@@ -1,0 +1,38 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended"],
+  "schedule": ["before 8am on monday"],
+  "prCreation": "not-pending",
+  "automerge": false,
+  "labels": ["renovate"],
+  "packageRules": [
+    {
+      "description": "React / Next.js ecosystem",
+      "matchPackageNames": ["react", "react-dom", "next", "@types/react", "@types/react-dom"],
+      "groupName": "react-next"
+    },
+    {
+      "description": "wagmi / viem stack",
+      "matchPackageNames": ["wagmi", "viem", "@wagmi/**"],
+      "groupName": "wagmi-viem"
+    },
+    {
+      "description": "Dynamic Labs SDK",
+      "matchPackageNames": ["@dynamic-labs/**"],
+      "groupName": "dynamic-labs"
+    },
+    {
+      "description": "OpenZeppelin contracts",
+      "matchPackageNames": ["@openzeppelin/**"],
+      "groupName": "openzeppelin"
+    },
+    {
+      "description": "Dev dependencies — minor + patch only, no major auto-bump",
+      "matchDepTypes": ["devDependencies"],
+      "matchUpdateTypes": ["minor", "patch"],
+      "groupName": "devDependencies"
+    }
+  ],
+  "ignorePaths": ["**/node_modules/**", "**/dist/**"],
+  "dependencyDashboard": true
+}

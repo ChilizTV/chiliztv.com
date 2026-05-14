@@ -1,0 +1,122 @@
+name: DB migrate
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - 'apps/backend/src/infrastructure/database/migrations/**'
+
+concurrency:
+  # Never cancel an in-progress migration.
+  group: db-migrate
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  # ── Validate migration sequence ───────────────────────────────────────────
+  validate-sequence:
+    name: Validate sequence
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Check migration filenames and sequence
+        run: node apps/backend/scripts/validate-migrations.mjs
+
+  # ── Apply on staging ──────────────────────────────────────────────────────
+  migrate-staging:
+    name: Migrate staging
+    runs-on: ubuntu-latest
+    needs: validate-sequence
+    environment: staging
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.28.1
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install Supabase CLI
+        run: pnpm add -g supabase
+
+      - name: Apply migrations to staging
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF_STAGING }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD_STAGING }}
+        run: |
+          supabase login --token "$SUPABASE_ACCESS_TOKEN"
+          supabase link --project-ref "$SUPABASE_PROJECT_REF" --password "$SUPABASE_DB_PASSWORD"
+          supabase db push
+
+      - name: Assert no pending diff
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF_STAGING }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD_STAGING }}
+        run: |
+          DIFF=$(supabase db diff 2>&1 || true)
+          if [ -n "$DIFF" ]; then
+            echo "Unexpected diff after migration:"
+            echo "$DIFF"
+            exit 1
+          fi
+          echo "No pending diff — staging schema is in sync"
+
+  # ── Apply on production (requires reviewer approval) ─────────────────────
+  migrate-prod:
+    name: Migrate production
+    runs-on: ubuntu-latest
+    needs: migrate-staging
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.28.1
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install Supabase CLI
+        run: pnpm add -g supabase
+
+      - name: Apply migrations to production
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: |
+          supabase login --token "$SUPABASE_ACCESS_TOKEN"
+          supabase link --project-ref "$SUPABASE_PROJECT_REF" --password "$SUPABASE_DB_PASSWORD"
+          supabase db push
+
+      - name: Assert no pending diff
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: |
+          DIFF=$(supabase db diff 2>&1 || true)
+          if [ -n "$DIFF" ]; then
+            echo "Unexpected diff after migration:"
+            echo "$DIFF"
+            exit 1
+          fi
+          echo "No pending diff — production schema is in sync"

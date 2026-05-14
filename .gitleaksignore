@@ -1,0 +1,10 @@
+# Ignore false positives in example env files and test fixtures.
+# Real secrets in .env files are never committed (see .gitignore).
+
+# Example env files contain placeholder values, not real secrets.
+[".env.example"]
+
+# Test fixtures may contain fake private keys and addresses for Anvil/Foundry.
+["apps/*/src/testing/**"]
+["apps/smart-contracts/**/test/**"]
+["apps/smart-contracts/**/script/**"]

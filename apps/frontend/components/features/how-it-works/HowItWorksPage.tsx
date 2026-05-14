@@ -312,7 +312,7 @@ function PoolFlowSvg() {
     >
       <div className="font-mono-ctv mb-7 flex items-center gap-3.5 text-[10px] font-bold uppercase tracking-[0.22em] text-[#E8001D]">
         <span aria-hidden className="block h-px w-6 bg-[#E8001D]" />
-        // The flow — losing predictions / winning predictions
+        {/* The flow — losing predictions / winning predictions */}
       </div>
       <svg viewBox="0 0 640 300" xmlns="http://www.w3.org/2000/svg" className="block h-auto w-full max-w-190">
         <defs>

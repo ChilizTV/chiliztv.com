@@ -6,7 +6,7 @@
     "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
+    "lint": "eslint app/ components/ hooks/ lib/ providers/ services/ types/ models/ config/",
     "wagmi:gen": "wagmi generate",
     "artifacts:sync": "node scripts/extract-foundry-artifacts.mjs && pnpm wagmi:gen",
     "smoke:contracts": "node scripts/smoke-contracts.mjs"

@@ -1,3 +1,4 @@
+import type { RealtimeChannel } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
 import { ChatMessage, BetMessage, SystemMessage, MessageType, SystemMessageType, BetType } from '@/models/chat.model';
 
@@ -13,6 +14,32 @@ export interface ChatStats {
     totalUsers: number;
     activeRooms: number;
     lastMessageAt: Date | null;
+}
+
+interface SupabaseChatRow {
+    id: string;
+    match_id: number;
+    stream_id?: string | null;
+    user_id: string;
+    username: string;
+    message: string;
+    message_type: string;
+    wallet_address: string;
+    created_at: string;
+    updated_at?: string | null;
+    is_featured?: boolean;
+    system_type?: SystemMessageType;
+    bet_type?: BetType;
+    bet_sub_type?: string;
+    amount?: number;
+    odds?: number;
+}
+
+interface SupabaseUserRow {
+    id: string;
+    username: string;
+    connected_at: string;
+    last_activity: string;
 }
 
 /**
@@ -36,8 +63,8 @@ function normalizeMessageType(raw: string): MessageType {
 }
 
 export class SupabaseChatService {
-    private subscriptions: Map<number, any> = new Map();
-    private streamSubscriptions: Map<string, any> = new Map();
+    private subscriptions: Map<number, RealtimeChannel> = new Map();
+    private streamSubscriptions: Map<string, RealtimeChannel> = new Map();
 
     async sendMessage(
         matchId: number,
@@ -299,7 +326,7 @@ export class SupabaseChatService {
                     // Server filter covers match_id; filter stream_id client-side since
                     // Supabase Realtime only supports one filter per postgres_changes subscription.
                     if (payload.new.stream_id != null) return;
-                    const message = this.mapSupabaseMessageToChatMessage(payload.new);
+                    const message = this.mapSupabaseMessageToChatMessage(payload.new as SupabaseChatRow);
                     callback(message);
                 }
             )
@@ -331,7 +358,7 @@ export class SupabaseChatService {
                     filter: `stream_id=eq.${streamId}`
                 },
                 (payload) => {
-                    const message = this.mapSupabaseMessageToChatMessage(payload.new);
+                    const message = this.mapSupabaseMessageToChatMessage(payload.new as SupabaseChatRow);
                     callback(message);
                 }
             )
@@ -446,7 +473,7 @@ export class SupabaseChatService {
         };
     }
 
-    private mapSupabaseMessageToChatMessage(data: any): ChatMessage {
+    private mapSupabaseMessageToChatMessage(data: SupabaseChatRow): ChatMessage {
         return {
             id: data.id,
             matchId: data.match_id,
@@ -463,18 +490,18 @@ export class SupabaseChatService {
         };
     }
 
-    private mapSupabaseMessageToBetMessage(data: any): BetMessage {
+    private mapSupabaseMessageToBetMessage(data: SupabaseChatRow): BetMessage {
         return {
             ...this.mapSupabaseMessageToChatMessage(data),
             type: MessageType.BET,
-            betType: data.bet_type,
+            betType: data.bet_type!,
             betSubType: data.bet_sub_type,
-            betAmount: data.amount,
-            betOdds: data.odds
+            betAmount: data.amount!,
+            betOdds: data.odds!
         };
     }
 
-    private mapSupabaseMessageToSystemMessage(data: any): SystemMessage {
+    private mapSupabaseMessageToSystemMessage(data: SupabaseChatRow): SystemMessage {
         return {
             ...this.mapSupabaseMessageToChatMessage(data),
             type: MessageType.SYSTEM,
@@ -482,7 +509,7 @@ export class SupabaseChatService {
         };
     }
 
-    private mapSupabaseUserToConnectedUser(data: any): ConnectedUser {
+    private mapSupabaseUserToConnectedUser(data: SupabaseUserRow): ConnectedUser {
         return {
             id: data.id,
             username: data.username,

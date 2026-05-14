@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { SupabaseChatService } from '@/services';
-import { ChatMessage } from '@/models/chat.model';
+import { ChatMessage, MessageType } from '@/models/chat.model';
 
 export interface UseChatRoomOptions {
     roomType: 'match' | 'stream';
@@ -128,7 +128,7 @@ export function useChatRoom({
                 username,
                 walletAddress,
                 message: text,
-                type: 'message' as any,
+                type: MessageType.REGULAR,
                 createdAt: new Date(),
                 updatedAt: new Date(),
             };

@@ -59,5 +59,5 @@ export interface BetMessage extends ChatMessage {
 }
 
 export interface SystemMessage extends ChatMessage {
-    data?: any;
+    data?: unknown;
 }

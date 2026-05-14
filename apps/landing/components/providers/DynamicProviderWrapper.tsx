@@ -74,10 +74,6 @@ export default function DynamicProviderWrapper({
     events: {},
   };
 
-  if (!environmentId) {
-    return <>{children}</>;
-  }
-
   return (
     <WagmiProviderWrapper>
       <DynamicContextProvider settings={dynamicSettings}>

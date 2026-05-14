@@ -149,6 +149,8 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Build
+        env:
+          NEXT_PUBLIC_DYNAMIC_ENVIRONMENT_ID: 00000000-0000-0000-0000-000000000000
         run: pnpm --filter "@chiliztv.com/frontend" build
 
   # ── Build — landing ──────────────────────────────────────────────────────────
@@ -171,6 +173,8 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Build
+        env:
+          NEXT_PUBLIC_DYNAMIC_ENVIRONMENT_ID: 00000000-0000-0000-0000-000000000000
         run: pnpm --filter "@chiliztv.com/landing" build
 
   # ── Build — backend ───────────────────────────────────────────────────────────

@@ -11,6 +11,9 @@ export default defineConfig({
         // Integration suites live next to source but use a longer timeout +
         // separate config — exclude them from the fast unit-test default.
         exclude: ['src/testing/integration/**', 'node_modules', 'dist'],
+        // tsyringe requires reflect-metadata to be loaded before any
+        // decorator-annotated module is imported.
+        setupFiles: ['reflect-metadata'],
     },
     resolve: {
         alias: [

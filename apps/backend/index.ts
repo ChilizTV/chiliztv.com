@@ -2,7 +2,6 @@
 // (read further down) decides which set of services boot.
 import 'reflect-metadata';
 import express from 'express';
-import bodyParser from 'body-parser';
 import cors from "cors";
 import http from 'http';
 import { config } from 'dotenv';
@@ -36,7 +35,7 @@ app.use(securityHeadersMiddleware);
 // Must be registered BEFORE the global bodyParser.json() middleware.
 app.use('/cloudflare-stream/webhook', express.raw({ type: 'application/json' }), cloudflareStreamWebhookRoutes);
 
-app.use(bodyParser.json());
+app.use(express.json());
 
 app.use(cors({
     origin: allowedOrigins,

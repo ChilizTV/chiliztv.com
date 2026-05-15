@@ -87,9 +87,6 @@ importers:
         specifier: ^3.25.76
         version: 3.25.76
     devDependencies:
-      '@types/body-parser':
-        specifier: ^1.19.6
-        version: 1.19.6
       '@types/cors':
         specifier: ^2.8.17
         version: 2.8.19
@@ -152,13 +149,13 @@ importers:
         version: 1.9.3(react@19.2.4)
       '@dynamic-labs/ethereum':
         specifier: 4.73.2
-        version: 4.73.2(@dynamic-labs-wallet/forward-mpc-client@0.3.0(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10))(@types/react@19.2.14)(bufferutil@4.1.0)(fastestsmallesttextencoderdecoder@1.0.22)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(typescript@5.9.3)(use-sync-external-store@1.6.0(react@19.2.4))(utf-8-validate@5.0.10)(viem@2.47.6(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@3.25.76))(zod@3.25.76)
+        version: 4.73.2(@dynamic-labs-wallet/forward-mpc-client@0.3.0(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@6.0.6))(@types/react@19.2.14)(bufferutil@4.1.0)(fastestsmallesttextencoderdecoder@1.0.22)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(typescript@5.9.3)(use-sync-external-store@1.4.0(react@19.2.4))(utf-8-validate@6.0.6)(viem@2.47.6(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@6.0.6)(zod@4.3.6))(zod@4.3.6)
       '@dynamic-labs/sdk-react-core':
         specifier: 4.73.2
-        version: 4.73.2(@dynamic-labs-wallet/forward-mpc-client@0.3.0(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10))(@types/react@19.2.14)(bufferutil@4.1.0)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(typescript@5.9.3)(utf-8-validate@5.0.10)
+        version: 4.73.2(@dynamic-labs-wallet/forward-mpc-client@0.3.0(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@6.0.6))(@types/react@19.2.14)(bufferutil@4.1.0)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(typescript@5.9.3)(utf-8-validate@6.0.6)
       '@dynamic-labs/wagmi-connector':
         specifier: 4.73.2
-        version: 4.73.2(c234778adbf2c9d4babe8152862a2495)
+        version: 4.73.2(089207679bdde649e04cdd4da3a3ef1d)
       '@pythnetwork/hermes-client':
         specifier: ^2.0.0
         version: 2.1.0(axios@1.14.0)
@@ -185,13 +182,13 @@ importers:
         version: 1.1.13(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
       '@selfxyz/common':
         specifier: ^0.0.5
-        version: 0.0.5(bufferutil@4.1.0)(utf-8-validate@5.0.10)
+        version: 0.0.5(bufferutil@4.1.0)(utf-8-validate@6.0.6)
       '@selfxyz/core':
         specifier: ^1.0.6
-        version: 1.0.8(bufferutil@4.1.0)(utf-8-validate@5.0.10)
+        version: 1.0.8(bufferutil@4.1.0)(utf-8-validate@6.0.6)
       '@selfxyz/qrcode':
         specifier: 1.0.10-beta.1
-        version: 1.0.10-beta.1(bufferutil@4.1.0)(jiti@2.6.1)(lottie-react@2.4.1(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(postcss@8.5.14)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(typescript@5.9.3)(utf-8-validate@5.0.10)
+        version: 1.0.10-beta.1(bufferutil@4.1.0)(jiti@2.6.1)(lottie-react@2.4.1(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(postcss@8.5.14)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(typescript@5.9.3)(utf-8-validate@6.0.6)
       '@splinetool/react-spline':
         specifier: ^4.0.0
         version: 4.1.0(@splinetool/runtime@1.12.73)(next@16.2.6(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
@@ -200,7 +197,7 @@ importers:
         version: 1.12.73
       '@supabase/supabase-js':
         specifier: ^2.56.1
-        version: 2.101.1(bufferutil@4.1.0)(utf-8-validate@5.0.10)
+        version: 2.101.1(bufferutil@4.1.0)(utf-8-validate@6.0.6)
       '@tanstack/react-query':
         specifier: ^5.83.0
         version: 5.96.1(react@19.2.4)
@@ -218,7 +215,7 @@ importers:
         version: 17.3.1
       ethers:
         specifier: ^6.15.0
-        version: 6.16.0(bufferutil@4.1.0)(utf-8-validate@5.0.10)
+        version: 6.16.0(bufferutil@4.1.0)(utf-8-validate@6.0.6)
       framer-motion:
         specifier: ^12.23.3
         version: 12.38.0(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
@@ -257,10 +254,10 @@ importers:
         version: 3.5.0
       viem:
         specifier: ^2.31.7
-        version: 2.47.6(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@3.25.76)
+        version: 2.47.6(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@6.0.6)(zod@4.3.6)
       wagmi:
         specifier: ^2.15.6
-        version: 2.19.5(@tanstack/query-core@5.96.1)(@tanstack/react-query@5.96.1(react@19.2.4))(@types/react@19.2.14)(bufferutil@4.1.0)(fastestsmallesttextencoderdecoder@1.0.22)(react@19.2.4)(typescript@5.9.3)(utf-8-validate@5.0.10)(viem@2.47.6(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@3.25.76))(zod@3.25.76)
+        version: 2.19.5(@tanstack/query-core@5.96.1)(@tanstack/react-query@5.96.1(react@19.2.4))(@types/react@19.2.14)(bufferutil@4.1.0)(fastestsmallesttextencoderdecoder@1.0.22)(react@19.2.4)(typescript@5.9.3)(utf-8-validate@6.0.6)(viem@2.47.6(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@6.0.6)(zod@4.3.6))(zod@4.3.6)
     devDependencies:
       '@eslint/eslintrc':
         specifier: ^3
@@ -279,7 +276,7 @@ importers:
         version: 19.2.3(@types/react@19.2.14)
       '@wagmi/cli':
         specifier: latest
-        version: 2.10.0(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)
+        version: 2.10.0(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@6.0.6)
       eslint:
         specifier: ^9
         version: 9.39.4(jiti@2.6.1)
@@ -306,13 +303,13 @@ importers:
         version: link:../../packages/ui
       '@dynamic-labs/ethereum':
         specifier: 4.73.2
-        version: 4.73.2(@dynamic-labs-wallet/forward-mpc-client@0.3.0(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@6.0.6))(@types/react@19.2.14)(bufferutil@4.1.0)(fastestsmallesttextencoderdecoder@1.0.22)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(typescript@5.9.3)(use-sync-external-store@1.4.0(react@19.2.4))(utf-8-validate@6.0.6)(viem@2.47.6(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@6.0.6)(zod@4.3.6))(zod@4.3.6)
+        version: 4.73.2(@dynamic-labs-wallet/forward-mpc-client@0.3.0(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10))(@types/react@19.2.14)(bufferutil@4.1.0)(fastestsmallesttextencoderdecoder@1.0.22)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(typescript@5.9.3)(use-sync-external-store@1.6.0(react@19.2.4))(utf-8-validate@5.0.10)(viem@2.47.6(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@3.25.76))(zod@3.25.76)
       '@dynamic-labs/sdk-react-core':
         specifier: 4.73.2
-        version: 4.73.2(@dynamic-labs-wallet/forward-mpc-client@0.3.0(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@6.0.6))(@types/react@19.2.14)(bufferutil@4.1.0)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(typescript@5.9.3)(utf-8-validate@6.0.6)
+        version: 4.73.2(@dynamic-labs-wallet/forward-mpc-client@0.3.0(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10))(@types/react@19.2.14)(bufferutil@4.1.0)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(typescript@5.9.3)(utf-8-validate@5.0.10)
       '@dynamic-labs/wagmi-connector':
         specifier: 4.73.2
-        version: 4.73.2(089207679bdde649e04cdd4da3a3ef1d)
+        version: 4.73.2(c234778adbf2c9d4babe8152862a2495)
       '@tanstack/react-query':
         specifier: ^5.83.0
         version: 5.96.1(react@19.2.4)
@@ -339,10 +336,10 @@ importers:
         version: 2.0.7(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
       viem:
         specifier: ^2.31.7
-        version: 2.47.6(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@6.0.6)(zod@4.3.6)
+        version: 2.47.6(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@3.25.76)
       wagmi:
         specifier: ^2.15.6
-        version: 2.19.5(@tanstack/query-core@5.96.1)(@tanstack/react-query@5.96.1(react@19.2.4))(@types/react@19.2.14)(bufferutil@4.1.0)(fastestsmallesttextencoderdecoder@1.0.22)(react@19.2.4)(typescript@5.9.3)(utf-8-validate@6.0.6)(viem@2.47.6(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@6.0.6)(zod@4.3.6))(zod@4.3.6)
+        version: 2.19.5(@tanstack/query-core@5.96.1)(@tanstack/react-query@5.96.1(react@19.2.4))(@types/react@19.2.14)(bufferutil@4.1.0)(fastestsmallesttextencoderdecoder@1.0.22)(react@19.2.4)(typescript@5.9.3)(utf-8-validate@5.0.10)(viem@2.47.6(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@3.25.76))(zod@3.25.76)
     devDependencies:
       '@tailwindcss/postcss':
         specifier: ^4
@@ -12677,7 +12674,7 @@ snapshots:
       '@noble/hashes': 1.8.0
       '@scure/base': 1.2.6
 
-  '@selfxyz/common@0.0.5(bufferutil@4.1.0)(utf-8-validate@5.0.10)':
+  '@selfxyz/common@0.0.5(bufferutil@4.1.0)(utf-8-validate@6.0.6)':
     dependencies:
       '@openpassport/zk-kit-imt': 0.0.5
       '@openpassport/zk-kit-lean-imt': 0.0.6
@@ -12690,7 +12687,7 @@ snapshots:
       country-emoji: 1.5.6
       country-iso-3-to-2: 1.1.1
       elliptic: 6.6.1
-      ethers: 6.16.0(bufferutil@4.1.0)(utf-8-validate@5.0.10)
+      ethers: 6.16.0(bufferutil@4.1.0)(utf-8-validate@6.0.6)
       fs: 0.0.1-security
       i18n-iso-countries: 7.14.0
       js-sha1: 0.7.0
@@ -12711,7 +12708,7 @@ snapshots:
       - supports-color
       - utf-8-validate
 
-  '@selfxyz/common@0.0.7(bufferutil@4.1.0)(utf-8-validate@5.0.10)':
+  '@selfxyz/common@0.0.7(bufferutil@4.1.0)(utf-8-validate@6.0.6)':
     dependencies:
       '@openpassport/zk-kit-imt': 0.0.5
       '@openpassport/zk-kit-lean-imt': 0.0.6
@@ -12724,7 +12721,7 @@ snapshots:
       country-emoji: 1.5.6
       country-iso-3-to-2: 1.1.1
       elliptic: 6.6.1
-      ethers: 6.16.0(bufferutil@4.1.0)(utf-8-validate@5.0.10)
+      ethers: 6.16.0(bufferutil@4.1.0)(utf-8-validate@6.0.6)
       fs: 0.0.1-security
       i18n-iso-countries: 7.14.0
       js-sha1: 0.7.0
@@ -12745,11 +12742,11 @@ snapshots:
       - supports-color
       - utf-8-validate
 
-  '@selfxyz/core@1.0.8(bufferutil@4.1.0)(utf-8-validate@5.0.10)':
+  '@selfxyz/core@1.0.8(bufferutil@4.1.0)(utf-8-validate@6.0.6)':
     dependencies:
-      '@selfxyz/common': 0.0.7(bufferutil@4.1.0)(utf-8-validate@5.0.10)
+      '@selfxyz/common': 0.0.7(bufferutil@4.1.0)(utf-8-validate@6.0.6)
       '@types/uuid': 10.0.0
-      ethers: 6.16.0(bufferutil@4.1.0)(utf-8-validate@5.0.10)
+      ethers: 6.16.0(bufferutil@4.1.0)(utf-8-validate@6.0.6)
       js-sha1: 0.7.0
       js-sha256: 0.11.1
       js-sha512: 0.9.0
@@ -12763,9 +12760,9 @@ snapshots:
       - supports-color
       - utf-8-validate
 
-  '@selfxyz/qrcode@1.0.10-beta.1(bufferutil@4.1.0)(jiti@2.6.1)(lottie-react@2.4.1(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(postcss@8.5.14)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(typescript@5.9.3)(utf-8-validate@5.0.10)':
+  '@selfxyz/qrcode@1.0.10-beta.1(bufferutil@4.1.0)(jiti@2.6.1)(lottie-react@2.4.1(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(postcss@8.5.14)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(typescript@5.9.3)(utf-8-validate@6.0.6)':
     dependencies:
-      '@selfxyz/common': 0.0.5(bufferutil@4.1.0)(utf-8-validate@5.0.10)
+      '@selfxyz/common': 0.0.5(bufferutil@4.1.0)(utf-8-validate@6.0.6)
       js-sha1: 0.7.0
       js-sha256: 0.11.1
       js-sha512: 0.9.0
@@ -12776,7 +12773,7 @@ snapshots:
       react: 19.2.4
       react-dom: 19.2.4(react@19.2.4)
       react-spinners: 0.14.1(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
-      socket.io-client: 4.8.3(bufferutil@4.1.0)(utf-8-validate@5.0.10)
+      socket.io-client: 4.8.3(bufferutil@4.1.0)(utf-8-validate@6.0.6)
       tsup: 8.5.1(jiti@2.6.1)(postcss@8.5.14)(typescript@5.9.3)
       uuid: 10.0.0
     transitivePeerDependencies:
@@ -13579,16 +13576,6 @@ snapshots:
     dependencies:
       tslib: 2.8.1
 
-  '@supabase/realtime-js@2.101.1(bufferutil@4.1.0)(utf-8-validate@5.0.10)':
-    dependencies:
-      '@supabase/phoenix': 0.4.0
-      '@types/ws': 8.18.1
-      tslib: 2.8.1
-      ws: 8.20.0(bufferutil@4.1.0)(utf-8-validate@5.0.10)
-    transitivePeerDependencies:
-      - bufferutil
-      - utf-8-validate
-
   '@supabase/realtime-js@2.101.1(bufferutil@4.1.0)(utf-8-validate@6.0.6)':
     dependencies:
       '@supabase/phoenix': 0.4.0
@@ -13603,17 +13590,6 @@ snapshots:
     dependencies:
       iceberg-js: 0.8.1
       tslib: 2.8.1
-
-  '@supabase/supabase-js@2.101.1(bufferutil@4.1.0)(utf-8-validate@5.0.10)':
-    dependencies:
-      '@supabase/auth-js': 2.101.1
-      '@supabase/functions-js': 2.101.1
-      '@supabase/postgrest-js': 2.101.1
-      '@supabase/realtime-js': 2.101.1(bufferutil@4.1.0)(utf-8-validate@5.0.10)
-      '@supabase/storage-js': 2.101.1
-    transitivePeerDependencies:
-      - bufferutil
-      - utf-8-validate
 
   '@supabase/supabase-js@2.101.1(bufferutil@4.1.0)(utf-8-validate@6.0.6)':
     dependencies:
@@ -14256,7 +14232,7 @@ snapshots:
 
   '@vue/shared@3.5.31': {}
 
-  '@wagmi/cli@2.10.0(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)':
+  '@wagmi/cli@2.10.0(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@6.0.6)':
     dependencies:
       abitype: 1.2.3(typescript@5.9.3)(zod@4.3.6)
       bundle-require: 5.1.0(esbuild@0.25.12)
@@ -14274,7 +14250,7 @@ snapshots:
       picocolors: 1.1.1
       picomatch: 3.0.2
       prettier: 3.8.1
-      viem: 2.47.6(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.3.6)
+      viem: 2.47.6(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@6.0.6)(zod@4.3.6)
       zod: 4.3.6
     optionalDependencies:
       typescript: 5.9.3
@@ -17252,7 +17228,7 @@ snapshots:
       '@scure/bip32': 1.4.0
       '@scure/bip39': 1.3.0
 
-  ethers@6.16.0(bufferutil@4.1.0)(utf-8-validate@5.0.10):
+  ethers@6.16.0(bufferutil@4.1.0)(utf-8-validate@6.0.6):
     dependencies:
       '@adraffy/ens-normalize': 1.10.1
       '@noble/curves': 1.2.0
@@ -17260,7 +17236,7 @@ snapshots:
       '@types/node': 22.7.5
       aes-js: 4.0.0-beta.5
       tslib: 2.7.0
-      ws: 8.17.1(bufferutil@4.1.0)(utf-8-validate@5.0.10)
+      ws: 8.17.1(bufferutil@4.1.0)(utf-8-validate@6.0.6)
     transitivePeerDependencies:
       - bufferutil
       - utf-8-validate
@@ -20200,23 +20176,6 @@ snapshots:
       - utf-8-validate
       - zod
 
-  viem@2.47.6(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.3.6):
-    dependencies:
-      '@noble/curves': 1.9.1
-      '@noble/hashes': 1.8.0
-      '@scure/bip32': 1.7.0
-      '@scure/bip39': 1.6.0
-      abitype: 1.2.3(typescript@5.9.3)(zod@4.3.6)
-      isows: 1.0.7(ws@8.18.3(bufferutil@4.1.0)(utf-8-validate@5.0.10))
-      ox: 0.14.7(typescript@5.9.3)(zod@4.3.6)
-      ws: 8.18.3(bufferutil@4.1.0)(utf-8-validate@5.0.10)
-    optionalDependencies:
-      typescript: 5.9.3
-    transitivePeerDependencies:
-      - bufferutil
-      - utf-8-validate
-      - zod
-
   viem@2.47.6(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@6.0.6)(zod@3.22.4):
     dependencies:
       '@noble/curves': 1.9.1
@@ -20539,10 +20498,10 @@ snapshots:
       bufferutil: 4.1.0
       utf-8-validate: 6.0.6
 
-  ws@8.17.1(bufferutil@4.1.0)(utf-8-validate@5.0.10):
+  ws@8.17.1(bufferutil@4.1.0)(utf-8-validate@6.0.6):
     optionalDependencies:
       bufferutil: 4.1.0
-      utf-8-validate: 5.0.10
+      utf-8-validate: 6.0.6
 
   ws@8.18.0(bufferutil@4.1.0)(utf-8-validate@5.0.10):
     optionalDependencies:

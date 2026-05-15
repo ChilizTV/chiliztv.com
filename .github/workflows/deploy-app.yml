@@ -165,10 +165,17 @@ jobs:
           retention-days: 30
 
       - name: Smoke — GET /api/health
+        # Vercel Deployment Protection guards *.vercel.app URLs with auth.
+        # Bypass it via the x-vercel-protection-bypass header so the runner
+        # can hit /api/health without ending up on the login page (HTTP 401).
+        env:
+          VERCEL_BYPASS: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
         run: |
           URL="${{ steps.deploy.outputs.deployment_url }}"
           for i in 1 2 3; do
-            STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 "${URL}/api/health")
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 \
+              -H "x-vercel-protection-bypass: $VERCEL_BYPASS" \
+              "${URL}/api/health")
             if [ "$STATUS" = "200" ]; then
               echo "Health check passed (attempt $i)"
               exit 0

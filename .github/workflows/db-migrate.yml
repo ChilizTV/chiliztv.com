@@ -49,8 +49,10 @@ jobs:
           node-version: 22
           cache: pnpm
 
-      - name: Install Supabase CLI
-        run: pnpm add -g supabase
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
 
       - name: Apply migrations to staging
         env:
@@ -94,8 +96,10 @@ jobs:
           node-version: 22
           cache: pnpm
 
-      - name: Install Supabase CLI
-        run: pnpm add -g supabase
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
 
       - name: Apply migrations to production
         env:

@@ -3,7 +3,7 @@ pragma solidity ^0.8.24;
 
 import {Test} from "forge-std/Test.sol";
 import {ChilizSwapRouter} from "../src/swap/ChilizSwapRouter.sol";
-import {BettingMatchFactory} from "../src/betting/BettingMatchFactory.sol";
+import {PariMatchFactory} from "../src/pari/PariMatchFactory.sol";
 import {StreamWalletFactory} from "../src/streamer/StreamWalletFactory.sol";
 import {MockUSDC} from "./mocks/MockUSDC.sol";
 import {MockKayenRouter} from "./mocks/MockKayenRouter.sol";
@@ -318,7 +318,7 @@ contract StreamSwapRouterTest is Test {
     // ══════════════════════════════════════════════════════════════════════════
 
     function test_M02_SetMatchFactory_SetsFactory() public {
-        BettingMatchFactory bmf = new BettingMatchFactory();
+        PariMatchFactory bmf = new PariMatchFactory();
         streamSwapRouter.setMatchFactory(address(bmf));
         assertEq(address(streamSwapRouter.bettingMatchFactory()), address(bmf));
     }
@@ -329,7 +329,7 @@ contract StreamSwapRouterTest is Test {
     }
 
     function test_M02_NonOwner_SetMatchFactory_Reverts() public {
-        BettingMatchFactory bmf = new BettingMatchFactory();
+        PariMatchFactory bmf = new PariMatchFactory();
         vm.prank(viewer1);
         vm.expectRevert();
         streamSwapRouter.setMatchFactory(address(bmf));
@@ -337,7 +337,7 @@ contract StreamSwapRouterTest is Test {
 
     function test_M02_PlaceBetWithUSDC_UnauthorizedMatch_Reverts() public {
         // Register a real factory — the unknown address is NOT in it
-        BettingMatchFactory bmf = new BettingMatchFactory();
+        PariMatchFactory bmf = new PariMatchFactory();
         streamSwapRouter.setMatchFactory(address(bmf));
 
         address unknownMatch = address(0xBEEF);

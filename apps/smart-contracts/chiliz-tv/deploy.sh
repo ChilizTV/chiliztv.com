@@ -5,18 +5,23 @@
 # All configuration is loaded from .env (see .env.example).
 #
 # Usage:
-#   ./deploy.sh --network chilizTestnet --all     # full platform (factories + router + pool, fully wired)
-#   ./deploy.sh --network chilizTestnet --match   # BettingMatchFactory only
+#   ./deploy.sh --network chilizTestnet --all     # full platform (PariMatchFactory + StreamWalletFactory + ChilizSwapRouter, fully wired)
+#   ./deploy.sh --network chilizTestnet --pari    # PariMatchFactory + router + sample match (no streaming)
 #   ./deploy.sh --network chilizTestnet --stream  # StreamWalletFactory only
-#   ./deploy.sh --network chilizTestnet --swap    # ChilizSwapRouter only
-#   ./deploy.sh --network chilizTestnet --pool    # LiquidityPool only (against existing factory)
+#   ./deploy.sh --network chilizTestnet --swap    # ChilizSwapRouter only (wire it post-deploy)
 #   ./deploy.sh --network chilizMainnet  --all
 #
-# --all and --pool require ADMIN_ADDRESS in .env (must differ from SAFE_ADDRESS).
+# Set TRANSFER_OWNERSHIP=true in your env file to transfer Ownable.owner of
+# the deployed factories + router to SAFE_ADDRESS at the end of the run.
+# Defaults to false so testnet iteration keeps the deployer EOA as owner.
 #
 # The --network flag is a safety label only: it picks the mainnet warning
 # and is used for output paths (deployments/<network>.json). The actual
 # RPC_URL / CHAIN_ID / FORGE_FLAGS come from .env.
+#
+# NOTE: The legacy LiquidityPool + BettingMatchFactory stack is gone. The
+# --match and --pool flags were removed alongside the contract deletions.
+# Use --all (or --pari for pari-only) to deploy the new pari-mutuel system.
 #
 
 set -e
@@ -38,24 +43,26 @@ while [[ $# -gt 0 ]]; do
             NETWORK="$2"; shift 2 ;;
         --all)
             DEPLOY_TYPE="all"; shift ;;
-        --match)
-            DEPLOY_TYPE="match"; shift ;;
+        --pari)
+            DEPLOY_TYPE="pari"; shift ;;
         --stream)
             DEPLOY_TYPE="stream"; shift ;;
         --swap)
             DEPLOY_TYPE="swap"; shift ;;
-        --pool)
-            DEPLOY_TYPE="pool"; shift ;;
+        --match|--pool)
+            echo -e "${RED}'$1' is no longer supported (LiquidityPool + BettingMatchFactory were removed).${NC}"
+            echo -e "${RED}  Use --all for the full pari-mutuel platform, or --pari for pari-only.${NC}"
+            exit 1 ;;
         *)
             echo -e "${RED}Unknown argument: $1${NC}"
-            echo "Usage: ./deploy.sh --network <chilizTestnet|chilizMainnet> <--all|--match|--stream|--swap|--pool>"
+            echo "Usage: ./deploy.sh --network <chilizTestnet|chilizMainnet> <--all|--pari|--stream|--swap>"
             exit 1 ;;
     esac
 done
 
 if [ -z "$NETWORK" ] || [ -z "$DEPLOY_TYPE" ]; then
     echo -e "${RED}Missing required arguments.${NC}"
-    echo "Usage: ./deploy.sh --network <chilizTestnet|chilizMainnet> <--all|--match|--stream|--swap|--pool>"
+    echo "Usage: ./deploy.sh --network <chilizTestnet|chilizMainnet> <--all|--pari|--stream|--swap>"
     exit 1
 fi
 
@@ -114,15 +121,15 @@ fi
 # ── Deploy type → script mapping ─────────────────────────────────────────────
 REQUIRES_KAYEN=false
 REQUIRES_USDC=false
-REQUIRES_ADMIN=false   # ADMIN_ADDRESS — required by anything that deploys the LiquidityPool
 case "$DEPLOY_TYPE" in
     all)
         SCRIPT="script/DeployAll.s.sol"
         REQUIRES_KAYEN=true
-        REQUIRES_USDC=true
-        REQUIRES_ADMIN=true ;;
-    match)
-        SCRIPT="script/DeployBetting.s.sol" ;;
+        REQUIRES_USDC=true ;;
+    pari)
+        SCRIPT="script/DeployPari.s.sol"
+        REQUIRES_KAYEN=true
+        REQUIRES_USDC=true ;;
     stream)
         SCRIPT="script/DeployStreaming.s.sol"
         REQUIRES_KAYEN=true
@@ -131,10 +138,6 @@ case "$DEPLOY_TYPE" in
         SCRIPT="script/DeploySwap.s.sol"
         REQUIRES_KAYEN=true
         REQUIRES_USDC=true ;;
-    pool)
-        SCRIPT="script/DeployLiquidityPool.s.sol"
-        REQUIRES_USDC=true
-        REQUIRES_ADMIN=true ;;
 esac
 
 # ── USDC / Kayen validation ──────────────────────────────────────────────────
@@ -154,36 +157,18 @@ if [ "$REQUIRES_KAYEN" = true ]; then
         exit 1
     fi
     if [ "${KAYEN_MASTER_ROUTER,,}" = "${KAYEN_ROUTER,,}" ]; then
-        echo -e "${RED}KAYEN_MASTER_ROUTER and KAYEN_ROUTER must be different addresses.${NC}"
-        echo -e "${RED}  Master Router V2 (CHZ-native, Kayen-specific signature) and the basic"
-        echo -e "${RED}  Kayen Router (Uniswap V2 fork, standard signature) are different contracts."
-        echo -e "${RED}  See https://kayen-protocol.gitbook.io/documentation/references/contracts${NC}"
-        exit 1
+        echo -e "${YELLOW}WARNING: KAYEN_MASTER_ROUTER == KAYEN_ROUTER.${NC}"
+        echo -e "${YELLOW}  Master Router V2 (CHZ-native, Kayen-specific signature) and the basic"
+        echo -e "${YELLOW}  Kayen Router (Uniswap V2 fork, standard signature) are documented as"
+        echo -e "${YELLOW}  distinct contracts. On Spicy testnet only one usable address exists, so"
+        echo -e "${YELLOW}  pinning both to the same router is intentional. On mainnet they MUST be"
+        echo -e "${YELLOW}  distinct -- double-check before broadcasting."
+        echo -e "${YELLOW}  Docs: https://kayen-protocol.gitbook.io/documentation/references/contracts${NC}"
     fi
     echo -e "  KAYEN_MASTER_ROUTER: ${YELLOW}$KAYEN_MASTER_ROUTER${NC}"
     echo -e "  KAYEN_ROUTER:        ${YELLOW}$KAYEN_ROUTER${NC}"
     echo -e "  WCHZ_ADDRESS:        ${YELLOW}$WCHZ_ADDRESS${NC}"
     echo -e "  USDC_ADDRESS:        ${YELLOW}$USDC_ADDRESS${NC}"
-    echo ""
-fi
-
-# ── Pool-admin validation ────────────────────────────────────────────────────
-# The LiquidityPool enforces a hard split between admin (DEFAULT_ADMIN_ROLE +
-# PAUSER_ROLE) and treasury (the Safe). Reusing the same address would let an
-# admin compromise drain accrued treasury funds, so the script refuses it.
-if [ "$REQUIRES_ADMIN" = true ]; then
-    if [ -z "$ADMIN_ADDRESS" ]; then
-        echo -e "${RED}Missing ADMIN_ADDRESS in $ENV_FILE${NC}"
-        echo -e "${RED}  ADMIN_ADDRESS holds DEFAULT_ADMIN_ROLE + PAUSER_ROLE on the LiquidityPool."
-        echo -e "${RED}  It MUST be different from SAFE_ADDRESS (treasury role separation).${NC}"
-        exit 1
-    fi
-    if [ "${ADMIN_ADDRESS,,}" = "${SAFE_ADDRESS,,}" ]; then
-        echo -e "${RED}ADMIN_ADDRESS and SAFE_ADDRESS must be different addresses.${NC}"
-        echo -e "${RED}  Same address = admin can rotate treasury → no security separation.${NC}"
-        exit 1
-    fi
-    echo -e "  ADMIN_ADDRESS: ${YELLOW}$ADMIN_ADDRESS${NC}"
     echo ""
 fi
 
@@ -208,7 +193,6 @@ echo -e "Deploy Type:  ${YELLOW}$DEPLOY_TYPE${NC}"
 echo -e "Script:       ${YELLOW}$SCRIPT${NC}"
 echo -e "RPC URL:      ${YELLOW}$RPC_URL${NC}"
 echo -e "Safe Address: ${YELLOW}$SAFE_ADDRESS${NC}"
-[ "$REQUIRES_ADMIN" = true ] && echo -e "Admin Address:${YELLOW} $ADMIN_ADDRESS${NC}"
 echo -e "Env File:     ${YELLOW}$ENV_FILE${NC}"
 [ -n "$FORGE_FLAGS" ] && echo -e "Forge Flags:  ${YELLOW}$FORGE_FLAGS${NC}"
 echo -e "${GREEN}========================================${NC}"
@@ -291,19 +275,29 @@ if [ "$DEPLOY_TYPE" = "swap" ]; then
     echo -e "${YELLOW}Swap Router Post-Deployment Steps:${NC}"
     echo -e "${YELLOW}────────────────────────────────────────${NC}"
     echo ""
-    echo "For EACH BettingMatch proxy that should accept CHZ swap bets:"
+    echo "DeploySwap only deploys the router; you still need to wire it. Run as"
+    echo "the owner of the factories + router, in this order:"
     echo ""
-    echo "  1) Set USDC token:"
-    echo -e "     ${CYAN}cast send <MATCH> 'setUSDCToken(address)' $USDC_ADDRESS --rpc-url $RPC_URL --private-key \$PRIVATE_KEY${NC}"
+    echo "  1) pariFactory.setWiring(USDC, FEE_RECIP, NEW_ROUTER)"
+    echo -e "     ${CYAN}cast send <PARI_FACTORY> 'setWiring(address,address,address)' \\${NC}"
+    echo -e "     ${CYAN}  $USDC_ADDRESS <FEE_RECIP> <NEW_ROUTER> \\${NC}"
+    echo -e "     ${CYAN}  --rpc-url $RPC_URL --private-key \$PRIVATE_KEY${NC}"
     echo ""
-    echo "  2) Grant SWAP_ROUTER_ROLE to ChilizSwapRouter:"
-    echo -e "     ${CYAN}cast send <MATCH> 'grantRole(bytes32,address)' \$(cast keccak 'SWAP_ROUTER_ROLE') <SWAP_ROUTER> --rpc-url $RPC_URL --private-key \$PRIVATE_KEY${NC}"
+    echo "  2) newRouter.setMatchFactory(PARI_FACTORY)"
+    echo -e "     ${CYAN}cast send <NEW_ROUTER> 'setMatchFactory(address)' \\${NC}"
+    echo -e "     ${CYAN}  <PARI_FACTORY> --rpc-url $RPC_URL --private-key \$PRIVATE_KEY${NC}"
     echo ""
-    echo "  3) Fund USDC treasury:"
-    echo -e "     ${CYAN}cast send $USDC_ADDRESS 'approve(address,uint256)' <MATCH> <AMOUNT> --rpc-url $RPC_URL --private-key \$PRIVATE_KEY${NC}"
-    echo -e "     ${CYAN}cast send <MATCH> 'fundUSDCTreasury(uint256)' <AMOUNT> --rpc-url $RPC_URL --private-key \$PRIVATE_KEY${NC}"
+    echo "  3) streamFactory.setSwapRouter(NEW_ROUTER)   # only if streaming is wired"
+    echo "  4) newRouter.setStreamWalletFactory(STREAM_FACTORY)   # back-pointer check"
     echo ""
-    echo "  4) Test swap bet:"
-    echo -e "     ${CYAN}cast send <SWAP_ROUTER> 'placeBetWithCHZ(address,uint256,uint64,uint256,uint256)' <MATCH> 0 0 1 \$(date +%s --date '+1 hour') --value 10ether --rpc-url $RPC_URL --private-key \$PRIVATE_KEY${NC}"
+    echo "Future matches created by the factory after step 1 automatically receive"
+    echo "SWAP_ROUTER_ROLE on the new router -- no manual cast required."
+    echo ""
+    echo "EXISTING matches (deployed against a previous router) still hold"
+    echo "SWAP_ROUTER_ROLE for the OLD router. Their owners must run:"
+    echo -e "     ${CYAN}cast send <MATCH> 'revokeRole(bytes32,address)' \$(cast keccak 'SWAP_ROUTER_ROLE') <OLD_ROUTER>${NC}"
+    echo -e "     ${CYAN}cast send <MATCH> 'grantRole(bytes32,address)'  \$(cast keccak 'SWAP_ROUTER_ROLE') <NEW_ROUTER>${NC}"
+    echo ""
+    echo "RedeploySwapRouter.s.sol prints the per-match commands automatically."
     echo ""
 fi

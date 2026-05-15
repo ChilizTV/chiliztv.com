@@ -37,13 +37,20 @@ import {SafeERC20}                  from "@openzeppelin/contracts/token/ERC20/ut
  *   Market transitions to Cancelled automatically at resolution time.
  *   No fee is taken. Every staker reclaims their full _userTotalStake.
  *
- * No odds are stored on-chain. Indicative odds may be displayed in the
- * front-end from off-chain computation (e.g. implied probability =
- * outcomePool / totalPool) but are never contractually guaranteed.
+ * Market spec (generic):
+ *   A single mapping `_marketSpec` holds the per-market metadata that used
+ *   to live in each sport contract. Children only contribute:
+ *     - the whitelist of accepted market types       (_isValidMarketType)
+ *     - the maxOutcome for each (type, line) pair    (_getMaxOutcome)
+ *     - the outcome computed from a typed score      (sport-specific
+ *       `resolveByScore`-style entrypoint, not in the base)
  *
- * No LP shares, no investment tokens, no yield-bearing instruments.
- * The only financial instrument is a non-transferable on-chain accounting
- * entry of how much USDC a user put into a given outcome.
+ * Resolution paths:
+ *   - resolveMarket(id, outcome) / resolveMarketsBatch — explicit outcomes
+ *     supplied by the oracle. No assumption about the input format.
+ *   - Children may add a typed `resolveByScore(...)` that derives outcomes
+ *     for every Closed market from a single match-score input — see
+ *     FootballPariMatch / BasketballPariMatch.
  *
  * Roles:
  *   DEFAULT_ADMIN_ROLE — upgrades, role management.
@@ -116,11 +123,21 @@ abstract contract PariMatchBase is
         uint64      result;      // 8 bytes — winning outcome index; valid only in Resolved
         uint40      createdAt;   // 5 bytes
         uint40      resolvedAt;  // 5 bytes
-        // 1 + 8 + 5 + 5 = 19 bytes in slot A; 13 bytes padding
         uint256     resolvedNetPool;
-        // Net pool available to winners = totalPool * (BPS_DENOM - feeBps) / BPS_DENOM
-        // Snapshotted at resolveMarket() so late feeBps changes cannot affect in-flight claims.
-        // 0 means either unresolved or void (no winning bets — auto-cancelled).
+    }
+
+    /// @notice Generic per-market metadata. Two slots.
+    ///         Slot A: marketType (32 bytes)
+    ///         Slot B: line(2) + maxOutcome(1) + extra(1) + groupId(2) = 6 bytes → 1 slot
+    /// @dev    `extra` and `groupId` are sport-defined free fields:
+    ///           * extra   — e.g. basketball quarter (1..4) or 0 for full-game
+    ///           * groupId — UI grouping for related markets (0 = ungrouped)
+    struct MarketSpec {
+        bytes32 marketType;
+        int16   line;
+        uint8   maxOutcome;
+        uint8   extra;
+        uint16  groupId;
     }
 
     // ═══════════════════════════════════════════════════════════════════════
@@ -139,52 +156,42 @@ abstract contract PariMatchBase is
     /// @notice Core data per market.
     mapping(uint256 marketId => MarketCore) internal _marketCores;   // slot 3
 
-    /// @notice Gross USDC pool for each market (sum of all outcome pools).
-    ///         Never decremented after placement — reflects the historical total
-    ///         of all user stakes regardless of payout/refund status.
+    /// @notice Gross USDC pool for each market.
     mapping(uint256 marketId => uint256) internal _totalPool;         // slot 4
 
     /// @notice USDC pool per outcome.
-    ///         outcomePool[m][o] = Σ stakes placed on outcome o in market m.
     mapping(uint256 marketId => mapping(uint64 outcome => uint256)) internal _outcomePool;  // slot 5
 
     /// @notice Individual user stake per outcome.
-    ///         This is the accounting primitive for winner payouts.
-    ///         A user may place multiple bets on the same outcome; they accumulate.
-    ///         A user may also bet on multiple distinct outcomes of the same market.
     mapping(uint256 marketId => mapping(address user => mapping(uint64 outcome => uint256))) internal _userStake;  // slot 6
 
-    /// @notice Sum of all user stakes in a market, across all outcomes.
-    ///         Used for O(1) full-refund calculation on cancellation.
+    /// @notice Sum of all user stakes in a market across every outcome.
     mapping(uint256 marketId => mapping(address user => uint256)) internal _userTotalStake;  // slot 7
 
-    /// @notice Claim / refund gate. Set to true the first time a user claims
-    ///         or refunds from a market. Prevents double-withdrawals.
+    /// @notice Claim / refund gate.
     mapping(uint256 marketId => mapping(address user => bool)) internal _claimed;  // slot 8
 
     /// @notice USDC token used for all settlements.
     IERC20 public usdcToken;                                          // slot 9
 
     /// @notice Address that receives protocol fees at market resolution.
-    ///         Should be a multi-sig or trusted treasury. NOT an LP vault.
-    address public feeRecipient;                                      // slot 10
+    address public feeRecipient;                                      // slot 10 (with feeBps)
 
     /// @notice Protocol fee in basis points (default 200 = 2%).
-    ///         Capped at MAX_FEE_BPS. Applied to the gross pool at resolution.
-    ///         Winners share the net pool proportionally.
     uint16 public feeBps;                                             // slot 10 (packed with feeRecipient)
-    //   address = 20 bytes, uint16 = 2 bytes → 22 bytes ≤ 32 bytes → same slot.
 
-    // Slots 0-10 = 11 named slots.
-    // Gap to 50 total slots.
-    uint256[39] private __gap;
+    /// @notice Per-market specification (type / line / maxOutcome / extra / groupId).
+    mapping(uint256 marketId => MarketSpec) internal _marketSpec;     // slot 11
+
+    // Slots 0-11 = 12 named slots. Gap to 50 total.
+    uint256[38] private __gap;
 
     // ═══════════════════════════════════════════════════════════════════════
     // EVENTS
     // ═══════════════════════════════════════════════════════════════════════
 
     event MatchInitialized(string indexed name, string sportType, address indexed owner);
-    event MarketCreated(uint256 indexed marketId, bytes32 marketType);
+    event MarketCreated(uint256 indexed marketId, bytes32 indexed marketType, int16 line, uint8 maxOutcome, uint16 groupId);
     event MarketStateChanged(uint256 indexed marketId, MarketState oldState, MarketState newState);
     event MarketCancelled(uint256 indexed marketId, string reason);
 
@@ -229,6 +236,9 @@ abstract contract PariMatchBase is
     error InvalidMarketId(uint256 marketId);
     error InvalidMarketState(uint256 marketId, MarketState current, MarketState required);
     error InvalidOutcome(uint256 marketId, uint64 outcome);
+    error InvalidOutcomeValue(uint256 marketId, uint64 outcome, uint8 maxAllowed);
+    error InvalidMarketType(bytes32 marketType);
+    error InvalidLine(bytes32 marketType, int16 line);
     error StakeBelowMinimum(uint256 stake, uint256 minimum);
     error ZeroStake();
     error AlreadyClaimed(uint256 marketId, address user);
@@ -310,6 +320,90 @@ abstract contract PariMatchBase is
     }
 
     // ═══════════════════════════════════════════════════════════════════════
+    // MARKET CREATION  (generic, type-checked through child hooks)
+    // ═══════════════════════════════════════════════════════════════════════
+
+    /// @notice Add a market of `marketType` with optional `line` parameter.
+    /// @dev    `line` semantics depend on the market type. Examples:
+    ///           - O/U markets: line in 1/10 goal/point units (25 = 2.5)
+    ///           - Scalar/bucket markets: line = cap of the highest bucket
+    ///           - Markets that ignore the line: pass 0
+    function addMarketWithLine(bytes32 marketType, int16 line)
+        external
+        onlyRole(ADMIN_ROLE)
+        returns (uint256 marketId)
+    {
+        return _addMarket(marketType, line, 0, 0);
+    }
+
+    /// @notice Add a market with sport-specific `extra` byte (e.g. basketball
+    ///         quarter) and optional UI `groupId`.
+    function addMarketAdvanced(
+        bytes32 marketType,
+        int16   line,
+        uint8   extra,
+        uint16  groupId
+    )
+        external
+        onlyRole(ADMIN_ROLE)
+        returns (uint256 marketId)
+    {
+        return _addMarket(marketType, line, extra, groupId);
+    }
+
+    /// @notice Batch add markets sharing default extra/groupId = 0.
+    function addMarketsBatch(
+        bytes32[] calldata marketTypes,
+        int16[]   calldata lines
+    ) external onlyRole(ADMIN_ROLE) {
+        uint256 n = marketTypes.length;
+        if (n != lines.length) revert ArrayLengthMismatch();
+        for (uint256 i; i < n; ++i) {
+            _addMarket(marketTypes[i], lines[i], 0, 0);
+        }
+    }
+
+    /// @notice Batch add markets with sport-specific `extra` and `groupId`.
+    function addMarketsBatchAdvanced(
+        bytes32[] calldata marketTypes,
+        int16[]   calldata lines,
+        uint8[]   calldata extras,
+        uint16[]  calldata groupIds
+    ) external onlyRole(ADMIN_ROLE) {
+        uint256 n = marketTypes.length;
+        if (n != lines.length || n != extras.length || n != groupIds.length)
+            revert ArrayLengthMismatch();
+        for (uint256 i; i < n; ++i) {
+            _addMarket(marketTypes[i], lines[i], extras[i], groupIds[i]);
+        }
+    }
+
+    function _addMarket(
+        bytes32 marketType,
+        int16   line,
+        uint8   extra,
+        uint16  groupId
+    ) internal returns (uint256 marketId) {
+        if (!_isValidMarketType(marketType)) revert InvalidMarketType(marketType);
+        uint8 maxOutcome = _getMaxOutcome(marketType, line);
+
+        marketId = marketCount++;
+
+        _marketCores[marketId].state     = MarketState.Inactive;
+        _marketCores[marketId].createdAt = uint40(block.timestamp);
+
+        _marketSpec[marketId] = MarketSpec({
+            marketType: marketType,
+            line:       line,
+            maxOutcome: maxOutcome,
+            extra:      extra,
+            groupId:    groupId
+        });
+
+        emit MarketCreated(marketId, marketType, line, maxOutcome, groupId);
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
     // MARKET STATE MANAGEMENT
     // ═══════════════════════════════════════════════════════════════════════
 
@@ -384,8 +478,6 @@ abstract contract PariMatchBase is
 
     /// @notice Place a stake directly with USDC.
     /// @dev    Caller must approve `amount` USDC to THIS contract.
-    ///         Stakes accumulate: calling twice on the same outcome adds to
-    ///         the existing position rather than replacing it.
     function placeBetUSDC(uint256 marketId, uint64 outcome, uint256 amount)
         external
         nonReentrant
@@ -399,17 +491,12 @@ abstract contract PariMatchBase is
 
         _validateOutcome(marketId, outcome);
 
-        // Pull USDC from the caller into this contract (the escrow).
         usdcToken.safeTransferFrom(msg.sender, address(this), amount);
-
         _recordStake(msg.sender, marketId, outcome, amount);
     }
 
     /// @notice Place a stake on behalf of a user after the router has already
     ///         transferred `amount` USDC to this contract.
-    /// @dev    Only callable by SWAP_ROUTER_ROLE. No safeTransferFrom is
-    ///         performed here — the router must transfer the funds first then
-    ///         call this in the same transaction.
     function placeBetUSDCFor(
         address user,
         uint256 marketId,
@@ -451,12 +538,6 @@ abstract contract PariMatchBase is
     // RESOLUTION
     // ═══════════════════════════════════════════════════════════════════════
 
-    /// @notice Resolve a market with the winning outcome.
-    /// @dev    If the winning outcome pool is zero (no one bet on the winner),
-    ///         the market auto-transitions to Cancelled so all stakers can
-    ///         refund. No fee is taken in that case.
-    ///         Otherwise: fee = totalPool * feeBps / BPS_DENOM is transferred
-    ///         to feeRecipient immediately; resolvedNetPool is snapshotted.
     function resolveMarket(uint256 marketId, uint64 result)
         external
         validMarket(marketId)
@@ -495,7 +576,6 @@ abstract contract PariMatchBase is
             return;
         }
 
-        // Normal resolution.
         uint256 fee     = (total * feeBps) / BPS_DENOM;
         uint256 netPool = total - fee;
 
@@ -518,12 +598,6 @@ abstract contract PariMatchBase is
     // CLAIM (WINNER)
     // ═══════════════════════════════════════════════════════════════════════
 
-    /// @notice Claim the payout for a resolved market.
-    /// @dev    Payout = userStake[winningOutcome] * resolvedNetPool / outcomePool[winningOutcome].
-    ///         If the user has no stake on the winning outcome their call reverts.
-    ///         A user who bet on both winning and losing outcomes receives payout
-    ///         only for the winning-outcome stake; losing stakes are implicit losses
-    ///         already included in the pool.
     function claim(uint256 marketId)
         external
         nonReentrant
@@ -534,7 +608,6 @@ abstract contract PariMatchBase is
         _processClaim(msg.sender, marketId);
     }
 
-    /// @notice Claim payouts from multiple markets in a single tx.
     function claimBatch(uint256[] calldata marketIds)
         external
         nonReentrant
@@ -544,8 +617,8 @@ abstract contract PariMatchBase is
         for (uint256 i; i < n; ++i) {
             uint256 mid = marketIds[i];
             if (mid >= marketCount) revert InvalidMarketId(mid);
-            if (_marketCores[mid].state != MarketState.Resolved) continue; // skip non-resolved
-            if (_claimed[mid][msg.sender]) continue;                        // skip already claimed
+            if (_marketCores[mid].state != MarketState.Resolved) continue;
+            if (_claimed[mid][msg.sender]) continue;
             _processClaim(msg.sender, mid);
         }
     }
@@ -562,11 +635,8 @@ abstract contract PariMatchBase is
         uint256 winningPool = _outcomePool[marketId][winningOutcome];
         uint256 netPool     = core.resolvedNetPool;
 
-        // payout = userWinStake * netPool / winningPool
-        // Multiplication before division to preserve precision.
         uint256 payout = (userWinStake * netPool) / winningPool;
 
-        // CEI: flag before transfer.
         _claimed[marketId][user] = true;
 
         usdcToken.safeTransfer(user, payout);
@@ -577,10 +647,6 @@ abstract contract PariMatchBase is
     // REFUND (CANCELLED MARKET)
     // ═══════════════════════════════════════════════════════════════════════
 
-    /// @notice Refund the full stake when a market is cancelled.
-    /// @dev    Covers both admin cancellations and auto-void (no winning bets).
-    ///         Returns _userTotalStake[marketId][user] — the sum of all stakes
-    ///         across every outcome the user bet on.
     function claimRefund(uint256 marketId)
         external
         nonReentrant
@@ -590,7 +656,6 @@ abstract contract PariMatchBase is
         _processRefund(msg.sender, marketId);
     }
 
-    /// @notice Batch refund from multiple cancelled markets.
     function claimRefundBatch(uint256[] calldata marketIds)
         external
         nonReentrant
@@ -618,12 +683,46 @@ abstract contract PariMatchBase is
     }
 
     // ═══════════════════════════════════════════════════════════════════════
+    // OUTCOME VALIDATION
+    // ═══════════════════════════════════════════════════════════════════════
+
+    function _validateOutcome(uint256 marketId, uint64 outcome) internal view {
+        uint8 maxO = _marketSpec[marketId].maxOutcome;
+        if (outcome > maxO) revert InvalidOutcomeValue(marketId, outcome, maxO);
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
     // VIEW FUNCTIONS
     // ═══════════════════════════════════════════════════════════════════════
 
     function getMarketCore(uint256 marketId)
         external view validMarket(marketId) returns (MarketCore memory)
     { return _marketCores[marketId]; }
+
+    function getMarketSpec(uint256 marketId)
+        external view validMarket(marketId) returns (MarketSpec memory)
+    { return _marketSpec[marketId]; }
+
+    function getMarketInfo(uint256 marketId)
+        external
+        view
+        validMarket(marketId)
+        returns (
+            bytes32     marketType,
+            MarketState state,
+            uint64      result,
+            uint256     totalPool,
+            uint256     outcomeCount
+        )
+    {
+        MarketSpec storage spec = _marketSpec[marketId];
+        MarketCore storage core = _marketCores[marketId];
+        marketType   = spec.marketType;
+        state        = core.state;
+        result       = core.result;
+        totalPool    = _totalPool[marketId];
+        outcomeCount = uint256(spec.maxOutcome) + 1;
+    }
 
     function getTotalPool(uint256 marketId)
         external view validMarket(marketId) returns (uint256)
@@ -646,8 +745,6 @@ abstract contract PariMatchBase is
     { return _claimed[marketId][user]; }
 
     /// @notice Off-chain indicative implied probability for an outcome.
-    ///         NOT a guaranteed payout — this changes as more stakes come in.
-    ///         Returns 0 if totalPool == 0.
     function getImpliedProbabilityBps(uint256 marketId, uint64 outcome)
         external view validMarket(marketId) returns (uint256 bps)
     {
@@ -669,17 +766,10 @@ abstract contract PariMatchBase is
     // ABSTRACT (sport-specific)
     // ═══════════════════════════════════════════════════════════════════════
 
-    /// @dev Children validate that `outcome` is a legal value for `marketId`.
-    function _validateOutcome(uint256 marketId, uint64 outcome) internal view virtual;
+    /// @dev Children whitelist the market types they support.
+    function _isValidMarketType(bytes32 marketType) internal view virtual returns (bool);
 
-    /// @dev Children create markets with sport-specific metadata.
-    function addMarketWithLine(bytes32 marketType, int16 line) external virtual;
-
-    function getMarketInfo(uint256 marketId) external view virtual returns (
-        bytes32    marketType,
-        MarketState state,
-        uint64     result,
-        uint256    totalPool,
-        uint256    outcomeCount
-    );
+    /// @dev Children return the inclusive max outcome index for (type, line).
+    ///      Children should revert with InvalidLine if the line is unsupported.
+    function _getMaxOutcome(bytes32 marketType, int16 line) internal view virtual returns (uint8);
 }

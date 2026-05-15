@@ -43,7 +43,13 @@ import {ChilizSwapRouter} from "../src/swap/ChilizSwapRouter.sol";
  *
  * OPTIONAL:
  * =========
- *   PLATFORM_FEE_BPS  — Streaming platform fee bps (default 500 = 5%)
+ *   PLATFORM_FEE_BPS    — Streaming platform fee bps (default 500 = 5%)
+ *   TRANSFER_OWNERSHIP  — When "true", transfers Ownable.owner of
+ *                          PariMatchFactory, StreamWalletFactory, and
+ *                          ChilizSwapRouter to SAFE_ADDRESS at the end of
+ *                          the run. Defaults to false so testnet iteration
+ *                          keeps the deployer EOA as owner. Set to "true"
+ *                          for production deployments.
  *
  * USAGE:
  * ======
@@ -62,6 +68,7 @@ contract DeployAll is Script {
     address public wchz;
     address public usdcAddress;
     uint16  public platformFeeBps;
+    bool    public transferOwnership;
 
     function run() external {
         deployer = msg.sender;
@@ -74,6 +81,9 @@ contract DeployAll is Script {
         _deployStreamingFactory();
         _deploySwapRouter();
         _wirePlatform();
+        if (transferOwnership) {
+            _transferOwnershipToSafe();
+        }
         _printSummary();
         _printPostDeploymentSteps();
 
@@ -97,7 +107,8 @@ contract DeployAll is Script {
         require(wchz              != address(0), "WCHZ_ADDRESS required");
         require(usdcAddress       != address(0), "USDC_ADDRESS required");
 
-        platformFeeBps = uint16(_envUintOr("PLATFORM_FEE_BPS", 500));
+        platformFeeBps    = uint16(_envUintOr("PLATFORM_FEE_BPS", 500));
+        transferOwnership = _envBoolOr("TRANSFER_OWNERSHIP", false);
     }
 
     // ══════════════════════════════════════════════════════════════════════════
@@ -170,6 +181,37 @@ contract DeployAll is Script {
     }
 
     // ══════════════════════════════════════════════════════════════════════════
+    // OWNERSHIP TRANSFER (env-flag gated)
+    // ══════════════════════════════════════════════════════════════════════════
+
+    /// @dev Transfers Ownable.owner on all three top-level contracts to the
+    ///      Safe. Skipped by default — set TRANSFER_OWNERSHIP=true to enable.
+    ///      Run only after wiring; ownership is required to call setWiring,
+    ///      setMatchFactory, and setStreamWalletFactory.
+    function _transferOwnershipToSafe() internal {
+        console.log("TRANSFERRING OWNERSHIP TO SAFE");
+        console.log("==============================");
+        console.log("Target Safe:", treasury);
+
+        pariFactory.transferOwnership(treasury);
+        console.log("  pariFactory.transferOwnership    -> Safe");
+
+        streamFactory.transferOwnership(treasury);
+        console.log("  streamFactory.transferOwnership  -> Safe");
+
+        swapRouter.transferOwnership(treasury);
+        console.log("  swapRouter.transferOwnership     -> Safe");
+
+        console.log("");
+        console.log("WARNING: the deployer EOA can no longer call:");
+        console.log("  pariFactory.{createFootballMatch, createBasketballMatch, setWiring, setImplementation}");
+        console.log("  streamFactory.{setSwapRouter, setImplementation, upgradeWallet, ...}");
+        console.log("  swapRouter.{setMatchFactory, setStreamWalletFactory, setTreasury, setPlatformFeeBps}");
+        console.log("Any such call must now come from the Safe.");
+        console.log("");
+    }
+
+    // ══════════════════════════════════════════════════════════════════════════
     // OUTPUT
     // ══════════════════════════════════════════════════════════════════════════
 
@@ -193,6 +235,12 @@ contract DeployAll is Script {
         console.log("PariMatchFactory    :", address(pariFactory));
         console.log("StreamWalletFactory :", address(streamFactory));
         console.log("ChilizSwapRouter    :", address(swapRouter));
+        console.log("Owner of all three  :", transferOwnership ? treasury : deployer);
+        if (!transferOwnership) {
+            console.log("");
+            console.log("Ownership held by deployer EOA -- set TRANSFER_OWNERSHIP=true");
+            console.log("in production to hand ownership to SAFE_ADDRESS at deploy time.");
+        }
         console.log("==============================================");
         console.log("");
     }
@@ -227,6 +275,13 @@ contract DeployAll is Script {
         internal view returns (uint256)
     {
         try vm.envUint(key) returns (uint256 v) { return v; }
+        catch { return defaultVal; }
+    }
+
+    function _envBoolOr(string memory key, bool defaultVal)
+        internal view returns (bool)
+    {
+        try vm.envBool(key) returns (bool v) { return v; }
         catch { return defaultVal; }
     }
 }

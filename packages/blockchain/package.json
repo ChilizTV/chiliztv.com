@@ -12,6 +12,10 @@
     "./chains": {
       "types": "./dist/chains/index.d.ts",
       "default": "./dist/chains/index.js"
+    },
+    "./*": {
+      "types": "./dist/*.d.ts",
+      "default": "./dist/*.js"
     }
   },
   "scripts": {

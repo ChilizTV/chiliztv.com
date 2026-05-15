@@ -57,6 +57,16 @@ jobs:
       - name: Start Supabase local stack
         run: supabase start
 
+      - name: Bootstrap initial schema
+        working-directory: apps/backend/src/infrastructure/database/schemas
+        run: |
+          STATUS=$(supabase status -o env)
+          SUPABASE_DB_URL=$(echo "$STATUS" | grep -E '^DB_URL=' | sed 's/^DB_URL=//;s/^"//;s/"$//')
+          for f in schema.sql predictions-schema.sql streams-schema.sql stream-wallets-schema.sql stream-wallet-schema.sql waitlist-schema.sql; do
+            echo "Applying $f"
+            psql "$SUPABASE_DB_URL" -v ON_ERROR_STOP=1 -f "$f"
+          done
+
       - name: Export Supabase local credentials
         # `supabase status -o env` prints DB_URL, API_URL, ANON_KEY, SERVICE_ROLE_KEY.
         run: |

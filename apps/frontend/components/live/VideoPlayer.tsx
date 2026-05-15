@@ -292,16 +292,7 @@ export default function VideoPlayer({
     }, [stream?.id, autoplay]);
 
     if (!stream) {
-        return (
-            <Card className={`${className} bg-zinc-900 border-zinc-800`}>
-                <CardContent className="p-6">
-                    <div className="flex flex-col items-center justify-center h-64 text-gray-400">
-                        <AlertCircle className="w-12 h-12 mb-4 text-gray-500" />
-                        <p>No one is streaming this match yet</p>
-                    </div>
-                </CardContent>
-            </Card>
-        );
+        return <FallbackTestStream className={className} />;
     }
 
     return (
@@ -416,6 +407,127 @@ export default function VideoPlayer({
                         <p className="font-semibold">{stream.streamerName}</p>
                         <p className="text-xs text-gray-300">Live Stream</p>
                     </div>
+                </div>
+            </CardContent>
+        </Card>
+    );
+}
+
+// ─── Fallback test-stream player ────────────────────────────────────────────
+
+/**
+ * Plays a public HLS test asset (Mux's Big Buck Bunny) when no real stream is
+ * selected. Lets `/live/<id>` always render *something* in the player slot,
+ * which is much friendlier for demos than a "no one is streaming" card.
+ *
+ * Pure presentational — no viewer-presence, no Supabase realtime, no thumbnail
+ * capture. The full pipeline kicks in the moment a real `LiveStream` is
+ * selected.
+ */
+const FALLBACK_HLS_URL =
+    'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8';
+const FALLBACK_LABEL = 'Test stream — Big Buck Bunny (HLS, public)';
+
+function FallbackTestStream({ className }: { className?: string }) {
+    const videoRef = useRef<HTMLVideoElement>(null);
+    const hlsRef = useRef<Hls | null>(null);
+    const [isMuted, setIsMuted] = useState(true);
+
+    useEffect(() => {
+        const video = videoRef.current;
+        if (!video) return;
+
+        if (video.canPlayType('application/vnd.apple.mpegurl')) {
+            video.src = FALLBACK_HLS_URL;
+            video.play().catch(() => undefined);
+            return;
+        }
+
+        if (Hls.isSupported()) {
+            const hls = new Hls({ enableWorker: true });
+            hls.loadSource(FALLBACK_HLS_URL);
+            hls.attachMedia(video);
+            hlsRef.current = hls;
+            hls.on(Hls.Events.MANIFEST_PARSED, () => {
+                video.muted = true;
+                video.play().catch(() => undefined);
+            });
+        }
+
+        return () => {
+            try {
+                hlsRef.current?.destroy();
+            } catch {
+                // expected on unmount race
+            }
+            hlsRef.current = null;
+        };
+    }, []);
+
+    return (
+        <Card className={`${className ?? ''} bg-zinc-900 border-zinc-800`}>
+            <CardContent className="p-0">
+                <div className="relative w-full aspect-video bg-black rounded-lg overflow-hidden border border-zinc-800">
+                    <video
+                        ref={videoRef}
+                        controls
+                        autoPlay
+                        muted={isMuted}
+                        loop
+                        playsInline
+                        className="w-full h-full object-contain"
+                    />
+                    <div
+                        className="absolute top-3 left-3 flex items-center gap-2 rounded-full border px-3 py-1 backdrop-blur-sm"
+                        style={{
+                            background: 'rgba(232,0,29,0.18)',
+                            borderColor: 'rgba(232,0,29,0.5)',
+                            color: '#fff',
+                        }}
+                    >
+                        <span
+                            className="h-1.5 w-1.5 rounded-full"
+                            style={{ background: '#E8001D', boxShadow: '0 0 10px #E8001D' }}
+                        />
+                        <span
+                            className="text-[10px] font-bold uppercase tracking-[0.15em]"
+                            style={{ fontFamily: "'Barlow', sans-serif" }}
+                        >
+                            Demo
+                        </span>
+                    </div>
+                    <div
+                        className="absolute bottom-3 left-3 max-w-[60%] truncate rounded-md border px-2 py-1 backdrop-blur-sm"
+                        style={{
+                            background: 'rgba(0,0,0,0.6)',
+                            borderColor: '#2A2A2A',
+                            color: '#888',
+                        }}
+                    >
+                        <span
+                            className="text-[10px]"
+                            style={{ fontFamily: "'Barlow', sans-serif" }}
+                        >
+                            {FALLBACK_LABEL}
+                        </span>
+                    </div>
+                    <button
+                        onClick={() => {
+                            const v = videoRef.current;
+                            if (!v) return;
+                            v.muted = !v.muted;
+                            setIsMuted(v.muted);
+                        }}
+                        className="absolute bottom-3 right-3 rounded-full border bg-black/70 p-2 backdrop-blur-sm hover:bg-black/90"
+                        style={{ borderColor: '#3F3F46' }}
+                        title={isMuted ? 'Unmute' : 'Mute'}
+                    >
+                        {isMuted ? (
+                            <VolumeX className="h-4 w-4 text-white" />
+                        ) : (
+                            <Volume2 className="h-4 w-4 text-white" />
+                        )}
+                    </button>
                 </div>
             </CardContent>
         </Card>

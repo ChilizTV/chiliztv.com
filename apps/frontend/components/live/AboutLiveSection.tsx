@@ -1,23 +1,14 @@
 "use client";
 
-import { useState } from "react";
 import { Heart, Gift, Star } from "lucide-react";
-import type { Address } from "viem";
 import { useIsFollowing, useFollowMutation, useUnfollowMutation } from "@/hooks/api";
-import { MatchMarketsList } from "./MatchMarketsList";
 import { StreamerSchedule, type ScheduledStream } from "./StreamerSchedule";
-
-type Tab = "markets" | "schedule";
 
 interface AboutLiveSectionProps {
   streamerId?: string;
   streamerName: string;
   title?: string;
   currentUserId?: string;
-  bettingContractAddress?: Address;
-  walletAddress?: string;
-  homeTeam?: string;
-  awayTeam?: string;
   streamerSchedule?: ScheduledStream[];
   onDonate?: () => void;
   onSubscribe?: () => void;
@@ -30,16 +21,14 @@ export function AboutLiveSection({
   streamerName,
   title,
   currentUserId,
-  bettingContractAddress,
-  walletAddress,
-  homeTeam,
-  awayTeam,
   streamerSchedule,
   onDonate,
   onSubscribe,
   hideStreamerActions = false,
 }: AboutLiveSectionProps) {
-  const [activeTab, setActiveTab] = useState<Tab>("markets");
+  // Markets used to live here as a tab; they're now rendered prominently in
+  // LiveDetailsPage via <PariMarketsList />. This section is just the streamer
+  // schedule and follow controls.
 
   const canFollow = !!currentUserId && !!streamerId && currentUserId !== streamerId;
 
@@ -62,11 +51,6 @@ export function AboutLiveSection({
 
   const isMutating = followMutation.isPending || unfollowMutation.isPending;
   const initial = streamerName.charAt(0).toUpperCase();
-
-  const tabs: { key: Tab; label: string }[] = [
-    { key: "markets", label: "Markets" },
-    { key: "schedule", label: "Schedule" },
-  ];
 
   return (
     <div
@@ -171,44 +155,13 @@ export function AboutLiveSection({
         </div>
       </div>
 
-      {/* Tab strip */}
-      <div className="flex" style={{ borderTop: "1px solid #2A2A2A" }}>
-        {tabs.map((t) => {
-          const isActive = activeTab === t.key;
-          return (
-            <button
-              key={t.key}
-              onClick={() => setActiveTab(t.key)}
-              className="flex-1 px-4 py-3 text-[11px] font-bold tracking-[0.1em] uppercase transition-colors duration-150"
-              style={{
-                color: isActive ? "#fff" : "#888",
-                background: isActive ? "#0F0F0F" : "transparent",
-                borderBottom: `2px solid ${isActive ? "#E8001D" : "transparent"}`,
-                fontFamily: "'Barlow', sans-serif",
-              }}
-            >
-              {t.label}
-            </button>
-          );
-        })}
-      </div>
-
-      {/* Tab content */}
+      {/* Schedule */}
       <div style={{ borderTop: "1px solid #1E1E1E" }}>
-        {activeTab === "markets" ? (
-          <MatchMarketsList
-            contractAddress={bettingContractAddress}
-            walletAddress={walletAddress}
-            homeTeam={homeTeam}
-            awayTeam={awayTeam}
-          />
-        ) : (
-          <StreamerSchedule
-            streamerId={streamerId}
-            streamerName={streamerName}
-            schedule={streamerSchedule}
-          />
-        )}
+        <StreamerSchedule
+          streamerId={streamerId}
+          streamerName={streamerName}
+          schedule={streamerSchedule}
+        />
       </div>
     </div>
   );

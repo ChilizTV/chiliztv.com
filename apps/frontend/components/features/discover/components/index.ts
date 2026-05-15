@@ -8,4 +8,3 @@ export { FilterBar, leagueKey } from "./FilterBar";
 export type { TabDescriptor } from "./FilterBar";
 export { EmptyState } from "./EmptyState";
 export { LeagueSection } from "./LeagueSection";
-export { PoolDepositDialog } from "./PoolDepositDialog";

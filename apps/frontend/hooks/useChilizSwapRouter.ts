@@ -7,9 +7,6 @@ import {
     useChilizSwapRouterWritePlaceBetWithUsdc,
     useChilizSwapRouterWritePlaceBetWithChz,
     useChilizSwapRouterWritePlaceBetWithToken,
-    useChilizSwapRouterWriteDepositLiquidityWithUsdc,
-    useChilizSwapRouterWriteDepositLiquidityWithChz,
-    useChilizSwapRouterWriteDepositLiquidityWithToken,
     useChilizSwapRouterWriteDonateWithUsdc,
     useChilizSwapRouterWriteDonateWithChz,
     useChilizSwapRouterWriteDonateWithToken,
@@ -67,11 +64,6 @@ export function useChilizSwapRouter() {
     const placeBetChz = useChilizSwapRouterWritePlaceBetWithChz();
     const placeBetToken = useChilizSwapRouterWritePlaceBetWithToken();
 
-    // ── Deposit entrypoints ───────────────────────────────────────────────
-    const depositUsdc = useChilizSwapRouterWriteDepositLiquidityWithUsdc();
-    const depositChz = useChilizSwapRouterWriteDepositLiquidityWithChz();
-    const depositToken = useChilizSwapRouterWriteDepositLiquidityWithToken();
-
     // ── Donation entrypoints ──────────────────────────────────────────────
     const donateUsdc = useChilizSwapRouterWriteDonateWithUsdc();
     const donateChz = useChilizSwapRouterWriteDonateWithChz();
@@ -118,41 +110,6 @@ export function useChilizSwapRouter() {
     const placeBetUsdcState = useTxState(placeBetUsdc);
     const placeBetChzState = useTxState(placeBetChz);
     const placeBetTokenState = useTxState(placeBetToken);
-
-    // ── Deposit liquidity ─────────────────────────────────────────────────
-    const depositLiquidity = useCallback(
-        (params: {
-            token: SwapToken;
-            amount: bigint;
-            amountOutMin: bigint;
-            deadline: bigint;
-            receiver: Address;
-        }) => {
-            const { token, amount, amountOutMin, deadline, receiver } = params;
-            if (token === 'USDC') {
-                depositUsdc.writeContract({
-                    address: ROUTER_ADDRESS,
-                    args: [amount, receiver],
-                });
-            } else if (token === 'CHZ') {
-                depositChz.writeContract({
-                    address: ROUTER_ADDRESS,
-                    args: [amountOutMin, deadline, receiver],
-                    value: amount,
-                });
-            } else {
-                depositToken.writeContract({
-                    address: ROUTER_ADDRESS,
-                    args: [token, amount, amountOutMin, deadline, receiver],
-                });
-            }
-        },
-        [depositUsdc, depositChz, depositToken],
-    );
-
-    const depositUsdcState = useTxState(depositUsdc);
-    const depositChzState = useTxState(depositChz);
-    const depositTokenState = useTxState(depositToken);
 
     // ── Donate ──────────────────────────────────────────────────────────────
     const donate = useCallback(
@@ -230,10 +187,6 @@ export function useChilizSwapRouter() {
         // Bet
         placeBet,
         betState: pickActive(placeBetUsdcState, placeBetChzState, placeBetTokenState),
-
-        // Deposit
-        depositLiquidity,
-        depositState: pickActive(depositUsdcState, depositChzState, depositTokenState),
 
         // Donate
         donate,

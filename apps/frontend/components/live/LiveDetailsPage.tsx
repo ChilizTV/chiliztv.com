@@ -14,13 +14,11 @@ import {
   StartStreamCollapsible,
   MatchScoreDisplay,
 } from ".";
+import { PariMarketsList } from "./pari";
 import type { Address } from "viem";
 import { useMatch } from "@/hooks/api";
-import {
-  useBettingMatchFactoryReadGetAllMatches,
-  useBettingMatchFactoryReadGetSportType,
-  useBettingMatchReadMatchName,
-} from "@/lib/contracts/generated";
+import { usePariMatchFactory } from "@/hooks/usePariMatchFactory";
+import { useFootballPariMatchReadMatchName } from "@/lib/contracts/generated";
 import { chilizConfig } from "@/config/chiliz.config";
 import { LiveStream } from "@/models/stream.model";
 import type { Match } from "@/types/api.types";
@@ -31,6 +29,13 @@ interface LiveDetailsPageProps {
 
 const TEST_MATCH_ID = "999999";
 
+/**
+ * Live match page: video stream + chat + pari-mutuel betting panel.
+ *
+ * Two data sources, picked by the route id:
+ *   - id === "999999"   → test match. Bind to PariMatchFactory.getAllMatches().at(-1).
+ *   - any other numeric → real backend `useMatch(id)` lookup.
+ */
 export default function LiveDetailsPage({ id }: LiveDetailsPageProps) {
   const router = useRouter();
   const { primaryWallet, user } = useDynamicContext();
@@ -38,67 +43,53 @@ export default function LiveDetailsPage({ id }: LiveDetailsPageProps) {
   const isTestMatch = id === TEST_MATCH_ID;
 
   // ── Backend-API path (real matches) ──────────────────────────────────────
-  // Disabled for the test match so we don't bubble up a 404 on /live/999999.
   const {
     data: matchDataFromApi,
     isLoading: loadingFromApi,
     error: queryError,
   } = useMatch(isTestMatch ? "" : id);
 
-  // ── On-chain path (test match: bind to the latest factory deployment) ────
-  // Reads run only when isTestMatch — `enabled` keeps useQuery quiet on the
-  // happy backend path.
-  const { data: allMatches } = useBettingMatchFactoryReadGetAllMatches({
-    address: chilizConfig.bettingMatchFactory,
-    chainId: chilizConfig.chainId,
-    query: { enabled: isTestMatch },
-  });
-  const latestProxy = (allMatches as readonly Address[] | undefined)?.at(-1);
+  // ── On-chain path (test match → newest factory deployment) ───────────────
+  const {
+    factoryAddress,
+    allMatches,
+    latestMatch: latestProxy,
+    sportType,
+    loadingMatches,
+    matchesError,
+  } = usePariMatchFactory({ matchAddress: undefined, enabled: isTestMatch });
 
-  const { data: onChainMatchName } = useBettingMatchReadMatchName({
+  const { data: onChainMatchName } = useFootballPariMatchReadMatchName({
     address: latestProxy,
     chainId: chilizConfig.chainId,
     query: { enabled: isTestMatch && !!latestProxy },
   });
 
-  const { data: onChainSportType } = useBettingMatchFactoryReadGetSportType({
-    address: chilizConfig.bettingMatchFactory,
-    chainId: chilizConfig.chainId,
-    args: latestProxy ? [latestProxy] : undefined,
-    query: { enabled: isTestMatch && !!latestProxy },
-  });
-
-  // Project on-chain reads onto the same `Match` shape friend's UI expects.
-  // Best-effort name split on " vs " / " - " for home/away display; falls
-  // back to the raw match name if no separator is present.
   const onChainMatchData = useMemo<Match | undefined>(() => {
     if (!isTestMatch || !latestProxy || !onChainMatchName) return undefined;
     const { home, away } = splitTeamNames(onChainMatchName as string);
-    const sport = sportLabel(onChainSportType);
     return {
       id: 999999,
       homeTeam: home,
       awayTeam: away,
-      league: sport,
+      league: sportLabel(sportType),
       status: "TEST",
       startTime: new Date().toISOString(),
       contractAddress: latestProxy,
     };
-  }, [isTestMatch, latestProxy, onChainMatchName, onChainSportType]);
+  }, [isTestMatch, latestProxy, onChainMatchName, sportType]);
 
   const matchData = isTestMatch ? onChainMatchData : matchDataFromApi;
+  // Test-match loading covers three windows: initial factory.getAllMatches
+  // fetch, the time between resolving latestProxy and the matchName read
+  // returning, and any pending wagmi refetch. Without `allMatches === undefined`
+  // here the page would race through to "No match found" during the first
+  // few hundred ms after mount.
   const loading = isTestMatch
-    ? !!latestProxy && !onChainMatchName // waiting on the proxy reads
+    ? loadingMatches || allMatches === undefined || (!!latestProxy && !onChainMatchName)
     : loadingFromApi;
-  const noMatchDeployedYet = isTestMatch && allMatches !== undefined && !latestProxy;
-
-  // eslint-disable-next-line no-console
-  console.log("[LiveDetailsPage]", {
-    id,
-    isTestMatch,
-    latestProxy,
-    contractAddress: matchData?.contractAddress,
-  });
+  const noMatchDeployedYet =
+    isTestMatch && allMatches !== undefined && allMatches.length === 0;
 
   const searchParams = useSearchParams();
   const initialStreamId = searchParams.get("streamId") ?? undefined;
@@ -115,17 +106,14 @@ export default function LiveDetailsPage({ id }: LiveDetailsPageProps) {
   const isStreamer = !!myStream && !!user?.userId;
   const chatStreamId = myStream?.id ?? selectedStream?.id;
 
-  // Donation/subscription dialogs require a real on-chain streamer wallet.
   const streamForDonateSubscribe =
     selectedStream?.streamerWalletAddress ? selectedStream : null;
 
   const handleStreamSelect = (stream: LiveStream) => setSelectedStream(stream);
-
   const handleStreamCreated = (stream: LiveStream) => {
     setSelectedStream(stream);
     setMyStream(stream);
   };
-
   const handleStreamEnded = () => {
     setSelectedStream(null);
     setMyStream(null);
@@ -133,73 +121,41 @@ export default function LiveDetailsPage({ id }: LiveDetailsPageProps) {
 
   if (!id) return null;
 
-  if (loading) {
+  // Test-match path: surface factory-read failures explicitly so an RPC error
+  // or an obviously-empty factory address don't render as a generic "no match
+  // found" (which would look identical to a working-but-empty deployment).
+  if (isTestMatch && matchesError) {
     return (
-      <div
-        className="flex items-center justify-center h-full"
-        style={{ background: "#0A0A0A", color: "#fff" }}
-      >
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 mx-auto mb-4" style={{ borderColor: "#E8001D" }} />
-          <p style={{ color: "#888", fontFamily: "'Barlow', sans-serif" }}>Loading match…</p>
-        </div>
-      </div>
+      <CenteredStatus
+        title="Factory read failed"
+        message={`Could not read getAllMatches() on ${short(factoryAddress)}. Check NEXT_PUBLIC_PARI_MATCH_FACTORY_ADDRESS and your RPC. ${matchesError.message ?? ''}`}
+        action={{ label: "Open /admin", onClick: () => router.push("/admin") }}
+      />
     );
   }
 
+  if (loading) {
+    return <CenteredStatus message="Loading match…" spinner />;
+  }
   if (noMatchDeployedYet) {
     return (
-      <div
-        className="flex items-center justify-center h-full"
-        style={{ background: "#0A0A0A", color: "#fff" }}
-      >
-        <div className="text-center max-w-md px-6">
-          <p
-            className="mb-3 text-[14px] tracking-[0.08em] uppercase"
-            style={{ color: "#E8001D", fontFamily: "'Barlow', sans-serif" }}
-          >
-            No on-chain match deployed yet
-          </p>
-          <p className="mb-4 text-[12px]" style={{ color: "#888" }}>
-            /live/999999 binds to <code>factory.getAllMatches().at(-1)</code>. Create a match in <code>/admin</code> first.
-          </p>
-          <button
-            onClick={() => router.push("/admin")}
-            className="px-4 py-2 rounded text-[12px] font-bold tracking-[0.08em] uppercase"
-            style={{ background: "#E8001D", color: "#fff", fontFamily: "'Barlow', sans-serif" }}
-          >
-            Open /admin
-          </button>
-        </div>
-      </div>
+      <CenteredStatus
+        title="No on-chain match deployed yet"
+        message={`Factory ${short(factoryAddress)} reports 0 matches. /live/999999 binds to factory.getAllMatches().at(-1) — deploy one first.`}
+        action={{ label: "Open /admin", onClick: () => router.push("/admin") }}
+      />
     );
   }
-
   if ((queryError && !isTestMatch) || !matchData) {
     return (
-      <div
-        className="flex items-center justify-center h-full"
-        style={{ background: "#0A0A0A", color: "#fff" }}
-      >
-        <div className="text-center">
-          <p
-            className="mb-4 text-[14px] tracking-[0.08em] uppercase"
-            style={{ color: "#E8001D", fontFamily: "'Barlow', sans-serif" }}
-          >
-            No match found
-          </p>
-          <button
-            onClick={() => router.push("/browse")}
-            className="px-4 py-2 rounded text-[12px] font-bold tracking-[0.08em] uppercase transition-colors duration-150"
-            style={{ background: "#E8001D", color: "#fff", fontFamily: "'Barlow', sans-serif" }}
-          >
-            Back to matches
-          </button>
-        </div>
-      </div>
+      <CenteredStatus
+        title="No match found"
+        action={{ label: "Back to matches", onClick: () => router.push("/browse") }}
+      />
     );
   }
 
+  const matchAddress = matchData.contractAddress as Address | undefined;
   const isOwnSelectedStream =
     !!selectedStream &&
     selectedStream.streamerWalletAddress?.toLowerCase() === walletAddress?.toLowerCase();
@@ -218,16 +174,6 @@ export default function LiveDetailsPage({ id }: LiveDetailsPageProps) {
             aria-label="Back to live matches"
             className="w-8 h-8 rounded flex items-center justify-center flex-shrink-0 transition-colors duration-150"
             style={{ background: "#141414", border: "1px solid #2A2A2A", color: "#888" }}
-            onMouseEnter={(e) => {
-              const el = e.currentTarget;
-              el.style.borderColor = "#3A3A3A";
-              el.style.color = "#fff";
-            }}
-            onMouseLeave={(e) => {
-              const el = e.currentTarget;
-              el.style.borderColor = "#2A2A2A";
-              el.style.color = "#888";
-            }}
           >
             <ArrowLeft size={14} />
           </button>
@@ -274,7 +220,7 @@ export default function LiveDetailsPage({ id }: LiveDetailsPageProps) {
           />
         </div>
 
-        {/* Video + about */}
+        {/* Video + about + markets */}
         <div className="px-4 sm:px-6 pb-6 space-y-4">
           <div
             className="rounded-lg overflow-hidden"
@@ -288,8 +234,8 @@ export default function LiveDetailsPage({ id }: LiveDetailsPageProps) {
             ) : (
               <VideoPlayer
                 stream={selectedStream}
-                autoplay={true}
-                showControls={true}
+                autoplay
+                showControls
                 onStreamEnded={handleStreamEnded}
                 onBrowseStreams={() => setBrowseLivesOpen(true)}
               />
@@ -301,10 +247,6 @@ export default function LiveDetailsPage({ id }: LiveDetailsPageProps) {
             streamerName={selectedStream?.streamerName || "No stream selected"}
             title={selectedStream?.title}
             currentUserId={user?.userId}
-            bettingContractAddress={matchData.contractAddress as Address | undefined}
-            walletAddress={walletAddress || undefined}
-            homeTeam={matchData.homeTeam}
-            awayTeam={matchData.awayTeam}
             onDonate={
               streamForDonateSubscribe ? () => setShowDonationDialog(true) : undefined
             }
@@ -314,7 +256,17 @@ export default function LiveDetailsPage({ id }: LiveDetailsPageProps) {
             hideStreamerActions={isOwnSelectedStream || !selectedStream}
           />
 
-          {/* Mobile-only chat — fixed at viewport height so the message list scrolls inside */}
+          {/* ── Pari-mutuel markets panel ─────────────────────────────── */}
+          <PariMarketsList
+            matchAddress={matchAddress}
+            walletAddress={walletAddress || undefined}
+            homeTeam={matchData.homeTeam}
+            awayTeam={matchData.awayTeam}
+            homeTeamLogo={matchData.homeTeamLogo}
+            awayTeamLogo={matchData.awayTeamLogo}
+          />
+
+          {/* Mobile chat */}
           <div className="md:hidden">
             <div
               className="rounded-lg overflow-hidden flex flex-col"
@@ -340,7 +292,7 @@ export default function LiveDetailsPage({ id }: LiveDetailsPageProps) {
         </div>
       </div>
 
-      {/* DESKTOP SIDEBAR — chat anchored to viewport height */}
+      {/* DESKTOP SIDEBAR — chat */}
       <aside
         className="hidden md:flex w-full md:w-[400px] flex-col h-full overflow-hidden"
         style={{ background: "#0A0A0A", borderLeft: "1px solid #1E1E1E" }}
@@ -388,6 +340,8 @@ export default function LiveDetailsPage({ id }: LiveDetailsPageProps) {
   );
 }
 
+// ─── Helpers ────────────────────────────────────────────────────────────────
+
 function splitTeamNames(name: string): { home: string; away: string } {
   const trimmed = name.trim();
   for (const sep of [" vs ", " VS ", " v ", " - ", " — "]) {
@@ -399,11 +353,63 @@ function splitTeamNames(name: string): { home: string; away: string } {
   return { home: trimmed, away: "—" };
 }
 
-// `factory.getSportType` returns the SportType enum (uint8): 0 = FOOTBALL, 1 = BASKETBALL.
-// Codegen typed it as bigint, but readContract sometimes returns a plain number — accept both.
-function sportLabel(sportType: unknown): string {
-  const n = typeof sportType === "bigint" ? Number(sportType) : sportType;
-  if (n === 0) return "FOOTBALL (test)";
-  if (n === 1) return "BASKETBALL (test)";
-  return "TEST";
+function sportLabel(sport: string): string {
+  if (sport === "FOOTBALL") return "Football (on-chain)";
+  if (sport === "BASKETBALL") return "Basketball (on-chain)";
+  return "Test";
+}
+
+function short(addr?: string): string {
+  if (!addr) return "—";
+  return `${addr.slice(0, 6)}…${addr.slice(-4)}`;
+}
+
+function CenteredStatus({
+  title,
+  message,
+  spinner,
+  action,
+}: {
+  title?: string;
+  message?: string;
+  spinner?: boolean;
+  action?: { label: string; onClick: () => void };
+}) {
+  return (
+    <div
+      className="flex items-center justify-center h-full"
+      style={{ background: "#0A0A0A", color: "#fff" }}
+    >
+      <div className="text-center max-w-md px-6">
+        {spinner && (
+          <div
+            className="animate-spin rounded-full h-8 w-8 border-b-2 mx-auto mb-4"
+            style={{ borderColor: "#E8001D" }}
+          />
+        )}
+        {title && (
+          <p
+            className="mb-3 text-[14px] tracking-[0.08em] uppercase"
+            style={{ color: "#E8001D", fontFamily: "'Barlow', sans-serif" }}
+          >
+            {title}
+          </p>
+        )}
+        {message && (
+          <p className="mb-4 text-[12px]" style={{ color: "#888" }}>
+            {message}
+          </p>
+        )}
+        {action && (
+          <button
+            onClick={action.onClick}
+            className="px-4 py-2 rounded text-[12px] font-bold tracking-[0.08em] uppercase"
+            style={{ background: "#E8001D", color: "#fff", fontFamily: "'Barlow', sans-serif" }}
+          >
+            {action.label}
+          </button>
+        )}
+      </div>
+    </div>
+  );
 }

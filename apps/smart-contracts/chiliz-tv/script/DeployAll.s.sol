@@ -2,6 +2,7 @@
 pragma solidity ^0.8.24;
 
 import {Script, console} from "forge-std/Script.sol";
+import {ERC1967Proxy}    from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 
 // Pari-mutuel betting system
 import {PariMatchFactory}  from "../src/pari/PariMatchFactory.sol";
@@ -12,6 +13,9 @@ import {StreamWalletFactory} from "../src/streamer/StreamWalletFactory.sol";
 // Unified swap router
 import {ChilizSwapRouter} from "../src/swap/ChilizSwapRouter.sol";
 
+// Leaderboard
+import {LeaderboardRewards} from "../src/leaderboard/LeaderboardRewards.sol";
+
 /**
  * @title DeployAll
  * @author ChilizTV
@@ -20,12 +24,16 @@ import {ChilizSwapRouter} from "../src/swap/ChilizSwapRouter.sol";
  *           1. PariMatchFactory     — Deploys FootballPariMatch / BasketballPariMatch proxies.
  *           2. StreamWalletFactory  — Deploys StreamWallet proxies.
  *           3. ChilizSwapRouter     — Token-to-USDC swap adapter for both modules.
+ *           4. LeaderboardRewards   — UUPS proxy. Receives 1% of every pool
+ *                                      and distributes via epoch + merkle.
  *
  *         Plus all the wiring required to leave the system bet-ready in a single run:
  *           - factory.setWiring(usdc, feeRecipient, swapRouter)
+ *           - factory.setLeaderboardWiring(leaderboard, 100)
  *           - swapRouter.setMatchFactory(factory)
  *           - streamFactory.setSwapRouter(swapRouter)
  *           - swapRouter.setStreamWalletFactory(streamFactory)
+ *           - leaderboard.setMatchFactory(factory)
  *
  *         NOTE: LiquidityPool (ERC-4626 vault) has been intentionally removed.
  *         The pari-mutuel system uses match contracts as direct escrows — no
@@ -60,6 +68,7 @@ contract DeployAll is Script {
     PariMatchFactory    public pariFactory;
     StreamWalletFactory public streamFactory;
     ChilizSwapRouter    public swapRouter;
+    LeaderboardRewards  public leaderboard;
 
     address public deployer;
     address public treasury;   // SAFE_ADDRESS — fee recipient for both modules
@@ -80,6 +89,7 @@ contract DeployAll is Script {
         _deployPariFactory();
         _deployStreamingFactory();
         _deploySwapRouter();
+        _deployLeaderboard();
         _wirePlatform();
         if (transferOwnership) {
             _transferOwnershipToSafe();
@@ -139,7 +149,7 @@ contract DeployAll is Script {
     }
 
     function _deploySwapRouter() internal {
-        console.log("[3/3] CHILIZ SWAP ROUTER");
+        console.log("[3/4] CHILIZ SWAP ROUTER");
         console.log("========================");
         swapRouter = new ChilizSwapRouter(
             kayenMasterRouter, kayenRouter, usdcAddress, wchz, treasury, platformFeeBps
@@ -150,6 +160,28 @@ contract DeployAll is Script {
         console.log("  Token router      :", kayenRouter);
         console.log("  WCHZ              :", wchz);
         console.log("  Platform fee bps  :", platformFeeBps);
+        console.log("");
+    }
+
+    /// @dev Deploys the LeaderboardRewards behind an ERC1967 proxy. The
+    ///      deployer is the admin; the treasury (Safe) is granted ORACLE_ROLE
+    ///      so it can post merkle roots from the off-chain ranker. Production
+    ///      should grant ORACLE_ROLE to a dedicated oracle EOA after deploy.
+    function _deployLeaderboard() internal {
+        console.log("[4/4] LEADERBOARD REWARDS");
+        console.log("=========================");
+        LeaderboardRewards impl = new LeaderboardRewards();
+        bytes memory initData = abi.encodeWithSelector(
+            LeaderboardRewards.initialize.selector,
+            usdcAddress,
+            deployer,   // admin (can transfer later)
+            treasury    // oracle placeholder — rotate to dedicated key post-deploy
+        );
+        leaderboard = LeaderboardRewards(address(new ERC1967Proxy(address(impl), initData)));
+        console.log("LeaderboardRewards   :", address(leaderboard));
+        console.log("  Implementation     :", address(impl));
+        console.log("  Admin              :", deployer);
+        console.log("  Oracle (initial)   :", treasury);
         console.log("");
     }
 
@@ -165,17 +197,27 @@ contract DeployAll is Script {
         pariFactory.setWiring(usdcAddress, treasury, address(swapRouter));
         console.log("  pariFactory.setWiring            -> usdc/feeRecipient/router");
 
-        // 2. Swap router learns about the pari match factory (validates match addrs).
+        // 2. Factory learns about the leaderboard (1% of pool by default).
+        //    The factory stamps this on every match it creates from now on.
+        pariFactory.setLeaderboardWiring(address(leaderboard), 100);
+        console.log("  pariFactory.setLeaderboardWiring -> leaderboard / 100 bps");
+
+        // 3. Swap router learns about the pari match factory (validates match addrs).
         swapRouter.setMatchFactory(address(pariFactory));
         console.log("  swapRouter.setMatchFactory       ->", address(pariFactory));
 
-        // 3. Streaming factory learns about the swap router first (back-pointer check).
+        // 4. Streaming factory learns about the swap router first (back-pointer check).
         streamFactory.setSwapRouter(address(swapRouter));
         console.log("  streamFactory.setSwapRouter      ->", address(swapRouter));
 
-        // 4. Swap router learns about the streaming factory.
+        // 5. Swap router learns about the streaming factory.
         swapRouter.setStreamWalletFactory(address(streamFactory));
         console.log("  swapRouter.setStreamWalletFactory ->", address(streamFactory));
+
+        // 6. Leaderboard learns about the factory so it can authorize
+        //    `recordWin` callers via `factory.isMatch(msg.sender)`.
+        leaderboard.setMatchFactory(address(pariFactory));
+        console.log("  leaderboard.setMatchFactory      ->", address(pariFactory));
 
         console.log("");
     }
@@ -184,10 +226,16 @@ contract DeployAll is Script {
     // OWNERSHIP TRANSFER (env-flag gated)
     // ══════════════════════════════════════════════════════════════════════════
 
-    /// @dev Transfers Ownable.owner on all three top-level contracts to the
+    /// @dev Transfers admin authority on all top-level contracts to the
     ///      Safe. Skipped by default — set TRANSFER_OWNERSHIP=true to enable.
-    ///      Run only after wiring; ownership is required to call setWiring,
-    ///      setMatchFactory, and setStreamWalletFactory.
+    ///
+    ///      - PariMatchFactory / StreamWalletFactory / ChilizSwapRouter use
+    ///        Ownable → simple transferOwnership.
+    ///      - LeaderboardRewards uses AccessControl (UUPS, no Ownable) →
+    ///        grant the Safe DEFAULT_ADMIN_ROLE + ADMIN_ROLE + PAUSER_ROLE,
+    ///        then renounce the deployer's roles. Note ORACLE_ROLE stays on
+    ///        the initial holder (treasury by default) — admin can rotate
+    ///        it post-deploy via grant/revoke.
     function _transferOwnershipToSafe() internal {
         console.log("TRANSFERRING OWNERSHIP TO SAFE");
         console.log("==============================");
@@ -202,11 +250,23 @@ contract DeployAll is Script {
         swapRouter.transferOwnership(treasury);
         console.log("  swapRouter.transferOwnership     -> Safe");
 
+        // LeaderboardRewards uses AccessControl. Grant the Safe every role
+        // the deployer currently holds, then renounce from the deployer.
+        bytes32 DEFAULT_ADMIN = 0x00;
+        leaderboard.grantRole(DEFAULT_ADMIN, treasury);
+        leaderboard.grantRole(leaderboard.ADMIN_ROLE(),  treasury);
+        leaderboard.grantRole(leaderboard.PAUSER_ROLE(), treasury);
+        leaderboard.renounceRole(leaderboard.PAUSER_ROLE(), deployer);
+        leaderboard.renounceRole(leaderboard.ADMIN_ROLE(),  deployer);
+        leaderboard.renounceRole(DEFAULT_ADMIN,             deployer);
+        console.log("  leaderboard.{grant+renounce}     -> Safe holds admin");
+
         console.log("");
         console.log("WARNING: the deployer EOA can no longer call:");
         console.log("  pariFactory.{createFootballMatch, createBasketballMatch, setWiring, setImplementation}");
         console.log("  streamFactory.{setSwapRouter, setImplementation, upgradeWallet, ...}");
         console.log("  swapRouter.{setMatchFactory, setStreamWalletFactory, setTreasury, setPlatformFeeBps}");
+        console.log("  leaderboard.{setMatchFactory, grantRole, revokeRole, upgradeToAndCall, pause}");
         console.log("Any such call must now come from the Safe.");
         console.log("");
     }
@@ -235,7 +295,8 @@ contract DeployAll is Script {
         console.log("PariMatchFactory    :", address(pariFactory));
         console.log("StreamWalletFactory :", address(streamFactory));
         console.log("ChilizSwapRouter    :", address(swapRouter));
-        console.log("Owner of all three  :", transferOwnership ? treasury : deployer);
+        console.log("LeaderboardRewards  :", address(leaderboard));
+        console.log("Owner of contracts  :", transferOwnership ? treasury : deployer);
         if (!transferOwnership) {
             console.log("");
             console.log("Ownership held by deployer EOA -- set TRANSFER_OWNERSHIP=true");

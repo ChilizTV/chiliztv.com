@@ -62,6 +62,17 @@ contract PariMatchFactory is Ownable {
     /// @notice Swap router granted SWAP_ROUTER_ROLE on every new match.
     address public swapRouter;
 
+    /// @notice LeaderboardRewards proxy wired into every new match as the
+    ///         recipient of the leaderboard-fee split + the sink for
+    ///         `recordWin` notifications on claims. May be `address(0)` —
+    ///         legacy / no-leaderboard mode, all fees go to `feeRecipient`.
+    address public leaderboardRewards;
+
+    /// @notice Leaderboard's share of the total fee, in basis points OF THE
+    ///         POOL. Default 100 (1%). The factory writes this into every
+    ///         new match alongside `leaderboardRewards`.
+    uint16 public leaderboardFeeBps;
+
     // ═══════════════════════════════════════════════════════════════════════
     // EVENTS
     // ═══════════════════════════════════════════════════════════════════════
@@ -70,6 +81,7 @@ contract PariMatchFactory is Ownable {
     event FootballImplementationUpdated(address indexed oldImpl, address indexed newImpl);
     event BasketballImplementationUpdated(address indexed oldImpl, address indexed newImpl);
     event WiringSet(address indexed usdcToken, address indexed feeRecipient, address indexed swapRouter);
+    event LeaderboardWiringSet(address indexed leaderboard, uint16 leaderboardFeeBps);
 
     // ═══════════════════════════════════════════════════════════════════════
     // ERRORS
@@ -86,6 +98,9 @@ contract PariMatchFactory is Ownable {
     constructor() Ownable(msg.sender) {
         footballImplementation   = address(new FootballPariMatch());
         basketballImplementation = address(new BasketballPariMatch());
+        // Default to 1% of pool to the leaderboard (matches the 1% / 1%
+        // distribution baseline). Owner can override via setLeaderboardWiring.
+        leaderboardFeeBps = 100;
     }
 
     // ═══════════════════════════════════════════════════════════════════════
@@ -102,6 +117,22 @@ contract PariMatchFactory is Ownable {
         feeRecipient = _feeRecipient;
         swapRouter   = _swapRouter;
         emit WiringSet(_usdcToken, _feeRecipient, _swapRouter);
+    }
+
+    /// @notice Configure (or update) the leaderboard split applied to every
+    ///         FUTURE match the factory creates. Existing matches are left
+    ///         untouched — they keep whatever leaderboard recipient / bps
+    ///         they were initialized with.
+    /// @param _leaderboard Address of the LeaderboardRewards proxy. Pass
+    ///                     `address(0)` to disable the leaderboard split
+    ///                     for new matches.
+    /// @param _bps         Leaderboard's share of the pool, in basis points.
+    ///                     Must be <= the match's total `feeBps` (200 by
+    ///                     default → max 200; checked by the match setter).
+    function setLeaderboardWiring(address _leaderboard, uint16 _bps) external onlyOwner {
+        leaderboardRewards = _leaderboard;
+        leaderboardFeeBps  = _bps;
+        emit LeaderboardWiringSet(_leaderboard, _bps);
     }
 
     // ═══════════════════════════════════════════════════════════════════════
@@ -212,6 +243,16 @@ contract PariMatchFactory is Ownable {
         // 1) Configure token + fee recipient (ADMIN_ROLE-gated).
         m.setUSDCToken(usdcToken);
         m.setFeeRecipient(feeRecipient);
+
+        // 1b) Leaderboard split (optional; both must be set or both zero).
+        //     The match enforces leaderboardFeeBps <= feeBps; the factory's
+        //     leaderboardFeeBps must therefore be <= the match's MAX_FEE_BPS.
+        //     Recipient may be `address(0)` to opt out — then we leave the
+        //     match's leaderboard fields at their zero defaults.
+        if (leaderboardRewards != address(0)) {
+            m.setLeaderboardRecipient(leaderboardRewards);
+            m.setLeaderboardFeeBps(leaderboardFeeBps);
+        }
 
         // 2) Grant operational roles (DEFAULT_ADMIN_ROLE-gated).
         m.grantRole(m.SWAP_ROUTER_ROLE(), swapRouter);

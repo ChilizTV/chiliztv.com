@@ -1194,4 +1194,98 @@ contract PariMatchTest is Test {
         assertEq(usdc.balanceOf(bob)   - bBefore, b, "bob full refund");
         assertEq(usdc.balanceOf(feeAddr), 0,         "no fee on cancel");
     }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // 16. SPLIT FEE — company + leaderboard
+    // ═══════════════════════════════════════════════════════════════════════
+
+    /// Resolving with leaderboardFeeBps=100 and feeBps=200 should split the
+    /// 2% total fee evenly: 1% to feeRecipient (company), 1% to leaderboard.
+    function test_SplitFee_HalfHalf() public {
+        address leaderboardAddr = makeAddr("leaderboardRewards");
+
+        vm.startPrank(owner);
+        match_.setLeaderboardRecipient(leaderboardAddr);
+        match_.setLeaderboardFeeBps(100); // 1% of pool
+        vm.stopPrank();
+        // feeBps stays at 200 (2%) → company = 1%, leaderboard = 1%.
+
+        uint256 mid = _openWinnerMarket();
+        _stake(alice, mid, 0, 600e6);
+        _stake(bob,   mid, 1, 400e6);
+
+        uint256 totalPool = 1000e6;
+        uint256 feeTotal       = (totalPool * 200) / 10_000;            // 20
+        uint256 expectedLb     = (totalPool * 100) / 10_000;            // 10
+        uint256 expectedCo     = (totalPool * (200 - 100)) / 10_000;    // 10
+        assertEq(feeTotal, expectedLb + expectedCo, "math sanity");
+
+        uint256 feeBefore = usdc.balanceOf(feeAddr);
+        uint256 lbBefore  = usdc.balanceOf(leaderboardAddr);
+
+        _closeResolve(mid, 0);
+
+        assertEq(usdc.balanceOf(feeAddr) - feeBefore, expectedCo, "company gets its slice");
+        assertEq(usdc.balanceOf(leaderboardAddr) - lbBefore, expectedLb, "leaderboard gets its slice");
+    }
+
+    function test_SplitFee_LeaderboardZeroByDefault() public {
+        // No leaderboard wiring → behaves like before: 100% of fee to company.
+        uint256 mid = _openWinnerMarket();
+        _stake(alice, mid, 0, 600e6);
+        _stake(bob,   mid, 1, 400e6);
+
+        uint256 totalPool = 1000e6;
+        uint256 expectedCo = (totalPool * 200) / 10_000;
+
+        uint256 feeBefore = usdc.balanceOf(feeAddr);
+        _closeResolve(mid, 0);
+        assertEq(usdc.balanceOf(feeAddr) - feeBefore, expectedCo, "all fee to company");
+    }
+
+    function test_Revert_LeaderboardFeeAboveTotal() public {
+        // feeBps is 200; setting leaderboard to 201 must revert before any change.
+        vm.prank(owner);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                PariMatchBase.LeaderboardFeeExceedsTotal.selector,
+                uint16(201),
+                uint16(200)
+            )
+        );
+        match_.setLeaderboardFeeBps(201);
+    }
+
+    function test_Revert_LowerTotalBelowLeaderboard() public {
+        vm.startPrank(owner);
+        match_.setLeaderboardFeeBps(100); // ok, <= 200
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                PariMatchBase.LeaderboardFeeExceedsTotal.selector,
+                uint16(100),
+                uint16(50)
+            )
+        );
+        match_.setFeeBps(50); // would leave leaderboard > total
+        vm.stopPrank();
+    }
+
+    function test_Revert_LeaderboardRecipientMissing() public {
+        // Configure a leaderboard SHARE without setting a recipient: resolve
+        // should revert at fee-transfer time so we never silently burn the fee.
+        vm.prank(owner);
+        match_.setLeaderboardFeeBps(100);
+        // Note: leaderboardRecipient stays address(0).
+
+        uint256 mid = _openWinnerMarket();
+        _stake(alice, mid, 0, 600e6);
+        _stake(bob,   mid, 1, 400e6);
+
+        vm.prank(owner);
+        match_.closeMarket(mid);
+
+        vm.prank(oracle);
+        vm.expectRevert(PariMatchBase.LeaderboardRecipientNotConfigured.selector);
+        match_.resolveMarket(mid, 0);
+    }
 }

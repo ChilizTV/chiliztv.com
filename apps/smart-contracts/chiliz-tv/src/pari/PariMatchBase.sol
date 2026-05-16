@@ -9,6 +9,7 @@ import {ReentrancyGuardUpgradeable} from "@openzeppelin/contracts-upgradeable/ut
 import {PausableUpgradeable}        from "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
 import {IERC20}                     from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20}                  from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {ILeaderboardRewards}        from "../interfaces/ILeaderboardRewards.sol";
 
 /**
  * @title PariMatchBase
@@ -174,17 +175,35 @@ abstract contract PariMatchBase is
     /// @notice USDC token used for all settlements.
     IERC20 public usdcToken;                                          // slot 9
 
-    /// @notice Address that receives protocol fees at market resolution.
+    /// @notice Address that receives the company portion of the protocol
+    ///         fee at market resolution. Should be a multi-sig or treasury.
     address public feeRecipient;                                      // slot 10 (with feeBps)
 
-    /// @notice Protocol fee in basis points (default 200 = 2%).
+    /// @notice TOTAL protocol fee in basis points (default 200 = 2%).
+    ///         Split between company and leaderboard at resolve time:
+    ///           leaderboardFee = totalPool * leaderboardFeeBps / BPS_DENOM
+    ///           companyFee     = totalPool * (feeBps - leaderboardFeeBps) / BPS_DENOM
+    ///         Capped at MAX_FEE_BPS. The setter enforces
+    ///         `leaderboardFeeBps <= feeBps` so the split is always valid.
     uint16 public feeBps;                                             // slot 10 (packed with feeRecipient)
 
     /// @notice Per-market specification (type / line / maxOutcome / extra / groupId).
     mapping(uint256 marketId => MarketSpec) internal _marketSpec;     // slot 11
 
-    // Slots 0-11 = 12 named slots. Gap to 50 total.
-    uint256[38] private __gap;
+    /// @notice Address that receives the leaderboard portion of the protocol
+    ///         fee at market resolution. Expected to be a
+    ///         `LeaderboardRewards` proxy. May be zero — then the full fee
+    ///         goes to `feeRecipient` and no `recordWin` notify happens.
+    address public leaderboardRecipient;                              // slot 12 (with leaderboardFeeBps)
+
+    /// @notice Leaderboard's share of the total fee, in basis points OF THE
+    ///         POOL. E.g. feeBps=200, leaderboardFeeBps=100 → 1% of pool to
+    ///         leaderboard, 1% of pool to company. Must satisfy
+    ///         `leaderboardFeeBps <= feeBps`.
+    uint16 public leaderboardFeeBps;                                  // slot 12 (packed with leaderboardRecipient)
+
+    // Slots 0-12 = 13 named slots. Gap to 50 total.
+    uint256[37] private __gap;
 
     // ═══════════════════════════════════════════════════════════════════════
     // EVENTS
@@ -227,6 +246,9 @@ abstract contract PariMatchBase is
 
     event FeeRecipientSet(address indexed oldRecipient, address indexed newRecipient);
     event FeeBpsSet(uint16 oldBps, uint16 newBps);
+    event LeaderboardRecipientSet(address indexed oldRecipient, address indexed newRecipient);
+    event LeaderboardFeeBpsSet(uint16 oldBps, uint16 newBps);
+    event LeaderboardRecordFailed(address indexed leaderboard, address indexed user, uint256 payout);
     event USDCTokenSet(address indexed token);
 
     // ═══════════════════════════════════════════════════════════════════════
@@ -247,6 +269,8 @@ abstract contract PariMatchBase is
     error USDCNotConfigured();
     error FeeRecipientNotConfigured();
     error FeeBpsExceedsMax(uint16 provided, uint16 max);
+    error LeaderboardFeeExceedsTotal(uint16 leaderboardBps, uint16 totalBps);
+    error LeaderboardRecipientNotConfigured();
     error ArrayLengthMismatch();
 
     // ═══════════════════════════════════════════════════════════════════════
@@ -314,9 +338,35 @@ abstract contract PariMatchBase is
 
     function setFeeBps(uint16 _feeBps) external onlyRole(ADMIN_ROLE) {
         if (_feeBps > MAX_FEE_BPS) revert FeeBpsExceedsMax(_feeBps, MAX_FEE_BPS);
+        // Lower the total below an already-set leaderboard share would yield
+        // a negative company portion. Enforce the invariant up-front.
+        if (leaderboardFeeBps > _feeBps) {
+            revert LeaderboardFeeExceedsTotal(leaderboardFeeBps, _feeBps);
+        }
         uint16 old = feeBps;
         feeBps = _feeBps;
         emit FeeBpsSet(old, _feeBps);
+    }
+
+    /// @notice Configure the leaderboard portion of the total fee. Must be
+    ///         <= `feeBps`. Zero means "no leaderboard split — full fee to
+    ///         company" (backward-compatible default).
+    function setLeaderboardFeeBps(uint16 _bps) external onlyRole(ADMIN_ROLE) {
+        if (_bps > feeBps) revert LeaderboardFeeExceedsTotal(_bps, feeBps);
+        uint16 old = leaderboardFeeBps;
+        leaderboardFeeBps = _bps;
+        emit LeaderboardFeeBpsSet(old, _bps);
+    }
+
+    /// @notice Set the address that receives the leaderboard share of the
+    ///         fee. Zero clears the recipient (no leaderboard payouts; the
+    ///         `recordWin` notify in `_processClaim` becomes a no-op).
+    ///         When non-zero, must be the address of a `LeaderboardRewards`
+    ///         proxy (or compatible `ILeaderboardRewards` sink).
+    function setLeaderboardRecipient(address _recipient) external onlyRole(ADMIN_ROLE) {
+        address old = leaderboardRecipient;
+        leaderboardRecipient = _recipient;
+        emit LeaderboardRecipientSet(old, _recipient);
     }
 
     // ═══════════════════════════════════════════════════════════════════════
@@ -576,8 +626,13 @@ abstract contract PariMatchBase is
             return;
         }
 
-        uint256 fee     = (total * feeBps) / BPS_DENOM;
-        uint256 netPool = total - fee;
+        // Split-fee math. `feeBps` is the TOTAL (company + leaderboard).
+        // Each share is computed independently to avoid floor-division
+        // drift between the two recipients — totalFee is the sum.
+        uint256 leaderboardFee = (total * leaderboardFeeBps) / BPS_DENOM;
+        uint256 companyFee     = (total * (feeBps - leaderboardFeeBps)) / BPS_DENOM;
+        uint256 fee            = leaderboardFee + companyFee;
+        uint256 netPool        = total - fee;
 
         core.result          = result;
         core.resolvedAt      = uint40(block.timestamp);
@@ -587,10 +642,14 @@ abstract contract PariMatchBase is
         emit MarketStateChanged(marketId, MarketState.Closed, MarketState.Resolved);
         emit MarketResolved(marketId, result, total, fee, netPool);
 
-        // CEI: state is written before the external call below.
-        if (fee > 0) {
+        // CEI: state is written before the external calls below.
+        if (companyFee > 0) {
             if (feeRecipient == address(0)) revert FeeRecipientNotConfigured();
-            usdcToken.safeTransfer(feeRecipient, fee);
+            usdcToken.safeTransfer(feeRecipient, companyFee);
+        }
+        if (leaderboardFee > 0) {
+            if (leaderboardRecipient == address(0)) revert LeaderboardRecipientNotConfigured();
+            usdcToken.safeTransfer(leaderboardRecipient, leaderboardFee);
         }
     }
 
@@ -641,6 +700,18 @@ abstract contract PariMatchBase is
 
         usdcToken.safeTransfer(user, payout);
         emit PositionClaimed(marketId, user, userWinStake, payout);
+
+        // Best-effort: notify the leaderboard so it can credit the user's
+        // cumulative score. Wrapped in try/catch — a paused, upgraded, or
+        // misconfigured leaderboard MUST NOT be able to brick claims.
+        address lb = leaderboardRecipient;
+        if (lb != address(0)) {
+            try ILeaderboardRewards(lb).recordWin(user, payout) {
+                // ok
+            } catch {
+                emit LeaderboardRecordFailed(lb, user, payout);
+            }
+        }
     }
 
     // ═══════════════════════════════════════════════════════════════════════

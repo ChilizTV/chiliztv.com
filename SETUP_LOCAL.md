@@ -90,8 +90,8 @@ Started supabase local development setup.
           DB URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
       Studio URL: http://127.0.0.1:54323
       JWT secret: super-secret-jwt-token-with-at-least-32-characters-long
-        anon key: eyJhbGciOiJIUzI1NiIs...
-service_role key: eyJhbGciOiJIUzI1NiIs...
+        anon key: <JWT token affiche par la CLI>
+service_role key: <JWT token affiche par la CLI>
 ```
 
 Note — Studio est désactivé par défaut dans `config.toml` à cause d'une limitation Docker File Sharing sur certains setups Mac. Pour le réactiver, voir Section 5.1.
@@ -163,10 +163,10 @@ pnpm dev:supabase:env
 Cette commande affiche quelque chose comme :
 
 ```
-ANON_KEY="eyJhbGciOiJIUzI1NiI..."
+ANON_KEY="<JWT token affiche par la CLI>"
 API_URL="http://127.0.0.1:54321"
 DB_URL="postgresql://postgres:postgres@127.0.0.1:54322/postgres"
-SERVICE_ROLE_KEY="eyJhbGciOiJIUzI1NiI..."
+SERVICE_ROLE_KEY="<JWT token affiche par la CLI>"
 ```
 
 Note — Supabase CLI utilise les noms `ANON_KEY` / `SERVICE_ROLE_KEY` / `API_URL`. Dans `.env.local` tu dois les renommer en `SUPABASE_ANON_KEY` / `SUPABASE_SERVICE_ROLE_KEY` / `SUPABASE_URL` — c'est ce que le schéma Zod du backend attend.
@@ -195,8 +195,8 @@ LOG_LEVEL=debug
 
 # Supabase local (recupere via `pnpm dev:supabase:env`)
 SUPABASE_URL=http://127.0.0.1:54321
-SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
-SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+SUPABASE_ANON_KEY=<ANON_KEY de `pnpm dev:supabase:env`>
+SUPABASE_SERVICE_ROLE_KEY=<SERVICE_ROLE_KEY de `pnpm dev:supabase:env`>
 
 # Redis local (compose.local.yml)
 REDIS_URL=redis://localhost:6379

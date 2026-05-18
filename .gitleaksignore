@@ -1,0 +1,10 @@
+# Historical false positives in SETUP_LOCAL.md (commit 971b5ce).
+# The strings were Supabase CLI default JWTs — publicly documented defaults
+# baked into the CLI, not real secrets. They were replaced by placeholders
+# in a later commit but the fingerprints remain in PR diff scans.
+971b5ceb57330bbf0f097d160ff8cc839fafe353:SETUP_LOCAL.md:generic-api-key:93
+971b5ceb57330bbf0f097d160ff8cc839fafe353:SETUP_LOCAL.md:generic-api-key:94
+971b5ceb57330bbf0f097d160ff8cc839fafe353:SETUP_LOCAL.md:generic-api-key:166
+971b5ceb57330bbf0f097d160ff8cc839fafe353:SETUP_LOCAL.md:generic-api-key:169
+971b5ceb57330bbf0f097d160ff8cc839fafe353:SETUP_LOCAL.md:generic-api-key:198
+971b5ceb57330bbf0f097d160ff8cc839fafe353:SETUP_LOCAL.md:generic-api-key:199

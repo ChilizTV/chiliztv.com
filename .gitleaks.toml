@@ -14,15 +14,3 @@ paths = [
   '''apps/.*/\.next/.*''',
   '''apps/.*/dist/.*''',
 ]
-# Historical false positives in SETUP_LOCAL.md commit 971b5ce — the strings
-# were Supabase CLI default JWTs (publicly documented), since replaced by
-# placeholders in a later commit. Kept as fingerprints so the past commit
-# does not block PR scans that include it in the diff range.
-fingerprints = [
-  "971b5ceb57330bbf0f097d160ff8cc839fafe353:SETUP_LOCAL.md:generic-api-key:93",
-  "971b5ceb57330bbf0f097d160ff8cc839fafe353:SETUP_LOCAL.md:generic-api-key:94",
-  "971b5ceb57330bbf0f097d160ff8cc839fafe353:SETUP_LOCAL.md:generic-api-key:166",
-  "971b5ceb57330bbf0f097d160ff8cc839fafe353:SETUP_LOCAL.md:generic-api-key:169",
-  "971b5ceb57330bbf0f097d160ff8cc839fafe353:SETUP_LOCAL.md:generic-api-key:198",
-  "971b5ceb57330bbf0f097d160ff8cc839fafe353:SETUP_LOCAL.md:generic-api-key:199",
-]

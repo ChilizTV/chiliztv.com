@@ -12,11 +12,24 @@
     "dev": "turbo dev",
     "test": "turbo test",
     "lint": "turbo lint",
-    "type-check": "turbo type-check"
+    "type-check": "turbo type-check",
+    "dev:local": "pnpm dev:supabase:start && pnpm dev:redis:start && pnpm dev:doctor && pnpm --filter @chiliztv.com/backend dev:local",
+    "dev:stop": "docker compose -f compose.local.yml down && pnpm dev:supabase:stop",
+    "dev:reset": "pnpm dev:stop && pnpm dev:supabase:reset && pnpm dev:redis:flush",
+    "dev:doctor": "node scripts/dev-doctor.mjs",
+    "dev:supabase:start": "cd apps/backend && supabase start",
+    "dev:supabase:reset": "cd apps/backend && supabase db reset",
+    "dev:supabase:stop": "cd apps/backend && supabase stop",
+    "dev:supabase:env": "cd apps/backend && supabase status -o env",
+    "dev:redis:start": "docker compose -f compose.local.yml up -d redis",
+    "dev:redis:flush": "docker exec chiliztv-redis-local redis-cli FLUSHDB",
+    "dev:redis:logs": "docker logs -f chiliztv-redis-local",
+    "dev:redis:cli": "docker exec -it chiliztv-redis-local redis-cli"
   },
   "devDependencies": {
     "@commitlint/cli": "^21.0.1",
     "@commitlint/config-conventional": "^21.0.1",
+    "dotenv-cli": "^11.0.0",
     "turbo": "^2.9.3",
     "wrangler": "^4.91.0"
   }

@@ -21,6 +21,8 @@ export * from './dto/stream-wallet/DonationResponseDto';
 export * from './dto/stream-wallet/SubscriptionResponseDto';
 export * from './dto/stream-wallet/StreamerStatsResponseDto';
 export * from './dto/waitlist/WaitlistEntryResponseDto';
+export * from './dto/pool/PoolStateDto';
+export * from './dto/pool/PoolApyDto';
 
 // Zod schemas
 export * from './schemas/common.schemas';

@@ -9,6 +9,7 @@ import {
 } from '@chiliztv/domain/shared/ports/IPriceFeedService';
 import { PRICE_CATALOG } from '@chiliztv/shared';
 import type { IClock } from '@chiliztv/domain/shared/ports/IClock';
+import type { ICacheService } from '@chiliztv/domain/shared/ports/ICacheService';
 import { logger } from '../../../infrastructure/logging/logger';
 
 export interface RefreshTokenPricesResult {
@@ -26,6 +27,8 @@ export class RefreshTokenPricesUseCase {
         private readonly feeds: ReadonlyArray<IPriceFeedService>,
         @inject(TOKENS.IClock)
         private readonly clock: IClock,
+        @inject(TOKENS.ICacheService)
+        private readonly cache: ICacheService,
     ) {}
 
     async execute(): Promise<RefreshTokenPricesResult> {
@@ -86,6 +89,12 @@ export class RefreshTokenPricesUseCase {
         if (prices.length > 0) {
             try {
                 await this.repo.upsertMany(prices);
+                // Invalidate the read-side cache so the next /prices call
+                // reflects the fresh values without waiting for TTL drift.
+                await Promise.allSettled([
+                    this.cache.delete('price:list'),
+                    ...prices.map((p) => this.cache.delete(`price:${p.symbol}`)),
+                ]);
             } catch (err) {
                 errors = prices.length;
                 logger.error('Failed to upsert refreshed token prices', {

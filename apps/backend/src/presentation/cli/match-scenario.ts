@@ -9,6 +9,9 @@
 
 import { config } from 'dotenv';
 import { resolve } from 'path';
+// .env.local first so it overrides .env when present (local dev stack).
+// dotenv defaults to "first wins"; missing files are ignored silently.
+config({ path: resolve(__dirname, '../../../.env.local') });
 config({ path: resolve(__dirname, '../../../.env') });
 import 'reflect-metadata';
 import { setupDependencyInjection, container } from '../../infrastructure/config/di-container';

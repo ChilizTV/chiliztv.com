@@ -4,6 +4,8 @@ import { TOKENS } from '@chiliztv/domain/shared/tokens';
 import { UserProfile } from '@chiliztv/domain/users/entities/UserProfile';
 import { IUserProfileRepository } from '@chiliztv/domain/users/repositories/IUserProfileRepository';
 import type { IClock } from '@chiliztv/domain/shared/ports/IClock';
+import type { ICacheService } from '@chiliztv/domain/shared/ports/ICacheService';
+import { UserCacheKeys } from '../UserCacheKeys';
 
 const USERNAME_PATTERN = /^[A-Za-z0-9._-]{1,30}$/;
 
@@ -31,6 +33,8 @@ export class UpsertUserProfileUseCase {
         private readonly users: IUserProfileRepository,
         @inject(TOKENS.IClock)
         private readonly clock: IClock,
+        @inject(TOKENS.ICacheService)
+        private readonly cache: ICacheService,
     ) {}
 
     async execute(input: UpsertUserProfileInput): Promise<UserProfile> {
@@ -46,6 +50,16 @@ export class UpsertUserProfileUseCase {
             updatedAt: this.clock.now(),
         });
         await this.users.upsert(profile);
+        // Cache invalidation: the next read must repopulate with the fresh
+        // username so a brand-new signup doesn't wait 300 s to appear.
+        const cacheKey = UserCacheKeys.profile(profile.walletAddress);
+        await this.cache.delete(cacheKey);
+        // Freshness marker: on Supabase Pro with read replicas, a `select`
+        // immediately after our `upsert` can land on a replica that hasn't
+        // replicated yet, returning the stale row and re-warming the cache
+        // with it. The marker forces the next ~2 s of reads to bypass the
+        // cache and go to the primary (cf. plan §12 #11).
+        await this.cache.markFresh(cacheKey, 2);
         return profile;
     }
 }

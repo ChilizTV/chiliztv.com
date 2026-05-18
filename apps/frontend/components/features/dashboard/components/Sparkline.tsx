@@ -18,9 +18,15 @@ export function Sparkline({ data, width = 96, height = 28, stroke = '#2dd4a4', f
     const pts = data.map((v, i) => `${(i * dx).toFixed(1)},${(height - ((v - min) / span) * height).toFixed(1)}`).join(' ');
     const area = `0,${height} ${pts} ${width},${height}`;
     return (
-        <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} className="block overflow-visible">
+        <svg
+            width="100%"
+            height={height}
+            viewBox={`0 0 ${width} ${height}`}
+            preserveAspectRatio="none"
+            className="block max-w-full"
+        >
             {fill && <polygon points={area} fill={stroke} opacity="0.12" />}
-            <polyline points={pts} fill="none" stroke={stroke} strokeWidth="1.5" strokeLinejoin="round" strokeLinecap="round" />
+            <polyline points={pts} fill="none" stroke={stroke} strokeWidth="1.5" strokeLinejoin="round" strokeLinecap="round" vectorEffect="non-scaling-stroke" />
         </svg>
     );
 }

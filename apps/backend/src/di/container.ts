@@ -145,6 +145,9 @@ import { GetFollowedStreamersUseCase } from '../application/follows/use-cases/Ge
 // ─── Application — Pool ──────────────────────────────────────────────────────
 import { ComputeApyUseCase } from '../application/pool/use-cases/ComputeApyUseCase';
 import { GetLatestApyUseCase } from '../application/pool/use-cases/GetLatestApyUseCase';
+import { GetPoolStateUseCase } from '../application/pool/use-cases/GetPoolStateUseCase';
+import { IPoolStateReader } from '@chiliztv/domain/shared/ports/IPoolStateReader';
+import { ViemPoolStateReader } from '../infrastructure/blockchain/adapters/ViemPoolStateReader';
 
 // ─── Application — Bets ──────────────────────────────────────────────────────
 import { GetUserBetsUseCase } from '../application/bets/use-cases/GetUserBetsUseCase';
@@ -167,6 +170,20 @@ import { CloudflareReconcileJob } from '../infrastructure/scheduling/jobs/Cloudf
 // ─── Infrastructure — Access ──────────────────────────────────────────────────
 import { IAccessCodeVerifier } from '@chiliztv/domain/access/ports/IAccessCodeVerifier';
 import { ScryptAccessCodeVerifier } from '../infrastructure/access/ScryptAccessCodeVerifier';
+
+// ─── Infrastructure — Cache (Redis or Noop) ─────────────────────────────────
+import { ICacheService } from '@chiliztv/domain/shared/ports/ICacheService';
+import { ILockService } from '@chiliztv/domain/shared/ports/ILockService';
+import { IRateLimitService } from '@chiliztv/domain/shared/ports/IRateLimitService';
+import { RedisCacheService } from '../infrastructure/cache/RedisCacheService';
+import { RedisLockService } from '../infrastructure/cache/RedisLockService';
+import { RedisWarmupService } from '../infrastructure/cache/RedisWarmupService';
+import { RedisRateLimitService } from '../infrastructure/cache/RedisRateLimitService';
+import { NoopCacheService } from '../infrastructure/cache/NoopCacheService';
+import { NoopLockService } from '../infrastructure/cache/NoopLockService';
+import { NoopRateLimitService } from '../infrastructure/cache/NoopRateLimitService';
+import { createRedisClient, type RedisClient } from '../infrastructure/cache/RedisClient';
+import { env } from '../infrastructure/config/environment';
 
 // ─── Infrastructure — Services ───────────────────────────────────────────────
 import { ViewerSessionService } from '../infrastructure/services/ViewerSessionService';
@@ -218,6 +235,18 @@ export function setupDependencyInjection(): void {
   container.registerSingleton<IIncidentReporter>(TOKENS.IIncidentReporter, LogIncidentReporter);
   container.registerSingleton<IClock>(TOKENS.IClock, SystemClock);
   container.registerSingleton<IStreamingService>(TOKENS.IStreamingService, CloudflareStreamService);
+
+  if (env.REDIS_URL) {
+    const redisClient = createRedisClient(env.REDIS_URL, container.resolve<ILogger>(TOKENS.ILogger));
+    container.registerInstance<RedisClient>(TOKENS.RedisClient, redisClient);
+    container.registerSingleton<ICacheService>(TOKENS.ICacheService, RedisCacheService);
+    container.registerSingleton<ILockService>(TOKENS.ILockService, RedisLockService);
+    container.registerSingleton<IRateLimitService>(TOKENS.IRateLimitService, RedisRateLimitService);
+  } else {
+    container.registerSingleton<ICacheService>(TOKENS.ICacheService, NoopCacheService);
+    container.registerSingleton<ILockService>(TOKENS.ILockService, NoopLockService);
+    container.registerSingleton<IRateLimitService>(TOKENS.IRateLimitService, NoopRateLimitService);
+  }
 
   // ─── 1. Repositories (Symbol tokens) ───────────────────────────────────────
   container.registerSingleton<IPredictionRepository>(TOKENS.IPredictionRepository, SupabasePredictionRepository);
@@ -331,9 +360,11 @@ export function setupDependencyInjection(): void {
   container.registerSingleton(GetFollowerCountUseCase);
   container.registerSingleton(GetFollowedStreamersUseCase);
 
-  // ─── 11b. Use Cases — Pool (APY) ───────────────────────────────────────────
+  // ─── 11b. Use Cases — Pool (APY + on-chain state) ─────────────────────────
+  container.registerSingleton<IPoolStateReader>(TOKENS.IPoolStateReader, ViemPoolStateReader);
   container.registerSingleton(ComputeApyUseCase);
   container.registerSingleton(GetLatestApyUseCase);
+  container.registerSingleton(GetPoolStateUseCase);
 
   // ─── 11c. Use Cases — Bets ─────────────────────────────────────────────────
   container.registerSingleton(GetUserBetsUseCase);
@@ -352,6 +383,7 @@ export function setupDependencyInjection(): void {
   container.registerSingleton(CloudflareReconcileJob);
   container.registerSingleton(ComputeApyJob);
   container.registerSingleton(JobScheduler);
+  container.registerSingleton(RedisWarmupService);
 
   // ─── 13. Infrastructure — Services ─────────────────────────────────────────
   container.registerSingleton(StreamLifecycleService);

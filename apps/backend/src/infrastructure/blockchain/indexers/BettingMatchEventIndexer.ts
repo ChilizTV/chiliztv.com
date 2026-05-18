@@ -17,6 +17,7 @@ import { TransactionHash } from '@chiliztv/domain/predictions/value-objects/Tran
 import { Odds } from '@chiliztv/domain/predictions/value-objects/Odds';
 import { PredictionStatus } from '@chiliztv/domain/predictions/value-objects/PredictionStatus';
 import { ChatMessage, MessageType } from '@chiliztv/domain/chat/entities/ChatMessage';
+import type { ILockService } from '@chiliztv/domain/shared/ports/ILockService';
 import { BaseIndexer } from './BaseIndexer';
 import { getTokenDecimals } from '../utils/getTokenDecimals';
 import { ResolveUserProfileUseCase } from '../../../application/users/use-cases/ResolveUserProfileUseCase';
@@ -125,6 +126,8 @@ export class BettingMatchEventIndexer extends BaseIndexer {
         private readonly clock: IClock,
         @inject(TOKENS.IBlockchainService)
         private readonly blockchain: IBlockchainService,
+        @inject(TOKENS.ILockService)
+        lockService: ILockService,
     ) {
         super({
             name: 'BettingMatchEvent',
@@ -133,6 +136,7 @@ export class BettingMatchEventIndexer extends BaseIndexer {
                 transport: http(network.rpcUrl),
             }),
             checkpoints,
+            lockService,
         });
     }
 

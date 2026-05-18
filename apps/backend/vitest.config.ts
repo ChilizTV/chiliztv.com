@@ -14,6 +14,10 @@ export default defineConfig({
         // tsyringe requires reflect-metadata to be loaded before any
         // decorator-annotated module is imported.
         setupFiles: ['reflect-metadata'],
+        // Force the no-Redis branch for unit tests. The dev .env may point
+        // REDIS_URL at a local instance that isn't running in CI; the cache
+        // tests inject their own fake client and don't rely on this env.
+        env: { REDIS_URL: '' },
     },
     resolve: {
         alias: [

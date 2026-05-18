@@ -6,4 +6,7 @@ export {
   predictionsLimiter,
   chatLimiter,
   accessCodeLimiter,
+  streamCreationLimiter,
+  webhookLimiter,
+  adminLimiter,
 } from './rate-limit.middleware';

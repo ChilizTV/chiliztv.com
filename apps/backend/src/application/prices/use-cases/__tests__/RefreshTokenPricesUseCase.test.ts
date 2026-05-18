@@ -7,6 +7,7 @@ import {
 import { TokenPrice } from '@chiliztv/domain/prices/entities/TokenPrice';
 import { RefreshTokenPricesUseCase } from '../RefreshTokenPricesUseCase';
 import { MockClock } from '../../../../testing/clock/MockClock';
+import { NoopCacheService } from '../../../../infrastructure/cache/NoopCacheService';
 
 const FIXED_NOW = new Date('2026-05-11T12:00:00.000Z');
 const mkClock = () => new MockClock(FIXED_NOW);
@@ -48,7 +49,7 @@ describe('RefreshTokenPricesUseCase', () => {
         const pyth = new FakeFeed('pyth', ['CHZ'], pythFetch);
         const coingecko = new FakeFeed('coingecko', ['CHZ', 'PSG'], coingeckoFetch);
 
-        const useCase = new RefreshTokenPricesUseCase(repo as never, [pyth, coingecko], mkClock());
+        const useCase = new RefreshTokenPricesUseCase(repo as never, [pyth, coingecko], mkClock(), new NoopCacheService());
         const result = await useCase.execute();
 
         // Pyth received CHZ, CoinGecko did NOT receive CHZ (because Pyth won the bucket).
@@ -72,7 +73,7 @@ describe('RefreshTokenPricesUseCase', () => {
         // empty does NOT cascade to the next feed.
         const coingecko = new FakeFeed('coingecko', ['CHZ'], vi.fn().mockResolvedValue([priceQuote('CHZ', 'coingecko', 0.08)]));
 
-        const useCase = new RefreshTokenPricesUseCase(repo as never, [pyth, coingecko], mkClock());
+        const useCase = new RefreshTokenPricesUseCase(repo as never, [pyth, coingecko], mkClock(), new NoopCacheService());
         const result = await useCase.execute();
 
         // CHZ ends up unpriced for this tick (acceptable — next tick retries).
@@ -86,7 +87,7 @@ describe('RefreshTokenPricesUseCase', () => {
         const pyth = new FakeFeed('pyth', ['CHZ'], vi.fn().mockRejectedValue(new Error('boom')));
         const coingecko = new FakeFeed('coingecko', ['PSG'], vi.fn().mockResolvedValue([priceQuote('PSG', 'coingecko', 2.5)]));
 
-        const useCase = new RefreshTokenPricesUseCase(repo as never, [pyth, coingecko], mkClock());
+        const useCase = new RefreshTokenPricesUseCase(repo as never, [pyth, coingecko], mkClock(), new NoopCacheService());
         const result = await useCase.execute();
 
         expect(result.refreshed).toBeGreaterThanOrEqual(1);
@@ -106,7 +107,7 @@ describe('RefreshTokenPricesUseCase', () => {
         );
         upsertMany.mockRejectedValueOnce(new Error('db down'));
 
-        const useCase = new RefreshTokenPricesUseCase(repo as never, [coingecko], mkClock());
+        const useCase = new RefreshTokenPricesUseCase(repo as never, [coingecko], mkClock(), new NoopCacheService());
         const result = await useCase.execute();
 
         expect(result.errors).toBeGreaterThan(0);

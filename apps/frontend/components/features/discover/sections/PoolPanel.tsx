@@ -6,7 +6,7 @@ import { Info } from "lucide-react";
 import { useDynamicContext } from "@dynamic-labs/sdk-react-core";
 import { useLiquidityPool } from "@/hooks/useLiquidityPool";
 import { useLpPosition, formatCooldown } from "@/hooks/useLpPosition";
-import { useApyFromBackend, formatApy } from "@/hooks/useApyFromBackend";
+import { usePoolApy, formatApy } from "@/hooks/api/usePoolApy";
 import { usePoolDecimals } from "@/hooks/usePoolDecimals";
 import { chilizConfig } from "@/config/chiliz.config";
 import { PoolDepositDialog } from "../components";
@@ -58,7 +58,7 @@ function usePoolView(): { data: PoolDataView; configured: boolean } {
   const userAddress = primaryWallet?.address as Address | undefined;
   const { stats } = useLiquidityPool(poolAddress, userAddress);
   const { assetDecimals } = usePoolDecimals();
-  const { data: apyData } = useApyFromBackend();
+  const { data: apyData } = usePoolApy();
 
   const configured =
     poolAddress !== "0x0000000000000000000000000000000000000000";

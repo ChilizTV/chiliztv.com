@@ -1,11 +1,15 @@
-import { createHmac, timingSafeEqual } from 'crypto';
+import { createHash, createHmac, timingSafeEqual } from 'crypto';
 import { Request, Response } from 'express';
-import { injectable } from 'tsyringe';
+import { inject, injectable } from 'tsyringe';
+import { TOKENS } from '@chiliztv/domain/shared/tokens';
+import type { ICacheService } from '@chiliztv/domain/shared/ports/ICacheService';
 import { container } from '../../../infrastructure/config/di-container';
 import { StreamLifecycleService } from '../../../infrastructure/services/StreamLifecycleService';
 import { env } from '../../../infrastructure/config/environment';
 import { logger } from '../../../infrastructure/logging/logger';
 import { CfLiveInputWebhookPayload, CfVideoWebhookPayload } from '../../../infrastructure/streaming/cloudflare-stream-api.types';
+
+const IDEMPOTENCY_TTL_SECONDS = 300;
 
 const REPLAY_WINDOW_SECONDS = 300;
 
@@ -35,10 +39,20 @@ function verifySignature(rawBody: Buffer, header: string): boolean {
 
 @injectable()
 export class CloudflareStreamWebhookController {
+  constructor(
+    @inject(TOKENS.ICacheService) private readonly cache: ICacheService,
+  ) {}
+
   /**
    * POST /cloudflare-stream/webhook
    * Receives signed events from Cloudflare Stream and dispatches lifecycle transitions.
    * Raw body must be available on req.body (express.raw middleware scoped to this route).
+   *
+   * Idempotency (cf. docs/plans/redis-integration.md §2.17): Cloudflare retries
+   * on 5xx / timeout, so the same payload may arrive multiple times. The dedup
+   * key is `sha256(raw body)` — a redelivery has the same body, distinct
+   * events have distinct bodies. SETNX returns false on the second delivery
+   * and we respond 200 without rerunning the lifecycle transition.
    */
   async handle(req: Request, res: Response): Promise<void> {
     const signatureHeader = req.headers['webhook-signature'];
@@ -61,6 +75,16 @@ export class CloudflareStreamWebhookController {
       res.status(400).json({ error: 'Invalid JSON payload' });
       return;
     }
+
+    const bodyHash = createHash('sha256').update(rawBody).digest('hex');
+    const idemKey = `idem:webhook:cfstream:${bodyHash}`;
+    const seen = await this.cache.get<true>(idemKey);
+    if (seen.hit) {
+      logger.info('CF webhook: duplicate delivery, skipping reprocessing', { bodyHash });
+      res.status(200).end();
+      return;
+    }
+    await this.cache.set(idemKey, true, IDEMPOTENCY_TTL_SECONDS);
 
     // Respond 200 immediately — lifecycle updates are fire-and-forget
     res.status(200).end();

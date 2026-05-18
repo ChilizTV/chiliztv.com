@@ -17,6 +17,7 @@ import { INetworkConfig } from '@chiliztv/domain/shared/ports/INetworkConfig';
 import { IIndexerCheckpointRepository } from '@chiliztv/domain/blockchain-indexing/repositories/IIndexerCheckpointRepository';
 import { IWiringAlertRepository } from '@chiliztv/domain/blockchain-indexing/repositories/IWiringAlertRepository';
 import { WiringStep } from '@chiliztv/domain/blockchain-indexing/entities/WiringAlert';
+import type { ILockService } from '@chiliztv/domain/shared/ports/ILockService';
 import { BaseIndexer } from './BaseIndexer';
 
 const MATCH_CREATED = parseAbiItem(
@@ -62,6 +63,8 @@ export class BettingMatchFactoryIndexer extends BaseIndexer {
         private readonly wiringAlerts: IWiringAlertRepository,
         @inject(TOKENS.INetworkConfig)
         private readonly network: INetworkConfig,
+        @inject(TOKENS.ILockService)
+        lockService: ILockService,
     ) {
         const factoryAddress = network.bettingFactoryAddress as `0x${string}`;
         super({
@@ -72,6 +75,7 @@ export class BettingMatchFactoryIndexer extends BaseIndexer {
                 transport: http(network.rpcUrl),
             }),
             checkpoints,
+            lockService,
         });
         this.factoryAddress = factoryAddress;
         this.poolAddress = network.liquidityPoolAddress as `0x${string}`;

@@ -12,6 +12,7 @@ import { IChatRepository } from '@chiliztv/domain/chat/repositories/IChatReposit
 import { Donation } from '@chiliztv/domain/stream-wallet/entities/Donation';
 import { Subscription } from '@chiliztv/domain/stream-wallet/entities/Subscription';
 import { ChatMessage, MessageType } from '@chiliztv/domain/chat/entities/ChatMessage';
+import type { ILockService } from '@chiliztv/domain/shared/ports/ILockService';
 import { BaseIndexer } from './BaseIndexer';
 import { getTokenDecimals } from '../utils/getTokenDecimals';
 import { ResolveUserProfileUseCase } from '../../../application/users/use-cases/ResolveUserProfileUseCase';
@@ -69,6 +70,8 @@ export class StreamWalletIndexer extends BaseIndexer {
         private readonly network: INetworkConfig,
         @inject(ResolveUserProfileUseCase)
         private readonly resolveProfile: ResolveUserProfileUseCase,
+        @inject(TOKENS.ILockService)
+        lockService: ILockService,
     ) {
         const factoryAddress = network.streamWalletFactoryAddress as `0x${string}`;
         super({
@@ -79,6 +82,7 @@ export class StreamWalletIndexer extends BaseIndexer {
                 transport: http(network.rpcUrl),
             }),
             checkpoints,
+            lockService,
         });
         this.factoryAddress = factoryAddress;
     }

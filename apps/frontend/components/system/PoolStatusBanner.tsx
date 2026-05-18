@@ -1,13 +1,8 @@
-/* eslint-disable @typescript-eslint/ban-ts-comment */
-// @ts-nocheck wagmi v2 generated read hooks compound TS depth limits when
-// combined with the chainId pin. The read here is verified at runtime
-// against the deployed pool on Spicy testnet (88882).
 'use client';
 
 import { useEffect, useState } from 'react';
 import { AlertOctagon, X } from 'lucide-react';
-import { useLiquidityPoolReadPaused } from '@/lib/contracts/generated';
-import { chilizConfig } from '@/config/chiliz.config';
+import { usePoolState } from '@/hooks/api/usePoolState';
 
 const STORAGE_KEY = 'chiliztv:pool-paused-banner-dismissed-at';
 const DISMISS_TTL_MS = 6 * 60 * 60 * 1000; // re-show after 6 hours
@@ -26,10 +21,8 @@ const DISMISS_TTL_MS = 6 * 60 * 60 * 1000; // re-show after 6 hours
  * ambient (one-line page-wide warning).
  */
 export function PoolStatusBanner() {
-    const { data: paused, isLoading } = useLiquidityPoolReadPaused({
-        address: chilizConfig.liquidityPool,
-        chainId: chilizConfig.chainId,
-    });
+    const { data: state, isLoading } = usePoolState();
+    const paused = state?.paused;
 
     const [dismissed, setDismissed] = useState(true);
 

@@ -10,3 +10,4 @@ export * from './users';
 export * from './waitlist';
 export * from './access';
 export * from './prices';
+export * from './pool';

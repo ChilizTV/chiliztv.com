@@ -45,3 +45,6 @@ export {
 export { useJoinWaitlist } from './useWaitlist';
 export { useAccessStatus, useRedeemAccessCode } from './useAccessCode';
 export { usePrices, usePrice } from './usePrices';
+export { usePoolState } from './usePoolState';
+export { usePoolApy, formatApy } from './usePoolApy';
+export type { ApySnapshotDto } from './usePoolApy';

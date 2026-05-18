@@ -42,6 +42,15 @@ export const TOKENS = {
 
   // Ports — access gate
   IAccessCodeVerifier:     Symbol.for('IAccessCodeVerifier'),
+
+  // Ports — cache layer (Redis / Noop)
+  ICacheService:           Symbol.for('ICacheService'),
+  ILockService:            Symbol.for('ILockService'),
+  IRateLimitService:       Symbol.for('IRateLimitService'),
+  RedisClient:             Symbol.for('RedisClient'),
+
+  // Ports — pool state on-chain reader
+  IPoolStateReader:        Symbol.for('IPoolStateReader'),
 } as const;
 
 export type TokenKey = keyof typeof TOKENS;

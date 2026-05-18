@@ -21,15 +21,11 @@ import {
   useBettingMatchReadQuoteNetExposure,
   useBettingMatchWatchBetPlaced,
   useBettingMatchFactoryReadGetSportType,
-  useLiquidityPoolReadFreeBalance,
-  useLiquidityPoolReadMaxBetAmount,
-  useLiquidityPoolReadMaxLiabilityPerMarketBps,
-  useLiquidityPoolReadMaxLiabilityPerMatchBps,
-  useLiquidityPoolReadTotalAssets,
   useChilizSwapRouterSimulatePlaceBetWithUsdc,
   useChilizSwapRouterSimulatePlaceBetWithChz,
   useChilizSwapRouterSimulatePlaceBetWithToken,
 } from "@/lib/contracts/generated";
+import { usePoolState } from "@/hooks/api/usePoolState";
 import {
   fmtSelectionByMarket,
   getMarketSpec,
@@ -301,14 +297,9 @@ export function MarketBetDialog({
     chainId: chilizConfig.chainId,
     query: { enabled: !!selection && expectedStakeUsdc > BigInt(0) },
   });
-  // Narrow the data type to break wagmi's deep generic inference chain
-  // (too many sibling Simulate*/Read* hooks in this scope otherwise blow up
-  // TS2589: "Type instantiation is excessively deep").
-  const poolFreeBalanceQuery = useLiquidityPoolReadFreeBalance({
-    address: chilizConfig.liquidityPool,
-    chainId: chilizConfig.chainId,
-  });
-  const poolFreeBalance: bigint | undefined = poolFreeBalanceQuery.data as bigint | undefined;
+  // Pool-global reads mutualised through `/pool/state` (backend cache 15 s).
+  const { data: poolState } = usePoolState();
+  const poolFreeBalance: bigint | undefined = poolState?.freeBalance;
   const insufficientLiquidity: boolean =
     quoteNetExposure !== undefined &&
     poolFreeBalance !== undefined &&
@@ -329,13 +320,7 @@ export function MarketBetDialog({
   const onChainOddsSet =
     typeof onChainOddsRaw === "number" ? onChainOddsRaw > 0 : false;
 
-  // Pool max-bet cap. Pin the data type to break wagmi's deep generic
-  // inference (TS2589 in this hook-heavy scope).
-  const maxBetAmountQuery = useLiquidityPoolReadMaxBetAmount({
-    address: chilizConfig.liquidityPool,
-    chainId: chilizConfig.chainId,
-  });
-  const maxBetAmountRaw: bigint | undefined = maxBetAmountQuery.data as bigint | undefined;
+  const maxBetAmountRaw: bigint | undefined = poolState?.maxBetAmount;
   const maxBetAmountCapped =
     maxBetAmountRaw !== undefined && maxBetAmountRaw > BigInt(0) ? maxBetAmountRaw : null;
   const expectedStakeExceedsCap =
@@ -344,30 +329,12 @@ export function MarketBetDialog({
   const stakeBelowMinimum =
     expectedStakeUsdc > BigInt(0) && expectedStakeUsdc < MIN_NET_STAKE_USDC_RAW;
 
-  // Per-market / per-match liability caps. The pool refuses bets that would
-  // push (existing liability + this bet's net exposure) past
-  //   totalAssets × maxLiabilityPer{Market,Match}Bps / 10_000
-  // — the swap router never gets to actually swap CHZ→USDC because the
-  // bettingMatch.placeBetUSDCFor reverts inside its `pool.recordBet` call.
-  // We replicate the math front-side so the user sees the constraint *before*
-  // burning Kayen-swap gas.
-  const totalAssetsQuery = useLiquidityPoolReadTotalAssets({
-    address: chilizConfig.liquidityPool,
-    chainId: chilizConfig.chainId,
-  });
-  const totalAssetsRaw: bigint | undefined = totalAssetsQuery.data as bigint | undefined;
-
-  const maxMarketBpsQuery = useLiquidityPoolReadMaxLiabilityPerMarketBps({
-    address: chilizConfig.liquidityPool,
-    chainId: chilizConfig.chainId,
-  });
-  const maxMarketBps: number | undefined = maxMarketBpsQuery.data as number | undefined;
-
-  const maxMatchBpsQuery = useLiquidityPoolReadMaxLiabilityPerMatchBps({
-    address: chilizConfig.liquidityPool,
-    chainId: chilizConfig.chainId,
-  });
-  const maxMatchBps: number | undefined = maxMatchBpsQuery.data as number | undefined;
+  // Liability caps replicated front-side: pool reverts when
+  // existing + thisBet > totalAssets × bps / 10_000, costing the user
+  // a Kayen-swap gas spend with nothing to show for it.
+  const totalAssetsRaw: bigint | undefined = poolState?.totalAssets;
+  const maxMarketBps: number | undefined = poolState?.maxLiabilityPerMarketBps;
+  const maxMatchBps: number | undefined = poolState?.maxLiabilityPerMatchBps;
 
   const marketLiabilityQuery = useBettingMatchReadGetMarketLiability({
     address: contractAddress,

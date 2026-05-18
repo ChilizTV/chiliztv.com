@@ -47,7 +47,7 @@ const envSchema = z.object({
 
   ALLOWED_ORIGINS: z.string().default('http://localhost:3000'),
 
-  REDIS_URL: z.string().url().optional(),
+  REDIS_URL: z.string().url().optional().or(z.literal('').transform(() => undefined)),
 
   LOG_LEVEL: z.enum(['debug', 'info', 'warn', 'error']).default('info'),
 

@@ -4,38 +4,25 @@
 // the deployed pool on Spicy testnet (88882).
 import { useCallback, useEffect } from 'react';
 import { useWaitForTransactionReceipt } from 'wagmi';
+import { useQueryClient } from '@tanstack/react-query';
 import { Address } from 'viem';
 import {
-  useLiquidityPoolReadTotalAssets,
-  useLiquidityPoolReadFreeBalance,
-  useLiquidityPoolReadTotalLiabilities,
-  useLiquidityPoolReadUtilization,
-  useLiquidityPoolReadTotalSupply,
   useLiquidityPoolReadBalanceOf,
-  useLiquidityPoolReadProtocolFeeBps,
-  useLiquidityPoolReadMaxBetAmount,
-  useLiquidityPoolReadDepositCooldownSeconds,
-  useLiquidityPoolReadPaused,
   useLiquidityPoolReadPreviewDeposit,
   useLiquidityPoolReadPreviewWithdraw,
   useLiquidityPoolReadConvertToAssets,
   useLiquidityPoolReadConvertToShares,
   useLiquidityPoolReadPreviewMint,
   useLiquidityPoolReadPreviewRedeem,
-  useLiquidityPoolReadAccruedTreasury,
-  useLiquidityPoolReadTreasuryShareBps,
-  useLiquidityPoolReadLpWithdrawalFeeBps,
-  useLiquidityPoolReadTreasury,
-  useLiquidityPoolReadPendingTreasury,
   useLiquidityPoolReadLastDepositAt,
   useLiquidityPoolReadCostBasis,
-  useLiquidityPoolReadMaxLiabilityPerMarketBps,
-  useLiquidityPoolReadMaxLiabilityPerMatchBps,
   useLiquidityPoolWriteDeposit,
   useLiquidityPoolWriteWithdraw,
   useLiquidityPoolWriteRedeem,
 } from '@/lib/contracts/generated';
 import { chilizConfig } from '@/config/chiliz.config';
+import { usePoolState } from '@/hooks/api/usePoolState';
+import { queryKeys } from '@/lib/query/keys';
 
 // Pin all reads to the deployed chain. Without this, generated read hooks
 // silently never fire when the user's wallet is on a different chain
@@ -109,27 +96,16 @@ export function useLiquidityPool(
   previewSharesAmount?: bigint,
 ): UseLiquidityPoolReturn {
 
-  // ── Pool stats ──────────────────────────────────────────────────────────────
-  const { data: totalAssets, isLoading: l1, refetch: r1 } = useLiquidityPoolReadTotalAssets({ address: poolAddress, chainId: CHAIN_ID });
-  const { data: freeBalance, isLoading: l2, refetch: r2 } = useLiquidityPoolReadFreeBalance({ address: poolAddress, chainId: CHAIN_ID });
-  const { data: totalLiabilities, isLoading: l3, refetch: r3 } = useLiquidityPoolReadTotalLiabilities({ address: poolAddress, chainId: CHAIN_ID });
-  const { data: utilization, isLoading: l4, refetch: r4 } = useLiquidityPoolReadUtilization({ address: poolAddress, chainId: CHAIN_ID });
-  const { data: totalSupply, isLoading: l5, refetch: r5 } = useLiquidityPoolReadTotalSupply({ address: poolAddress, chainId: CHAIN_ID });
-  const { data: protocolFeeBps, isLoading: l6, refetch: r6 } = useLiquidityPoolReadProtocolFeeBps({ address: poolAddress, chainId: CHAIN_ID });
-  const { data: maxBetAmount, isLoading: l7, refetch: r7 } = useLiquidityPoolReadMaxBetAmount({ address: poolAddress, chainId: CHAIN_ID });
-  const { data: depositCooldownSeconds, isLoading: l8, refetch: r8 } = useLiquidityPoolReadDepositCooldownSeconds({ address: poolAddress, chainId: CHAIN_ID });
-  const { data: isPaused, isLoading: l9, refetch: r9 } = useLiquidityPoolReadPaused({ address: poolAddress, chainId: CHAIN_ID });
+  // ── Pool stats (backend-mutualised) ─────────────────────────────────────────
+  // The 16 pool-global viem reads previously made here against the public
+  // Chiliz RPC are now served by `/pool/state` from the backend cache (TTL
+  // 15 s, jitter ±20 %). Per-user fields and argument-driven previews stay
+  // on direct viem reads below.
+  const queryClient = useQueryClient();
+  const poolStateQuery = usePoolState();
+  const state = poolStateQuery.data;
 
-  // ── Pool economics (added in Lot 3) ─────────────────────────────────────────
-  const { data: treasuryShareBps, refetch: rTsh } = useLiquidityPoolReadTreasuryShareBps({ address: poolAddress, chainId: CHAIN_ID });
-  const { data: lpWithdrawalFeeBps, refetch: rLwf } = useLiquidityPoolReadLpWithdrawalFeeBps({ address: poolAddress, chainId: CHAIN_ID });
-  const { data: accruedTreasury, refetch: rAcc } = useLiquidityPoolReadAccruedTreasury({ address: poolAddress, chainId: CHAIN_ID });
-  const { data: treasury, refetch: rTr } = useLiquidityPoolReadTreasury({ address: poolAddress, chainId: CHAIN_ID });
-  const { data: pendingTreasury, refetch: rPt } = useLiquidityPoolReadPendingTreasury({ address: poolAddress, chainId: CHAIN_ID });
-  const { data: maxLiabilityPerMarketBps, refetch: rLm } = useLiquidityPoolReadMaxLiabilityPerMarketBps({ address: poolAddress, chainId: CHAIN_ID });
-  const { data: maxLiabilityPerMatchBps, refetch: rLM } = useLiquidityPoolReadMaxLiabilityPerMatchBps({ address: poolAddress, chainId: CHAIN_ID });
-
-  // ── Per-user reads ──────────────────────────────────────────────────────────
+  // ── Per-user reads (stay on viem — user-scoped, can't be mutualised) ───────
   const { data: sharesData, refetch: refetchShares } = useLiquidityPoolReadBalanceOf({
     address: poolAddress,
     args: userAddress ? [userAddress] : undefined,
@@ -149,7 +125,7 @@ export function useLiquidityPool(
     query: { enabled: !!userAddress },
   });
 
-  // ── Stateless asset/share conversions ──────────────────────────────────────
+  // ── Stateless asset/share conversions (argument-driven, no point caching) ──
   const { data: previewDepositData } = useLiquidityPoolReadPreviewDeposit({
     address: poolAddress,
     args: previewAssetsAmount !== undefined ? [previewAssetsAmount] : undefined,
@@ -203,13 +179,20 @@ export function useLiquidityPool(
   const { isLoading: redeemConfirming, isSuccess: redeemSuccess } = useWaitForTransactionReceipt({ hash: redeemHash });
 
   // ── Auto-refetch after successful tx ────────────────────────────────────────
+  // User-scoped reads refresh immediately (own balance / cost basis / last
+  // deposit). The pool-global state is invalidated so React Query refetches
+  // — the backend cache may still serve a stale snapshot for up to 15 s,
+  // but the user's own position is visibly fresh and the aggregate catches
+  // up on the next tick.
   useEffect(() => {
     if (depositSuccess || withdrawSuccess || redeemSuccess) {
-      r1(); r2(); r3(); r4(); r5();
-      refetchConvert(); refetchShares(); refetchCostBasis(); refetchLastDeposit();
-      rAcc();
+      queryClient.invalidateQueries({ queryKey: queryKeys.pool.state() });
+      refetchConvert();
+      refetchShares();
+      refetchCostBasis();
+      refetchLastDeposit();
     }
-  }, [depositSuccess, withdrawSuccess, redeemSuccess, r1, r2, r3, r4, r5, refetchConvert, refetchShares, refetchCostBasis, refetchLastDeposit, rAcc]);
+  }, [depositSuccess, withdrawSuccess, redeemSuccess, queryClient, refetchConvert, refetchShares, refetchCostBasis, refetchLastDeposit]);
 
   // ── Write functions ─────────────────────────────────────────────────────────
   const deposit = useCallback(
@@ -234,30 +217,29 @@ export function useLiquidityPool(
   );
 
   const refetchStats = useCallback(() => {
-    r1(); r2(); r3(); r4(); r5(); r6(); r7(); r8(); r9();
-    rTsh(); rLwf(); rAcc(); rTr(); rPt(); rLm(); rLM();
-  }, [r1, r2, r3, r4, r5, r6, r7, r8, r9, rTsh, rLwf, rAcc, rTr, rPt, rLm, rLM]);
+    queryClient.invalidateQueries({ queryKey: queryKeys.pool.state() });
+  }, [queryClient]);
 
   return {
     stats: {
-      totalAssets: totalAssets as bigint | undefined,
-      freeBalance: freeBalance as bigint | undefined,
-      totalLiabilities: totalLiabilities as bigint | undefined,
-      utilization: utilization as bigint | undefined,
-      totalSupply: totalSupply as bigint | undefined,
-      protocolFeeBps: protocolFeeBps !== undefined ? Number(protocolFeeBps) : undefined,
-      maxBetAmount: maxBetAmount as bigint | undefined,
-      depositCooldownSeconds: depositCooldownSeconds !== undefined ? Number(depositCooldownSeconds) : undefined,
-      isPaused: isPaused as boolean | undefined,
-      treasuryShareBps: treasuryShareBps !== undefined ? Number(treasuryShareBps) : undefined,
-      lpWithdrawalFeeBps: lpWithdrawalFeeBps !== undefined ? Number(lpWithdrawalFeeBps) : undefined,
-      accruedTreasury: accruedTreasury as bigint | undefined,
-      treasury: treasury as Address | undefined,
-      pendingTreasury: pendingTreasury as Address | undefined,
-      maxLiabilityPerMarketBps: maxLiabilityPerMarketBps !== undefined ? Number(maxLiabilityPerMarketBps) : undefined,
-      maxLiabilityPerMatchBps: maxLiabilityPerMatchBps !== undefined ? Number(maxLiabilityPerMatchBps) : undefined,
+      totalAssets: state?.totalAssets,
+      freeBalance: state?.freeBalance,
+      totalLiabilities: state?.totalLiabilities,
+      utilization: state?.utilization,
+      totalSupply: state?.totalSupply,
+      protocolFeeBps: state?.protocolFeeBps,
+      maxBetAmount: state?.maxBetAmount,
+      depositCooldownSeconds: state?.depositCooldownSeconds,
+      isPaused: state?.paused,
+      treasuryShareBps: state?.treasuryShareBps,
+      lpWithdrawalFeeBps: state?.lpWithdrawalFeeBps,
+      accruedTreasury: state?.accruedTreasury,
+      treasury: state?.treasury,
+      pendingTreasury: state?.pendingTreasury,
+      maxLiabilityPerMarketBps: state?.maxLiabilityPerMarketBps,
+      maxLiabilityPerMatchBps: state?.maxLiabilityPerMatchBps,
     },
-    isLoadingStats: l1 || l2 || l3 || l4 || l5 || l6 || l7 || l8 || l9,
+    isLoadingStats: poolStateQuery.isLoading,
     refetchStats,
 
     sharesOf: () => sharesData as bigint | undefined,

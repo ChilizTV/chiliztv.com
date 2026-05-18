@@ -2,6 +2,70 @@
 
 Node.js backend with Clean Architecture for live football match streaming, real-time chat, blockchain-based betting, and fan engagement on Chiliz network.
 
+## Local development
+
+### Pre-requirements
+
+- Docker Desktop or OrbStack.
+- pnpm 10.28.1 (`corepack enable && corepack prepare pnpm@10.28.1 --activate`).
+- Node 22 LTS.
+- Supabase CLI 2.x (`brew install supabase/tap/supabase`).
+- Windows only: `git config --global core.symlinks=true` (the `supabase/migrations` symlink points at the canonical migrations dir under `src/`).
+
+### First-time setup
+
+From the repo root:
+
+```bash
+pnpm install
+cp apps/backend/.env.local.example apps/backend/.env.local
+pnpm dev:supabase:start         # downloads ~2 GB of Docker images on first run
+pnpm dev:supabase:env           # prints SUPABASE_URL / ANON_KEY / SERVICE_ROLE_KEY
+                                # copy those three values into apps/backend/.env.local
+pnpm dev:supabase:reset         # applies the 20 migrations from src/...
+```
+
+Generate a `JWT_SECRET` (min 32 chars) and an `ACCESS_CODE_COOKIE_SECRET` (min 32 chars):
+
+```bash
+openssl rand -base64 48         # paste into JWT_SECRET
+openssl rand -base64 32         # paste into ACCESS_CODE_COOKIE_SECRET
+```
+
+### Daily workflow
+
+```bash
+pnpm dev:local                  # chains: Supabase start, Redis start, doctor, backend
+```
+
+`Ctrl+C` only stops the backend Node process; Redis and Supabase keep running in the background so the next `pnpm dev:local` boots in seconds. To stop everything: `pnpm dev:stop`.
+
+### Inspection and debugging
+
+- Redis interactive CLI: `pnpm dev:redis:cli`
+- Stream Redis commands: `pnpm dev:redis:cli MONITOR`
+- Health probe (TCP-level): `pnpm dev:doctor`
+- Supabase Studio UI: **disabled by default** — Studio mounts `apps/backend/supabase/snippets/` and Docker Desktop on macOS rejects the mount when `~/Documents` is not in File Sharing. To enable: open Docker Desktop → Settings → Resources → File sharing → add `~/Documents` (or the absolute repo path), then flip `[studio] enabled = true` in `apps/backend/supabase/config.toml` and re-run `pnpm dev:supabase:start`. Once on, Studio is at http://127.0.0.1:54323.
+
+### Reset
+
+```bash
+pnpm dev:reset                  # stop + wipe Supabase DB + flush Redis
+```
+
+Migrations are re-applied on the next `pnpm dev:supabase:reset` (or via `pnpm dev:local` if you reset before re-launching).
+
+### Troubleshooting
+
+- **Backend logs say `NoopCacheService`** — Redis is down. `pnpm dev:redis:start`, then check `pnpm dev:doctor`.
+- **Port conflict on 54321 / 54322 / 54323 / 6379** — stop the conflicting process, or change the ports in `apps/backend/supabase/config.toml` and `compose.local.yml` and re-sync `.env.local` accordingly.
+- **`supabase db reset` fails on a migration** — the migration is broken upstream. Fix in `src/infrastructure/database/migrations/` (the `supabase/migrations` dir is a symlink to that). CI replays the same migrations.
+- **`pnpm dev:supabase:env` returns empty values** — Supabase isn't running yet. `pnpm dev:supabase:start` first.
+
+### Two compose files coexist
+
+`compose.yml` (root) and `apps/backend/compose.yml` ship a legacy all-Docker workflow (Node runs in a container). They are **not** used by `pnpm dev:local` — the new workflow runs Node on the host and only Redis in Docker (`compose.local.yml`). Don't mix them in the same session.
+
 ## Live betting policy — disabled
 
 Aucun pari ne peut être posé pendant qu'un match est in-play (`1H`, `HT`,

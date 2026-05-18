@@ -4,7 +4,7 @@ import { useMemo } from 'react';
 import type { LpPosition } from '@/hooks/useLpPosition';
 import { useLiquidityPool } from '@/hooks/useLiquidityPool';
 import { usePoolDecimals } from '@/hooks/usePoolDecimals';
-import { useApyFromBackend } from '@/hooks/useApyFromBackend';
+import { usePoolApy } from '@/hooks/api/usePoolApy';
 import { chilizConfig } from '@/config/chiliz.config';
 import { formatUnits } from 'viem';
 import { DashEyebrow } from '../components/DashEyebrow';
@@ -32,7 +32,7 @@ function bigToNum(value: bigint | undefined, decimals: number | undefined): numb
 export function LpPositionPanel({ lp, onDeposit, onWithdraw }: LpPositionPanelProps) {
     const { assetDecimals, shareDecimals } = usePoolDecimals();
     const { stats } = useLiquidityPool(chilizConfig.liquidityPool, undefined);
-    const apy = useApyFromBackend();
+    const apy = usePoolApy();
 
     const hasPosition = (lp.shares ?? BigInt(0)) > BigInt(0);
     const cooldownReady = lp.cooldownRemainingSec <= 0;

@@ -105,6 +105,11 @@ export class Match {
     return this.props.bettingContractAddress;
   }
 
+  /** Flat snapshot of the internal props. Symmetric with `reconstitute` — meant for cache round-trip, not API responses (use `toJSON` for that). */
+  toRaw(): MatchProps {
+    return { ...this.props };
+  }
+
   toJSON(): any {
     return {
       id: this.props.id,

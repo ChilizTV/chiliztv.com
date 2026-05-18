@@ -1,5 +1,10 @@
-import rateLimit from 'express-rate-limit';
+import rateLimit, { ipKeyGenerator, type Options, type Store } from 'express-rate-limit';
+import { RedisStore, type RedisReply } from 'rate-limit-redis';
+import IORedis from 'ioredis';
+import type { RequestHandler, Request } from 'express';
+import { URL } from 'node:url';
 import { env } from '../../../infrastructure/config/environment';
+import { logger } from '../../../infrastructure/logging/logger';
 
 const isDevelopment = env.NODE_ENV === 'development';
 
@@ -11,80 +16,148 @@ const isDevelopment = env.NODE_ENV === 'development';
 const RATE_LIMIT_DISABLED = false;
 
 /**
+ * Whitelist a few well-known IPs (monitoring probes, Sentry crons, on-call
+ * machine). Configured via env `RATE_LIMIT_WHITELIST` CSV.
+ */
+const whitelist: ReadonlySet<string> = new Set(
+  (process.env.RATE_LIMIT_WHITELIST ?? '')
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean),
+);
+
+// Lazy singleton: a single ioredis connection dedicated to rate limiting.
+// Sharing the cache `RedisClient` from DI would require resolving the
+// container at module load (before bootstrap), so a small dedicated client
+// is operationally cleaner. Both connect to the same Upstash instance.
+let _rateLimitRedis: IORedis | null = null;
+function getRateLimitRedis(): IORedis | null {
+  if (!env.REDIS_URL) return null;
+  if (_rateLimitRedis) return _rateLimitRedis;
+  const useTls = env.REDIS_URL.startsWith('rediss://');
+  const hostname = new URL(env.REDIS_URL).hostname;
+  _rateLimitRedis = new IORedis(env.REDIS_URL, {
+    lazyConnect: false,
+    maxRetriesPerRequest: 1,
+    enableReadyCheck: true,
+    retryStrategy: (times) => Math.min(times * 200, 30_000),
+    tls: useTls ? { servername: hostname } : undefined,
+    keepAlive: 30_000,
+    connectTimeout: 10_000,
+    commandTimeout: 5_000,
+  });
+  _rateLimitRedis.on('error', (err: Error) => {
+    logger.warn('Rate-limit Redis error (failing open)', { message: err.message });
+  });
+  return _rateLimitRedis;
+}
+
+function buildStore(prefix: string): Store | undefined {
+  const client = getRateLimitRedis();
+  if (!client) return undefined;
+  // ioredis `call(command, ...args)` and rate-limit-redis `(...args: string[])`
+  // are compatible at runtime; the bridge here adapts the variadic shape and
+  // narrows the return to RedisReply.
+  const sendCommand = ((...args: string[]) => {
+    const [command, ...rest] = args;
+    return client.call(command!, ...rest) as Promise<RedisReply>;
+  }) as (...args: string[]) => Promise<RedisReply>;
+  return new RedisStore({
+    sendCommand,
+    prefix: `${env.NODE_ENV}:rate:${prefix}:`,
+  });
+}
+
+function commonSkip(req: Request): boolean {
+  if (RATE_LIMIT_DISABLED) return true;
+  const ip = req.ip ?? '';
+  return whitelist.has(ip);
+}
+
+interface LimiterSpec {
+  /** Stable prefix used as the Redis key namespace; do not change without invalidating buckets. */
+  prefix: string;
+  windowMs: number;
+  max: number;
+  errorCode: string;
+  errorMessage: string;
+  skipSuccessfulRequests?: boolean;
+  /** Additional skip predicates merged with the kill switch + whitelist. */
+  extraSkip?: (req: Request) => boolean;
+  /** Override key generator (e.g. wallet from JWT, signature hash). Defaults to `req.ip`. */
+  keyGenerator?: Options['keyGenerator'];
+}
+
+function createLimiter(spec: LimiterSpec): RequestHandler {
+  const store = buildStore(spec.prefix);
+  const skip = (req: Request) => commonSkip(req) || (spec.extraSkip?.(req) ?? false);
+  return rateLimit({
+    windowMs: spec.windowMs,
+    max: spec.max,
+    message: {
+      success: false,
+      error: { code: spec.errorCode, message: spec.errorMessage },
+    },
+    standardHeaders: true,
+    legacyHeaders: false,
+    skipSuccessfulRequests: spec.skipSuccessfulRequests,
+    skip,
+    store,
+    keyGenerator: spec.keyGenerator,
+    // Fail open if the Redis store throws (outage, timeout) — better than
+    // 500-ing every protected route.
+    passOnStoreError: true,
+  });
+}
+
+/**
  * Global rate limiter - applies to all routes
  * 1000 requests per 15 minutes per IP
  */
-export const globalLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: isDevelopment ? 10000 : 1000, // Higher limit in dev
-  message: {
-    success: false,
-    error: {
-      code: 'RATE_LIMIT_EXCEEDED',
-      message: 'Too many requests, please try again later',
-    },
-  },
-  standardHeaders: true,
-  legacyHeaders: false,
-  skip: (req) => RATE_LIMIT_DISABLED || req.path === '/health',
+export const globalLimiter = createLimiter({
+  prefix: 'global',
+  windowMs: 15 * 60 * 1000,
+  max: isDevelopment ? 10_000 : 1_000,
+  errorCode: 'RATE_LIMIT_EXCEEDED',
+  errorMessage: 'Too many requests, please try again later',
+  extraSkip: (req) => req.path === '/health',
 });
 
 /**
  * Auth rate limiter - strict limits to prevent brute force
  * 5 requests per minute per IP
  */
-export const authLimiter = rateLimit({
-  windowMs: 60 * 1000, // 1 minute
+export const authLimiter = createLimiter({
+  prefix: 'auth',
+  windowMs: 60 * 1000,
   max: isDevelopment ? 100 : 5,
-  message: {
-    success: false,
-    error: {
-      code: 'AUTH_RATE_LIMIT_EXCEEDED',
-      message: 'Too many authentication attempts, please try again in 1 minute',
-    },
-  },
-  standardHeaders: true,
-  legacyHeaders: false,
-  skipSuccessfulRequests: true, // Don't count successful auth attempts
-  skip: () => RATE_LIMIT_DISABLED,
+  errorCode: 'AUTH_RATE_LIMIT_EXCEEDED',
+  errorMessage: 'Too many authentication attempts, please try again in 1 minute',
+  skipSuccessfulRequests: true,
 });
 
 /**
  * Predictions rate limiter - moderate limits
  * 20 requests per minute per IP
  */
-export const predictionsLimiter = rateLimit({
-  windowMs: 60 * 1000, // 1 minute
+export const predictionsLimiter = createLimiter({
+  prefix: 'predictions',
+  windowMs: 60 * 1000,
   max: isDevelopment ? 200 : 20,
-  message: {
-    success: false,
-    error: {
-      code: 'PREDICTIONS_RATE_LIMIT_EXCEEDED',
-      message: 'Too many prediction requests, please slow down',
-    },
-  },
-  standardHeaders: true,
-  legacyHeaders: false,
-  skip: () => RATE_LIMIT_DISABLED,
+  errorCode: 'PREDICTIONS_RATE_LIMIT_EXCEEDED',
+  errorMessage: 'Too many prediction requests, please slow down',
 });
 
 /**
  * Chat rate limiter - generous limits for messaging
  * 100 messages per minute per IP
  */
-export const chatLimiter = rateLimit({
-  windowMs: 60 * 1000, // 1 minute
+export const chatLimiter = createLimiter({
+  prefix: 'chat',
+  windowMs: 60 * 1000,
   max: isDevelopment ? 1000 : 100,
-  message: {
-    success: false,
-    error: {
-      code: 'CHAT_RATE_LIMIT_EXCEEDED',
-      message: 'Too many messages, please slow down',
-    },
-  },
-  standardHeaders: true,
-  legacyHeaders: false,
-  skip: () => RATE_LIMIT_DISABLED,
+  errorCode: 'CHAT_RATE_LIMIT_EXCEEDED',
+  errorMessage: 'Too many messages, please slow down',
 });
 
 /**
@@ -92,32 +165,22 @@ export const chatLimiter = rateLimit({
  * plus 20 / hour / IP (long window, skipSuccessfulRequests keeps legit users free).
  * Two limiters are applied in series via accessCodeLimiter export.
  */
-const accessCodeShortLimiter = rateLimit({
+const accessCodeShortLimiter = createLimiter({
+  prefix: 'access-short',
   windowMs: 60 * 1000,
   max: isDevelopment ? 200 : 5,
-  message: {
-    success: false,
-    error: { code: 'AUTH_RATE_LIMIT_EXCEEDED', message: 'Too many attempts, please wait 1 minute' },
-  },
-  standardHeaders: true,
-  legacyHeaders: false,
-  skip: () => RATE_LIMIT_DISABLED,
+  errorCode: 'AUTH_RATE_LIMIT_EXCEEDED',
+  errorMessage: 'Too many attempts, please wait 1 minute',
 });
 
-const accessCodeHourLimiter = rateLimit({
+const accessCodeHourLimiter = createLimiter({
+  prefix: 'access-hour',
   windowMs: 60 * 60 * 1000,
-  max: isDevelopment ? 2000 : 20,
-  message: {
-    success: false,
-    error: { code: 'AUTH_RATE_LIMIT_EXCEEDED', message: 'Too many attempts, please wait 1 hour' },
-  },
-  standardHeaders: true,
-  legacyHeaders: false,
+  max: isDevelopment ? 2_000 : 20,
+  errorCode: 'AUTH_RATE_LIMIT_EXCEEDED',
+  errorMessage: 'Too many attempts, please wait 1 hour',
   skipSuccessfulRequests: true,
-  skip: () => RATE_LIMIT_DISABLED,
 });
-
-import { RequestHandler } from 'express';
 
 export const accessCodeLimiter: RequestHandler[] = [accessCodeShortLimiter, accessCodeHourLimiter];
 
@@ -125,17 +188,46 @@ export const accessCodeLimiter: RequestHandler[] = [accessCodeShortLimiter, acce
  * Stream creation rate limiter - strict limits
  * 5 streams per hour per IP
  */
-export const streamCreationLimiter = rateLimit({
-  windowMs: 60 * 60 * 1000, // 1 hour
+export const streamCreationLimiter = createLimiter({
+  prefix: 'stream-create',
+  windowMs: 60 * 60 * 1000,
   max: isDevelopment ? 50 : 5,
-  message: {
-    success: false,
-    error: {
-      code: 'STREAM_CREATION_RATE_LIMIT_EXCEEDED',
-      message: 'Too many streams created, please try again later',
-    },
+  errorCode: 'STREAM_CREATION_RATE_LIMIT_EXCEEDED',
+  errorMessage: 'Too many streams created, please try again later',
+});
+
+/**
+ * Cloudflare Stream webhook limiter. Keyed by the upstream `webhook-signature`
+ * header so an attacker cannot exhaust the bucket by spoofing IPs. Falls back
+ * to `req.ip` when the header is missing (legit Cloudflare requests always
+ * carry it). 60 calls / min is well above Cloudflare's actual delivery rate.
+ */
+export const webhookLimiter = createLimiter({
+  prefix: 'webhook-cf-stream',
+  windowMs: 60 * 1000,
+  max: isDevelopment ? 1_000 : 60,
+  errorCode: 'WEBHOOK_RATE_LIMIT_EXCEEDED',
+  errorMessage: 'Webhook delivery rate exceeded',
+  keyGenerator: (req) => {
+    const sig = req.header('webhook-signature') ?? '';
+    if (sig) return sig.slice(0, 64);
+    return req.ip ? ipKeyGenerator(req.ip) : 'unknown';
   },
-  standardHeaders: true,
-  legacyHeaders: false,
-  skip: () => RATE_LIMIT_DISABLED,
+});
+
+/**
+ * Admin rate limiter — gates back-office endpoints (future scope). Keyed by
+ * the JWT subject when present (admin actor), falling back to IP.
+ */
+export const adminLimiter = createLimiter({
+  prefix: 'admin',
+  windowMs: 60 * 60 * 1000,
+  max: isDevelopment ? 10_000 : 1_000,
+  errorCode: 'ADMIN_RATE_LIMIT_EXCEEDED',
+  errorMessage: 'Admin action rate exceeded',
+  keyGenerator: (req) => {
+    const auth = (req as Request & { user?: { walletAddress?: string } }).user;
+    if (auth?.walletAddress) return auth.walletAddress;
+    return req.ip ? ipKeyGenerator(req.ip) : 'unknown';
+  },
 });

@@ -8,6 +8,7 @@ import { INetworkConfig } from '@chiliztv/domain/shared/ports/INetworkConfig';
 import { IIndexerCheckpointRepository } from '@chiliztv/domain/blockchain-indexing/repositories/IIndexerCheckpointRepository';
 import { IPoolEventRepository } from '@chiliztv/domain/blockchain-indexing/repositories/IPoolEventRepository';
 import { ILpPositionRepository } from '@chiliztv/domain/blockchain-indexing/repositories/ILpPositionRepository';
+import type { ILockService } from '@chiliztv/domain/shared/ports/ILockService';
 import { BaseIndexer } from './BaseIndexer';
 
 const DEPOSIT_EVENT = parseAbiItem(
@@ -105,6 +106,8 @@ export class LiquidityPoolIndexer extends BaseIndexer {
         private readonly lpPositions: ILpPositionRepository,
         @inject(TOKENS.INetworkConfig)
         private readonly network: INetworkConfig,
+        @inject(TOKENS.ILockService)
+        lockService: ILockService,
     ) {
         const poolAddress = network.liquidityPoolAddress as `0x${string}`;
         super({
@@ -115,6 +118,7 @@ export class LiquidityPoolIndexer extends BaseIndexer {
                 transport: http(network.rpcUrl),
             }),
             checkpoints,
+            lockService,
         });
         this.poolAddress = poolAddress;
     }

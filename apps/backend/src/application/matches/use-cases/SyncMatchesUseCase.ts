@@ -6,6 +6,8 @@ import { IBlockchainService } from '@chiliztv/domain/shared/ports/IBlockchainSer
 import { MatchFetchWindow } from '@chiliztv/domain/matches/value-objects/MatchFetchWindow';
 import { Match, MatchOdds } from '@chiliztv/domain/matches/entities/Match';
 import type { IClock } from '@chiliztv/domain/shared/ports/IClock';
+import type { ICacheService } from '@chiliztv/domain/shared/ports/ICacheService';
+import { FIXED_LIST_KEYS, MatchCacheKeys } from '../MatchCacheKeys';
 
 export interface SyncMatchesResult {
     matchesFetched: number;
@@ -35,23 +37,24 @@ export class SyncMatchesUseCase {
         private readonly blockchainService: IBlockchainService,
         @inject(TOKENS.IClock)
         private readonly clock: IClock,
+        @inject(TOKENS.ICacheService)
+        private readonly cache: ICacheService,
     ) {}
 
     async execute(): Promise<SyncMatchesResult> {
-        // Step 1: Fetch matches (domain RawMatch — no ApiFootball types)
         const rawMatches = await this.footballApiService.fetchMatches(MatchFetchWindow.FETCH_DAYS_AHEAD);
 
         if (rawMatches.length === 0) {
             return { matchesFetched: 0, matchesStored: 0, contractsDeployed: 0 };
         }
 
-        // Step 2: Fetch odds — returns Map<apiFootballId, ExtendedOdds>
         const matchIds = rawMatches.map(m => m.apiFootballId);
         const oddsMap  = await this.footballApiService.fetchOddsForMatches(matchIds);
 
-        // Step 3: Persist matches and manage contracts
         let matchesStored    = 0;
         let contractsDeployed = 0;
+        const changedMatchIds: number[] = [];
+        const changedLeagueIds = new Set<number>();
 
         for (const raw of rawMatches) {
             try {
@@ -61,19 +64,50 @@ export class SyncMatchesUseCase {
                 const existing = await this.matchRepository.findByApiFootballId(raw.apiFootballId);
 
                 if (existing) {
-                    await this.updateExistingMatch(existing, raw, matchOdds, extendedOdds);
+                    const mutated = await this.updateExistingMatch(existing, raw, matchOdds, extendedOdds);
                     matchesStored++;
+                    if (mutated) {
+                        changedMatchIds.push(raw.apiFootballId);
+                        changedLeagueIds.add(raw.leagueId);
+                    }
                 } else {
                     const deployed = await this.createNewMatch(raw, matchOdds, extendedOdds);
                     matchesStored++;
                     if (deployed) contractsDeployed++;
+                    changedMatchIds.push(raw.apiFootballId);
+                    changedLeagueIds.add(raw.leagueId);
                 }
             } catch {
                 // Individual match failures do not abort the full sync
             }
         }
 
+        await this.invalidateCache(changedMatchIds, changedLeagueIds);
+
         return { matchesFetched: rawMatches.length, matchesStored, contractsDeployed };
+    }
+
+    /**
+     * Drops every read-side cache key impacted by this sync run. Fixed list
+     * keys are always purged when at least one match changed (the lists
+     * themselves don't carry per-match granularity). Per-match and per-league
+     * keys are purged selectively to avoid wiping unrelated buckets.
+     *
+     * Note: the freshness of in-game scores is bounded by the cadence of the
+     * caller job (SyncMatchesJob, every 10 min by default) and the
+     * API-Football indexing delay. This hook ensures the cache never *adds*
+     * staleness on top of that floor; it does not reduce it. A sub-minute
+     * score push would require a separate source (webhook or real-time feed).
+     */
+    private async invalidateCache(changedMatchIds: number[], changedLeagueIds: Set<number>): Promise<void> {
+        if (changedMatchIds.length === 0) return;
+
+        const deletions: Promise<unknown>[] = [];
+        for (const key of FIXED_LIST_KEYS) deletions.push(this.cache.delete(key));
+        for (const leagueId of changedLeagueIds) deletions.push(this.cache.delete(MatchCacheKeys.league(leagueId)));
+        for (const matchId of changedMatchIds) deletions.push(this.cache.delete(MatchCacheKeys.single(matchId)));
+
+        await Promise.allSettled(deletions);
     }
 
     // ─── Private helpers ──────────────────────────────────────────────────────
@@ -83,8 +117,20 @@ export class SyncMatchesUseCase {
         raw: RawMatch,
         matchOdds: MatchOdds | undefined,
         extendedOdds: ExtendedOdds | null
-    ): Promise<void> {
+    ): Promise<boolean> {
         const existingJson = existing.toJSON();
+        const existingScore = existingJson.score
+            ? { home: existingJson.score.home, away: existingJson.score.away }
+            : null;
+        const rawScore = (raw.homeScore !== null && raw.awayScore !== null && raw.homeScore !== undefined && raw.awayScore !== undefined)
+            ? { home: raw.homeScore, away: raw.awayScore }
+            : null;
+        const scoreChanged =
+            existingScore?.home !== rawScore?.home ||
+            existingScore?.away !== rawScore?.away;
+        const statusChanged = existingJson.status !== raw.status;
+        const oddsChanged = JSON.stringify(existingJson.odds ?? null) !== JSON.stringify(matchOdds ?? null);
+        const mutated = scoreChanged || statusChanged || oddsChanged;
 
         const updated = Match.reconstitute({
             id:                     existingJson.id,
@@ -122,6 +168,8 @@ export class SyncMatchesUseCase {
                 // Non-fatal: odds sync failure does not fail the use case
             }
         }
+
+        return mutated;
     }
 
     private async createNewMatch(

@@ -1,7 +1,9 @@
 'use client';
 
+import { useEffect } from 'react';
 import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '@/lib/api/client';
+import { supabase } from '@/lib/supabase';
 import type { BetFilter, MyBetsResponse } from '../domain/bets';
 
 interface FetchArgs {
@@ -25,20 +27,48 @@ export interface UseMyBetsOptions {
     readonly offset?: number;
 }
 
+const SAFETY_REFETCH_MS = 5 * 60_000;
+
 /**
- * On-chain bets feed. 30s polling, refetch on focus. `keepPreviousData`
- * holds the previous page while the next page is in flight — avoids the
- * skeleton flash on `Next` / `pageSize` clicks.
+ * Realtime-driven bets feed. The Supabase subscription below invalidates the
+ * query on every insert/update for the user; the 5-min refetch is a safety
+ * net for missed events (publication lag, transient disconnect).
  */
 export function useMyBets(options: UseMyBetsOptions) {
     const { user, filter, limit, offset } = options;
+    const qc = useQueryClient();
+    const userLower = user?.toLowerCase();
+
+    useEffect(() => {
+        if (!userLower) return;
+        // Unique per mount: supabase-js v2 reuses channels by topic, so
+        // StrictMode's double-mount would return the previous (already
+        // subscribed) channel and `.on()` would throw.
+        const topic = `bets_user_${userLower}_${Math.random().toString(36).slice(2, 10)}`;
+        const channel = supabase
+            .channel(topic)
+            .on(
+                'postgres_changes',
+                { event: 'INSERT', schema: 'public', table: 'bets', filter: `user_address=eq.${userLower}` },
+                () => qc.invalidateQueries({ queryKey: ['my-bets', userLower] }),
+            )
+            .on(
+                'postgres_changes',
+                { event: 'UPDATE', schema: 'public', table: 'bets', filter: `user_address=eq.${userLower}` },
+                () => qc.invalidateQueries({ queryKey: ['my-bets', userLower] }),
+            )
+            .subscribe();
+        return () => {
+            supabase.removeChannel(channel);
+        };
+    }, [userLower, qc]);
 
     return useQuery<MyBetsResponse, Error>({
-        queryKey: ['my-bets', user?.toLowerCase(), filter ?? 'all', limit ?? 5, offset ?? 0],
+        queryKey: ['my-bets', userLower, filter ?? 'all', limit ?? 5, offset ?? 0],
         queryFn: () => fetchUserBets({ user: user as string, filter, limit, offset }),
         enabled: !!user,
         staleTime: 15_000,
-        refetchInterval: 30_000,
+        refetchInterval: SAFETY_REFETCH_MS,
         refetchOnWindowFocus: true,
         placeholderData: keepPreviousData,
     });

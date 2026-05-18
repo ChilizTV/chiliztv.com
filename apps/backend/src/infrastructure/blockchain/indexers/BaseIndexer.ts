@@ -1,5 +1,7 @@
 import type { PublicClient, Log } from 'viem';
 import { IIndexerCheckpointRepository } from '@chiliztv/domain/blockchain-indexing/repositories/IIndexerCheckpointRepository';
+import type { ILockService } from '@chiliztv/domain/shared/ports/ILockService';
+import { indexerLockConfig } from '../../scheduling/JobLockConfig';
 import { logger } from '../../logging/logger';
 
 const POLLING_INTERVAL_MS = 6_000;
@@ -23,6 +25,8 @@ export interface BaseIndexerOptions {
     readonly contractAddress?: string;
     readonly client: PublicClient;
     readonly checkpoints: IIndexerCheckpointRepository;
+    /** Distributed lock so only one worker instance advances the cursor at a time. */
+    readonly lockService: ILockService;
     readonly pollingIntervalMs?: number;
     readonly reorgDepth?: number;
 }
@@ -45,6 +49,9 @@ export abstract class BaseIndexer {
     protected readonly contractAddress: string | undefined;
     private readonly pollingIntervalMs: number;
     private readonly reorgDepth: number;
+    private readonly lockService: ILockService;
+    private readonly lockKey: string;
+    private readonly lockTtlSeconds: number;
     private isRunning = false;
     private pollingTimer: ReturnType<typeof setInterval> | null = null;
     private inFlight = false;
@@ -56,6 +63,10 @@ export abstract class BaseIndexer {
         this.contractAddress   = options.contractAddress;
         this.pollingIntervalMs = options.pollingIntervalMs ?? POLLING_INTERVAL_MS;
         this.reorgDepth        = options.reorgDepth ?? REORG_DEPTH;
+        this.lockService       = options.lockService;
+        const lockConfig       = indexerLockConfig(options.name);
+        this.lockKey           = lockConfig.key;
+        this.lockTtlSeconds    = lockConfig.ttlSeconds;
     }
 
     async start(): Promise<void> {
@@ -95,18 +106,18 @@ export abstract class BaseIndexer {
         if (this.inFlight) return;
         this.inFlight = true;
         try {
-            const head = await this.client.getBlockNumber();
-            const safeHead = head > BigInt(this.reorgDepth) ? head - BigInt(this.reorgDepth) : BigInt(0);
-
-            const stored = await this.checkpoints.getLastBlock(this.indexerName);
-            const fromBlock = stored > BigInt(0)
-                ? stored + BigInt(1)
-                : (safeHead > DEFAULT_LOOKBACK_BLOCKS ? safeHead - DEFAULT_LOOKBACK_BLOCKS : BigInt(0));
-
-            if (fromBlock > safeHead) return;
-
-            await this.processBatch(fromBlock, safeHead);
-            await this.checkpoints.setLastBlock(this.indexerName, safeHead, this.contractAddress);
+            // Distributed guard: under multi-instance worker scale, two
+            // processes ticking at the same time would race on the cursor.
+            // The lock's watchdog renews automatically while we work.
+            const outcome = await this.lockService.withLock({
+                key: this.lockKey,
+                ttlSeconds: this.lockTtlSeconds,
+                onContention: 'skip',
+                onAcquired: async () => this.advanceCursorOnce(),
+            });
+            if (!outcome.ran) {
+                logger.debug(`${this.indexerName}: lock taken by another instance, skipping tick`);
+            }
         } catch (err) {
             logger.error(`${this.indexerName}: batch failed`, {
                 error: err instanceof Error ? err.message : String(err),
@@ -114,6 +125,21 @@ export abstract class BaseIndexer {
         } finally {
             this.inFlight = false;
         }
+    }
+
+    private async advanceCursorOnce(): Promise<void> {
+        const head = await this.client.getBlockNumber();
+        const safeHead = head > BigInt(this.reorgDepth) ? head - BigInt(this.reorgDepth) : BigInt(0);
+
+        const stored = await this.checkpoints.getLastBlock(this.indexerName);
+        const fromBlock = stored > BigInt(0)
+            ? stored + BigInt(1)
+            : (safeHead > DEFAULT_LOOKBACK_BLOCKS ? safeHead - DEFAULT_LOOKBACK_BLOCKS : BigInt(0));
+
+        if (fromBlock > safeHead) return;
+
+        await this.processBatch(fromBlock, safeHead);
+        await this.checkpoints.setLastBlock(this.indexerName, safeHead, this.contractAddress);
     }
 
     /**

@@ -7,6 +7,7 @@ import { TOKENS } from '@chiliztv/domain/shared/tokens';
 import { INetworkConfig } from '@chiliztv/domain/shared/ports/INetworkConfig';
 import { IIndexerCheckpointRepository } from '@chiliztv/domain/blockchain-indexing/repositories/IIndexerCheckpointRepository';
 import { IPoolEventRepository } from '@chiliztv/domain/blockchain-indexing/repositories/IPoolEventRepository';
+import type { ILockService } from '@chiliztv/domain/shared/ports/ILockService';
 import { BaseIndexer } from './BaseIndexer';
 
 const BET_PLACED_VIA_CHZ = parseAbiItem(
@@ -91,6 +92,8 @@ export class ChilizSwapRouterIndexer extends BaseIndexer {
         private readonly poolEvents: IPoolEventRepository,
         @inject(TOKENS.INetworkConfig)
         private readonly network: INetworkConfig,
+        @inject(TOKENS.ILockService)
+        lockService: ILockService,
     ) {
         const routerAddress = network.swapRouterAddress as `0x${string}`;
         super({
@@ -101,6 +104,7 @@ export class ChilizSwapRouterIndexer extends BaseIndexer {
                 transport: http(network.rpcUrl),
             }),
             checkpoints,
+            lockService,
         });
         this.routerAddress = routerAddress;
     }

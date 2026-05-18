@@ -3,6 +3,9 @@ import jwt from 'jsonwebtoken';
 import { jwtConfig } from '../../../infrastructure/config/jwt.config';
 import { UnauthorizedError } from '@chiliztv/domain/shared/errors/UnauthorizedError';
 import { JwtPayload as CustomJwtPayload } from '../../../application/auth/types/JwtPayload';
+import { TOKENS } from '@chiliztv/domain/shared/tokens';
+import type { ICacheService } from '@chiliztv/domain/shared/ports/ICacheService';
+import { container } from '../../../infrastructure/config/di-container';
 
 /**
  * Extend Express Request to include user from JWT
@@ -15,13 +18,32 @@ declare global {
   }
 }
 
+const REVOCATION_KEY_PREFIX = 'auth:revoked:';
+
+function revocationKey(walletAddress: string): string {
+  return `${REVOCATION_KEY_PREFIX}${walletAddress.toLowerCase()}`;
+}
+
+async function isRevoked(walletAddress: string | undefined): Promise<boolean> {
+  if (!walletAddress) return false;
+  const cache = container.resolve<ICacheService>(TOKENS.ICacheService);
+  const result = await cache.get<true>(revocationKey(walletAddress));
+  return result.hit;
+}
+
 /**
- * Authentication middleware - verifies JWT token
+ * Authentication middleware - verifies JWT token + checks the revocation list.
+ *
+ * Revocation list pattern (cf. docs/plans/redis-integration.md §2.15): the
+ * cache is *not* a verify-result cache. A future `POST /admin/ban` endpoint
+ * (out of scope here) writes `auth:revoked:{wallet}` with TTL = remaining
+ * JWT lifetime. This middleware checks the key *after* the cryptographic
+ * verify, so a forged token still fails first.
  *
  * Usage:
  * router.get('/protected', authenticate, controller.method);
  */
-export function authenticate(req: Request, res: Response, next: NextFunction): void {
+export async function authenticate(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
     const authHeader = req.headers.authorization;
 
@@ -35,6 +57,10 @@ export function authenticate(req: Request, res: Response, next: NextFunction): v
       issuer: jwtConfig.issuer,
       algorithms: [jwtConfig.algorithm],
     }) as CustomJwtPayload;
+
+    if (await isRevoked(decoded.walletAddress)) {
+      throw new UnauthorizedError('Token revoked');
+    }
 
     // Attach user to request for downstream use
     req.user = decoded;
@@ -55,7 +81,7 @@ export function authenticate(req: Request, res: Response, next: NextFunction): v
  * Optional authentication middleware - doesn't fail if no token
  * Useful for endpoints that work both with and without auth
  */
-export function optionalAuthenticate(req: Request, res: Response, next: NextFunction): void {
+export async function optionalAuthenticate(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
     const authHeader = req.headers.authorization;
 
@@ -70,6 +96,12 @@ export function optionalAuthenticate(req: Request, res: Response, next: NextFunc
       issuer: jwtConfig.issuer,
       algorithms: [jwtConfig.algorithm],
     }) as CustomJwtPayload;
+
+    if (await isRevoked(decoded.walletAddress)) {
+      // Treat as not authenticated rather than throwing — caller said "optional".
+      next();
+      return;
+    }
 
     req.user = decoded;
 

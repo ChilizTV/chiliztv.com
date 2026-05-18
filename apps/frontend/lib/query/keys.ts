@@ -54,4 +54,9 @@ export const queryKeys = {
     count: (streamerId: string) => [...queryKeys.follows.all, 'count', streamerId] as const,
     following: (followerId: string) => [...queryKeys.follows.all, 'following', followerId] as const,
   },
+  pool: {
+    all: ['pool'] as const,
+    state: () => [...queryKeys.pool.all, 'state'] as const,
+    apy: () => [...queryKeys.pool.all, 'apy'] as const,
+  },
 } as const;

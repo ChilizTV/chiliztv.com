@@ -4,8 +4,13 @@ import { TOKENS } from '@chiliztv/domain/shared/tokens';
 import { IFootballApiService, RawMatch, ExtendedOdds } from '@chiliztv/domain/shared/ports/IFootballApiService';
 import { MatchFetchWindow } from '@chiliztv/domain/matches/value-objects/MatchFetchWindow';
 import type { IClock } from '@chiliztv/domain/shared/ports/IClock';
+import type { ICacheService } from '@chiliztv/domain/shared/ports/ICacheService';
 import { ApiFootballMatch, ApiFootballOdds } from '../types/ApiFootball.types';
 import { logger } from '../../logging/logger';
+
+const ODDS_CACHE_TTL_SECONDS = 60;
+const ODDS_NEGATIVE_TTL_SECONDS = 30;
+const ODDS_JITTER_PCT = 15;
 
 /**
  * FootballApiAdapterImpl
@@ -33,6 +38,7 @@ export class FootballApiAdapterImpl implements IFootballApiService {
 
     constructor(
         @inject(TOKENS.IClock) private readonly clock: IClock,
+        @inject(TOKENS.ICacheService) private readonly cache: ICacheService,
     ) {
         if (!this.API_KEY) {
             logger.warn('API_FOOTBALL_KEY not configured — FootballApiAdapterImpl will not function');
@@ -87,31 +93,29 @@ export class FootballApiAdapterImpl implements IFootballApiService {
         const result = new Map<number, ExtendedOdds>();
         if (!this.API_KEY || apiMatchIds.length === 0) return result;
 
+        // Cache-aside per match-id. Pre-match odds drift on the 1-2 min scale
+        // at the bookmaker side, so 60 s is well within tolerance and divides
+        // the paid API-Football call volume by the polling fan-out. A short
+        // negative TTL absorbs the "no odds posted" case (typical for matches
+        // outside the major sharps' coverage).
         try {
             logger.info('Fetching odds for matches', { count: apiMatchIds.length });
 
-            const promises = apiMatchIds.map(async (id) => {
-                try {
-                    const response = await axios.get(`${this.BASE_URL}/odds`, {
-                        headers: {
-                            'x-rapidapi-key': this.API_KEY!,
-                            'x-rapidapi-host': 'v3.football.api-sports.io',
-                        },
-                        params: { fixture: id, bookmaker: 1 },
+            const settled = await Promise.all(
+                apiMatchIds.map(async (id) => {
+                    const odds = await this.cache.getOrLoad<ExtendedOdds>({
+                        key: `apifootball:odds:${id}`,
+                        ttlSeconds: ODDS_CACHE_TTL_SECONDS,
+                        negativeTtlSeconds: ODDS_NEGATIVE_TTL_SECONDS,
+                        jitterPct: ODDS_JITTER_PCT,
+                        loader: () => this.fetchOddsForSingleMatch(id),
                     });
-                    const entries: ApiFootballOdds[] = response.data.response ?? [];
-                    if (entries.length > 0) return { id, data: entries[0] };
-                    return null;
-                } catch {
-                    return null;
-                }
-            });
+                    return { id, odds };
+                }),
+            );
 
-            const settled = await Promise.all(promises);
             for (const entry of settled) {
-                if (!entry) continue;
-                const odds = this.parseOdds(entry.data);
-                if (odds) result.set(entry.id, odds);
+                if (entry.odds) result.set(entry.id, entry.odds);
             }
 
             logger.info('Odds fetched', { requested: apiMatchIds.length, found: result.size });
@@ -122,6 +126,29 @@ export class FootballApiAdapterImpl implements IFootballApiService {
         }
 
         return result;
+    }
+
+    /**
+     * Single-fixture odds fetch — called by `fetchOddsForMatches` through the
+     * cache layer. Returns null when the bookmaker has no line posted yet so
+     * negative caching kicks in (avoids re-hitting the paid endpoint for
+     * matches that simply have no odds available).
+     */
+    private async fetchOddsForSingleMatch(id: number): Promise<ExtendedOdds | null> {
+        try {
+            const response = await axios.get(`${this.BASE_URL}/odds`, {
+                headers: {
+                    'x-rapidapi-key': this.API_KEY!,
+                    'x-rapidapi-host': 'v3.football.api-sports.io',
+                },
+                params: { fixture: id, bookmaker: 1 },
+            });
+            const entries: ApiFootballOdds[] = response.data.response ?? [];
+            if (entries.length === 0) return null;
+            return this.parseOdds(entries[0]!);
+        } catch {
+            return null;
+        }
     }
 
     // ─── Private helpers ──────────────────────────────────────────────────────

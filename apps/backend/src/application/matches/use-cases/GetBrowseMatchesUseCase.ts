@@ -5,12 +5,14 @@ import { IStreamRepository } from '@chiliztv/domain/streams/repositories/IStream
 import { MatchFetchWindow } from '@chiliztv/domain/matches/value-objects/MatchFetchWindow';
 import { Stream } from '@chiliztv/domain/streams/entities/Stream';
 import type { IClock } from '@chiliztv/domain/shared/ports/IClock';
+import type { ICacheService } from '@chiliztv/domain/shared/ports/ICacheService';
 import {
   BrowseMatchesResponseDto,
   BrowseLeagueDto,
   BrowseMatchDto,
   StreamPreviewDto,
 } from '@chiliztv/shared/dto/matches/BrowseMatchesDto';
+import { MatchCacheKeys, MatchCacheTtl } from '../MatchCacheKeys';
 
 @injectable()
 export class GetBrowseMatchesUseCase {
@@ -21,9 +23,21 @@ export class GetBrowseMatchesUseCase {
     private readonly streamRepository: IStreamRepository,
     @inject(TOKENS.IClock)
     private readonly clock: IClock,
+    @inject(TOKENS.ICacheService)
+    private readonly cache: ICacheService,
   ) {}
 
   async execute(): Promise<BrowseMatchesResponseDto> {
+    const cached = await this.cache.getOrLoad<BrowseMatchesResponseDto>({
+      key: MatchCacheKeys.listBrowse,
+      ttlSeconds: MatchCacheTtl.listSeconds,
+      jitterPct: MatchCacheTtl.jitterPct,
+      loader: () => this.build(),
+    });
+    return cached ?? { success: true, leagues: [] };
+  }
+
+  private async build(): Promise<BrowseMatchesResponseDto> {
     const now = this.clock.now();
     const matches = await this.matchRepository.findFromDate(
       MatchFetchWindow.displayFrom(now),

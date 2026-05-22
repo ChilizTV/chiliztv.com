@@ -70,7 +70,7 @@ jobs:
           SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF_STAGING }}
           SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD_STAGING }}
         run: |
-          DIFF=$(supabase db diff 2>&1 || true)
+          DIFF=$(supabase db diff --linked 2>&1 || true)
           if [ -n "$DIFF" ]; then
             echo "Unexpected diff after migration:"
             echo "$DIFF"
@@ -117,7 +117,7 @@ jobs:
           SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
           SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
         run: |
-          DIFF=$(supabase db diff 2>&1 || true)
+          DIFF=$(supabase db diff --linked 2>&1 || true)
           if [ -n "$DIFF" ]; then
             echo "Unexpected diff after migration:"
             echo "$DIFF"

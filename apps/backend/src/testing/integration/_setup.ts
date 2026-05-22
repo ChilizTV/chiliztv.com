@@ -107,6 +107,15 @@ function resolveSupabaseDbUrl(): string {
 }
 
 function runMigrations(dbUrl: string): void {
+    const wipe = spawnSync(
+        'psql',
+        [dbUrl, '-v', 'ON_ERROR_STOP=1', '-c',
+            'DROP SCHEMA IF EXISTS public CASCADE; CREATE SCHEMA public; GRANT ALL ON SCHEMA public TO postgres; GRANT ALL ON SCHEMA public TO public;'],
+        { stdio: 'inherit' },
+    );
+    if (wipe.status !== 0) {
+        throw new Error(`psql wipe failed (exit ${wipe.status})`);
+    }
     const r = spawnSync('pnpm', ['db:migrate'], {
         stdio: 'inherit',
         env: { ...process.env, DATABASE_URL: dbUrl },

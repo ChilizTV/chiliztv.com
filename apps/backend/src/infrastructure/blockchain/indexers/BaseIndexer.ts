@@ -6,11 +6,11 @@ import { logger } from '../../logging/logger';
 
 const POLLING_INTERVAL_MS = 6_000;
 /**
- * Re-org safety margin. Chiliz Spicy uses IBFT consensus with ~2s blocks and
- * fast finality, so 5 blocks is plenty. Configurable via env if a chain
- * upgrade ever changes the finality assumption.
+ * Re-org safety margin. CLAUDE.md §7.7 requires ≥6 on Chiliz so UPDATE-style
+ * indexer writes (settleMarket, recordClaim, cancelMarket) land on confirmed
+ * blocks and don't need an on-chain state re-verify per event.
  */
-const REORG_DEPTH = Number(process.env.INDEXER_REORG_DEPTH ?? 5);
+const REORG_DEPTH = Number(process.env.INDEXER_REORG_DEPTH ?? 6);
 /**
  * Default lookback when an indexer starts with no checkpoint row. Keeps the
  * RPC bill in check at boot — the BlockchainEventListener separately runs

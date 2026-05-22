@@ -2,13 +2,11 @@ import { Bet, BetUpdate } from '../entities/Bet';
 import { BetWithMatchInfo } from '../entities/BetWithMatchInfo';
 
 /**
- * Semantic filter for the my-bets feed. `claimable` / `refundable` are
- * derived (status + a null timestamp); the repo applies the full SQL
- * predicate so `findByUser` and `countByUser` always agree.
+ * Semantic filter for the my-bets feed. `claimable` = WON & no claim row,
+ * `refundable` = REFUNDED & no claim row.
  */
 export type BetFilter = 'all' | 'pending' | 'won' | 'lost' | 'refunded' | 'claimable' | 'refundable';
 
-/** Counts per `BetFilter` bucket. Drives the My Bets `TabPill` badges. */
 export interface BetCounts {
     readonly all: number;
     readonly pending: number;
@@ -25,70 +23,53 @@ export interface FindBetsByUserOptions {
     readonly filter?: BetFilter;
 }
 
+/**
+ * Parimutuel `bets` table — one row per `PositionTaken` event.
+ *
+ *  - INSERT idempotent par `(tx_hash, log_index)`
+ *  - `settleMarket` bulk-UPDATE: outcome == winning → WON, else → LOST
+ *  - `cancelMarket` bulk-UPDATE: tous les rows → REFUNDED
+ *  - `recordClaim` marque les rows du user comme claimed (un PositionClaimed
+ *    couvre tous les stakes du user sur l'outcome gagnant)
+ */
 export interface IBetRepository {
-    /**
-     * Idempotent insert. If a row already exists for `(tx_hash, log_index)`
-     * the call is a no-op and resolves with `false`.
-     */
     insertIfAbsent(bet: Bet): Promise<boolean>;
 
-    /**
-     * Bulk update of every bet on a market once the market resolves.
-     * Sets `status = 'WON'` for matching selections and `'LOST'` for the rest.
-     */
     settleMarket(
         contractAddress: string,
         marketId: bigint,
-        winningSelection: bigint,
-        resolvedAt: Date,
+        winningOutcome: bigint,
     ): Promise<{ won: number; lost: number }>;
 
-    /**
-     * Bulk update of every bet on a market once the market is cancelled.
-     * Sets `status = 'REFUNDED'` and stamps `refundedAt`.
-     */
     cancelMarket(
         contractAddress: string,
         marketId: bigint,
-        refundedAt: Date,
     ): Promise<number>;
 
-    /** Marks a single bet as paid (Payout event) or refunded (Refund event). */
+    /**
+     * Marks every stake the user holds on `(contractAddress, marketId)` as
+     * claimed and stamps the total payout. A single `PositionClaimed` event
+     * covers all the user's stakes on the winning outcome.
+     */
+    recordClaim(
+        contractAddress: string,
+        marketId: bigint,
+        userAddress: string,
+        payoutAmount: bigint,
+        claimedAt: Date,
+    ): Promise<number>;
+
+    /** Generic update for re-org compensation or admin corrections. */
     updateByCoordinates(
         contractAddress: string,
         marketId: bigint,
-        betIndex: bigint,
         userAddress: string,
         update: BetUpdate,
     ): Promise<boolean>;
 
-    /** Read access for the my-bets API endpoint. */
     findByUser(userAddress: string, options: FindBetsByUserOptions): Promise<Bet[]>;
-
-    /** Count for the given filter — does NOT apply limit/offset. */
     countByUser(userAddress: string, filter?: BetFilter): Promise<number>;
-
-    /** Counts per filter bucket — drives the My Bets `TabPill` badges. */
     countByUserStatuses(userAddress: string): Promise<BetCounts>;
-
-    /**
-     * Same filter as `findByUser` but joined with `matches` so the UI can
-     * render the row (team names, league, kickoff) without a second
-     * round-trip per bet. Bets whose contract is not yet linked to a match
-     * row keep `match = null` — we still return them so the user sees the
-     * raw on-chain bet rather than a silent gap.
-     */
     findByUserWithMatchInfo(userAddress: string, options: FindBetsByUserOptions): Promise<BetWithMatchInfo[]>;
-
-    /**
-     * Distinct `contract_address` values currently stored on `bets` rows.
-     * Drives the match-retention policy: any match whose
-     * `betting_contract_address` is in this set must NOT be deleted by the
-     * 24h cleanup, otherwise the bet→match join in `findByUserWithMatchInfo`
-     * collapses and the dashboard renders "Unknown match".
-     *
-     * Returned addresses are lowercased so set lookups stay case-insensitive
-     * (matches the existing case-insensitive filter inside this repo).
-     */
     listReferencedContractAddresses(): Promise<ReadonlySet<string>>;
 }

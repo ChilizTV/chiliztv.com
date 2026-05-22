@@ -14,11 +14,13 @@ export const TOKENS = {
   // Repositories — blockchain indexing
   IIndexerCheckpointRepository: Symbol.for('IIndexerCheckpointRepository'),
   IBetRepository:               Symbol.for('IBetRepository'),
-  IPoolEventRepository:         Symbol.for('IPoolEventRepository'),
   IMarketEventRepository:       Symbol.for('IMarketEventRepository'),
-  ILpPositionRepository:        Symbol.for('ILpPositionRepository'),
   IWiringAlertRepository:       Symbol.for('IWiringAlertRepository'),
-  IPoolApyRepository:           Symbol.for('IPoolApyRepository'),
+
+  // Repositories — leaderboard
+  ILeaderboardScoreRepository:  Symbol.for('ILeaderboardScoreRepository'),
+  ILeaderboardEpochRepository:  Symbol.for('ILeaderboardEpochRepository'),
+  ILeaderboardClaimRepository:  Symbol.for('ILeaderboardClaimRepository'),
 
   // Ports — external services
   IFootballApiService:     Symbol.for('IFootballApiService'),
@@ -49,8 +51,8 @@ export const TOKENS = {
   IRateLimitService:       Symbol.for('IRateLimitService'),
   RedisClient:             Symbol.for('RedisClient'),
 
-  // Ports — pool state on-chain reader
-  IPoolStateReader:        Symbol.for('IPoolStateReader'),
+  // Ports — parimutuel pool reader (multicall via backend)
+  IPariMatchPoolsReader:   Symbol.for('IPariMatchPoolsReader'),
 } as const;
 
 export type TokenKey = keyof typeof TOKENS;

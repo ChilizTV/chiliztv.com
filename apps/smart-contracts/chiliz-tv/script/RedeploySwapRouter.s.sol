@@ -1,170 +1,187 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-import {Script, console} from "forge-std/Script.sol";
-import {ChilizSwapRouter} from "../src/swap/ChilizSwapRouter.sol";
-import {BettingMatchFactory} from "../src/betting/BettingMatchFactory.sol";
+import {Script, console}     from "forge-std/Script.sol";
+import {ChilizSwapRouter}    from "../src/swap/ChilizSwapRouter.sol";
+import {PariMatchFactory}    from "../src/pari/PariMatchFactory.sol";
 import {StreamWalletFactory} from "../src/streamer/StreamWalletFactory.sol";
 
 /**
  * @title  RedeploySwapRouter
  * @notice Redeploys ONLY the ChilizSwapRouter and re-wires the existing
- *         BettingMatchFactory + StreamWalletFactory to point at the new one.
- *         Pool, factories, and existing matches are left in place.
+ *         PariMatchFactory + StreamWalletFactory to point at the new one.
  *
- * Why a separate script: the original `ChilizSwapRouter` was wired against
- * a Kayen "V1 with bool" master-router signature that doesn't exist on
- * Spicy testnet (selector 0x56ba8c44 absent from every deployed router's
- * bytecode). The interface + call have been switched to the standard
- * Uniswap-V2 4-arg `swapExactETHForTokens` (selector 0x7ff36ab5). This
- * script ships only that fix without touching liquidity, pool state, or
- * any deployed matches.
+ * ⚠ EXISTING-MATCH MIGRATION REQUIRED ⚠
  *
- * Pre-conditions:
- *   - `KAYEN_MASTER_ROUTER` and `KAYEN_ROUTER` env vars point at routers
- *     that respond to selector 0x7ff36ab5 (any V2 router does — they may
- *     even be the same address now that we've dropped the distinctness
- *     check).
- *   - The signing key (PRIVATE_KEY) is the OWNER of both
- *     `BETTING_FACTORY_ADDRESS` and `STREAM_FACTORY_ADDRESS` — those
- *     setters are `onlyOwner`-gated.
- *   - `LIQUIDITY_POOL_PROXY_ADDRESS`, `BETTING_FACTORY_ADDRESS`,
- *     `STREAM_FACTORY_ADDRESS` are populated from the existing deployment.
+ * Existing matches were granted SWAP_ROUTER_ROLE on the OLD router at the
+ * time they were deployed. The factory renounced its admin role on each
+ * match in that same transaction, so the factory CANNOT rotate the role for
+ * them. Each match's admin (typically the multisig you passed as `owner`)
+ * must run:
  *
- * Env (in addition to the standard deploy.sh vars):
- *   BETTING_FACTORY_ADDRESS      0x881ae75e…  (existing)
- *   STREAM_FACTORY_ADDRESS       0xc30b1493…  (existing)
- *   LIQUIDITY_POOL_PROXY_ADDRESS 0x75fa6ab5…  (existing)
+ *   cast send <MATCH>  'revokeRole(bytes32,address)'  $SWAP_ROUTER_ROLE  <OLD_ROUTER>
+ *   cast send <MATCH>  'grantRole(bytes32,address)'   $SWAP_ROUTER_ROLE  <NEW_ROUTER>
  *
- * Usage:
- *   source .env.chilizTestnet
- *   export BETTING_FACTORY_ADDRESS=0x881ae75ec8cb5280e5227453241dfe2c18ddee54
- *   export STREAM_FACTORY_ADDRESS=0xc30b1493ef233b8e0caeff7e2d59c38cbaa0dfb8
- *   export LIQUIDITY_POOL_PROXY_ADDRESS=0x75fa6ab55d9301229ba907239203acff85b83c3a
- *   forge script script/RedeploySwapRouter.s.sol \
- *     --rpc-url $RPC_URL --broadcast $FORGE_FLAGS --private-key $PRIVATE_KEY -vvvv
+ * Until they do, multi-asset bets (placeBetWithCHZ / placeBetWithToken) via
+ * the NEW router will revert with `AccessControlUnauthorizedAccount` on
+ * placeBetUSDCFor. Direct `placeBetUSDC` from the user keeps working.
+ *
+ * This script prints the exact cast commands for every existing match it
+ * can find via `factory.getAllMatches()` so operators can paste them into
+ * the multisig.
+ *
+ * Env:
+ *   PARI_FACTORY_ADDRESS   — existing PariMatchFactory
+ *   STREAM_FACTORY_ADDRESS — existing StreamWalletFactory
+ *   USDC_ADDRESS, WCHZ_ADDRESS, SAFE_ADDRESS
+ *   KAYEN_MASTER_ROUTER, KAYEN_ROUTER
+ *   PLATFORM_FEE_BPS (optional, default 500)
+ *   TRANSFER_OWNERSHIP (optional, default false) — when true, transfers
+ *                       Ownable.owner of the new router to SAFE_ADDRESS.
  */
 contract RedeploySwapRouter is Script {
 
-    // Existing deployment we don't touch.
-    BettingMatchFactory public bettingFactory;
+    PariMatchFactory    public pariFactory;
     StreamWalletFactory public streamFactory;
-    address public liquidityPool;
+    ChilizSwapRouter    public newRouter;
+    address             public oldRouter;
+
     address public usdcAddress;
     address public wchz;
     address public treasury;
     address public masterRouter;
     address public tokenRouter;
     uint16  public platformFeeBps;
+    bool    public transferOwnership;
 
-    // The new SwapRouter we're about to deploy.
-    ChilizSwapRouter public newRouter;
+    /// @dev SWAP_ROUTER_ROLE = keccak256("SWAP_ROUTER_ROLE"). Hardcoded so
+    ///      the migration banner is readable without an extra read.
+    bytes32 public constant SWAP_ROUTER_ROLE =
+        keccak256("SWAP_ROUTER_ROLE");
 
     function run() external {
         _loadConfig();
 
+        // Capture the router currently registered on the stream factory so we
+        // can print accurate migration commands per match.
+        oldRouter = streamFactory.swapRouter();
+
         vm.startBroadcast();
 
-        _printHeader();
-        _deployNewRouter();
-        _wireNewRouterToExistingDependencies();
-        _swapPointersOnFactories();
-        _printSummary();
-
-        vm.stopBroadcast();
-    }
-
-    function _loadConfig() internal {
-        bettingFactory = BettingMatchFactory(vm.envAddress("BETTING_FACTORY_ADDRESS"));
-        streamFactory  = StreamWalletFactory(vm.envAddress("STREAM_FACTORY_ADDRESS"));
-        liquidityPool  = vm.envAddress("LIQUIDITY_POOL_PROXY_ADDRESS");
-        usdcAddress    = vm.envAddress("USDC_ADDRESS");
-        wchz           = vm.envAddress("WCHZ_ADDRESS");
-        treasury       = vm.envAddress("SAFE_ADDRESS");
-        masterRouter   = vm.envAddress("KAYEN_MASTER_ROUTER");
-        tokenRouter    = vm.envAddress("KAYEN_ROUTER");
-        platformFeeBps = uint16(_envUintOr("PLATFORM_FEE_BPS", 500));
-
-        require(address(bettingFactory) != address(0), "BETTING_FACTORY_ADDRESS required");
-        require(address(streamFactory)  != address(0), "STREAM_FACTORY_ADDRESS required");
-        require(liquidityPool != address(0),           "LIQUIDITY_POOL_PROXY_ADDRESS required");
-    }
-
-    function _printHeader() internal view {
-        console.log("=========================================");
-        console.log("REDEPLOY ChilizSwapRouter ONLY");
-        console.log("=========================================");
-        console.log("Existing BettingMatchFactory:", address(bettingFactory));
-        console.log("Existing StreamWalletFactory:", address(streamFactory));
-        console.log("Existing LiquidityPool:      ", liquidityPool);
-        console.log("USDC:                        ", usdcAddress);
-        console.log("WCHZ:                        ", wchz);
-        console.log("masterRouter (Kayen):        ", masterRouter);
-        console.log("tokenRouter  (Kayen):        ", tokenRouter);
-        console.log("Treasury:                    ", treasury);
-        console.log("platformFeeBps:              ", platformFeeBps);
-        console.log("");
-    }
-
-    function _deployNewRouter() internal {
+        // 1. Deploy new router.
         newRouter = new ChilizSwapRouter(
-            masterRouter,
-            tokenRouter,
-            usdcAddress,
-            wchz,
-            treasury,
-            platformFeeBps
+            masterRouter, tokenRouter, usdcAddress, wchz, treasury, platformFeeBps
         );
-        console.log("Deployed new ChilizSwapRouter at:", address(newRouter));
-    }
+        console.log("New ChilizSwapRouter:", address(newRouter));
 
-    function _wireNewRouterToExistingDependencies() internal {
-        // The new router needs to know the pool + the BettingMatchFactory
-        // upfront — these setters have no cross-checks. The
-        // StreamWalletFactory setter is deferred to the last step because
-        // the contract guards against config-order mistakes (it requires
-        // streamFactory.swapRouter() == address(this) BEFORE letting the
-        // router register the factory).
-        newRouter.setLiquidityPool(liquidityPool);
-        newRouter.setMatchFactory(address(bettingFactory));
-        console.log("  newRouter.setLiquidityPool       ->", liquidityPool);
-        console.log("  newRouter.setMatchFactory        ->", address(bettingFactory));
-    }
+        // 2. Factory learns about the new router. Future matches will get
+        //    SWAP_ROUTER_ROLE = newRouter atomically at creation.
+        pariFactory.setWiring(usdcAddress, treasury, address(newRouter));
+        console.log("  pariFactory.setWiring -> usdc/treasury/newRouter");
 
-    function _swapPointersOnFactories() internal {
-        // Future-created matches inherit `swapRouter` via factory.setWiring,
-        // so updating the factory's pointer is enough — no per-match work.
-        bettingFactory.setWiring(liquidityPool, usdcAddress, address(newRouter));
-        console.log("  bettingFactory.setWiring         -> pool/usdc/newRouter");
+        // 3. New router registers the factory (validates match addresses).
+        newRouter.setMatchFactory(address(pariFactory));
+        console.log("  newRouter.setMatchFactory ->", address(pariFactory));
 
-        // Update the stream factory's pointer FIRST so the next step's
-        // cross-check (RouterNotConfiguredOnFactory) passes.
+        // 4. Stream factory back-pointer first; the router enforces it.
         streamFactory.setSwapRouter(address(newRouter));
-        console.log("  streamFactory.setSwapRouter      ->", address(newRouter));
+        console.log("  streamFactory.setSwapRouter ->", address(newRouter));
 
-        // Now safe to register the stream factory on the router.
+        // 5. Router registers stream factory.
         newRouter.setStreamWalletFactory(address(streamFactory));
         console.log("  newRouter.setStreamWalletFactory ->", address(streamFactory));
+
+        // 6. Optional: hand ownership to Safe.
+        if (transferOwnership) {
+            newRouter.transferOwnership(treasury);
+            console.log("  newRouter.transferOwnership ->", treasury);
+        }
+
+        vm.stopBroadcast();
+
+        _printExistingMatchMigration();
     }
 
-    function _printSummary() internal view {
-        console.log("");
-        console.log("=========================================");
-        console.log("REDEPLOY COMPLETE");
-        console.log("=========================================");
-        console.log("New ChilizSwapRouter:", address(newRouter));
-        console.log("");
-        console.log("Update apps/frontend/.env:");
-        console.log("  NEXT_PUBLIC_CHILIZ_SWAP_ROUTER_ADDRESS=", address(newRouter));
-        console.log("");
-        console.log("Sanity test (cast):");
-        console.log("  cast send <newRouter> 'depositLiquidityWithCHZ(uint256,uint256,address)' \\");
-        console.log("    <amountOutMin> <deadline> <receiver> \\");
-        console.log("    --value 1ether --legacy --gas-price 3500000000001 \\");
-        console.log("    --rpc-url $RPC_URL --private-key $PRIVATE_KEY");
+    // ──────────────────────────────────────────────────────────────────────
+
+    function _loadConfig() internal {
+        pariFactory       = PariMatchFactory(vm.envAddress("PARI_FACTORY_ADDRESS"));
+        streamFactory     = StreamWalletFactory(vm.envAddress("STREAM_FACTORY_ADDRESS"));
+        usdcAddress       = vm.envAddress("USDC_ADDRESS");
+        wchz              = vm.envAddress("WCHZ_ADDRESS");
+        treasury          = vm.envAddress("SAFE_ADDRESS");
+        masterRouter      = vm.envAddress("KAYEN_MASTER_ROUTER");
+        tokenRouter       = vm.envAddress("KAYEN_ROUTER");
+        platformFeeBps    = uint16(_envUintOr("PLATFORM_FEE_BPS", 500));
+        transferOwnership = _envBoolOr("TRANSFER_OWNERSHIP", false);
+
+        // Distinctness is preferred but not required. On Chiliz Spicy testnet
+        // only one usable Kayen-fork router is deployed at present, so the
+        // operator pins both env vars to the same address. We warn instead of
+        // hard-failing; mainnet operators should double-check.
+        if (masterRouter == tokenRouter) {
+            console.log("WARNING: KAYEN_MASTER_ROUTER == KAYEN_ROUTER");
+            console.log("  Documented as distinct contracts; only same on Spicy testnet by design.");
+            console.log("  Verify before broadcasting to mainnet.");
+        }
     }
 
-    function _envUintOr(string memory key, uint256 defaultValue) internal view returns (uint256) {
-        try vm.envUint(key) returns (uint256 v) { return v; } catch { return defaultValue; }
+    /// @notice Print the cast commands the multisig must run per existing
+    ///         match to rotate SWAP_ROUTER_ROLE. The router redeploy itself
+    ///         CANNOT do this — the factory renounced admin per match at
+    ///         creation time.
+    function _printExistingMatchMigration() internal view {
+        address[] memory matches = pariFactory.getAllMatches();
+
+        console.log("");
+        console.log("==============================================");
+        console.log("EXISTING-MATCH MIGRATION REQUIRED");
+        console.log("==============================================");
+        console.log("Old router :", oldRouter);
+        console.log("New router :", address(newRouter));
+        console.log("Match count:", matches.length);
+        console.log("SWAP_ROUTER_ROLE:");
+        console.logBytes32(SWAP_ROUTER_ROLE);
+        console.log("");
+
+        if (matches.length == 0) {
+            console.log("No existing matches to migrate.");
+            console.log("==============================================");
+            return;
+        }
+
+        console.log("For EACH match below, the match admin (multisig that received");
+        console.log("DEFAULT_ADMIN_ROLE at createXMatch time) must run two txs:");
+        console.log("");
+
+        for (uint256 i = 0; i < matches.length; i++) {
+            console.log("Match", i, ":", matches[i]);
+            console.log("  revoke OLD router:");
+            console.log("    cast send", matches[i], "\\");
+            console.log("      'revokeRole(bytes32,address)' \\");
+            console.log("      ");
+            console.logBytes32(SWAP_ROUTER_ROLE);
+            console.log("     ", oldRouter);
+            console.log("  grant NEW router:");
+            console.log("    cast send", matches[i], "\\");
+            console.log("      'grantRole(bytes32,address)' \\");
+            console.log("      ");
+            console.logBytes32(SWAP_ROUTER_ROLE);
+            console.log("     ", address(newRouter));
+            console.log("");
+        }
+
+        console.log("Until each match completes both txs, placeBetWith{CHZ,Token}");
+        console.log("via the NEW router will revert with AccessControlUnauthorizedAccount.");
+        console.log("Direct placeBetUSDC from end-users keeps working.");
+        console.log("==============================================");
+    }
+
+    function _envUintOr(string memory key, uint256 def) internal view returns (uint256) {
+        try vm.envUint(key) returns (uint256 v) { return v; } catch { return def; }
+    }
+
+    function _envBoolOr(string memory key, bool def) internal view returns (bool) {
+        try vm.envBool(key) returns (bool v) { return v; } catch { return def; }
     }
 }

@@ -4,14 +4,25 @@ import { useMemo } from "react";
 import { useQueries } from "@tanstack/react-query";
 import { marketsApi, type MarketPoolsDto } from "@/lib/api/endpoints";
 import { queryKeys } from "@/lib/query/keys";
-import { pickWinnerSnapshot, type FlatMatch } from "../domain";
+import { type FlatMatch } from "../domain";
 
 /** Pre-bucketed match list + per-contract pool totals for the league headers. */
 export interface MatchesByPoolStatus {
     readonly pooled: FlatMatch[];
     readonly empty: FlatMatch[];
-    /** Live total-pool snapshot keyed by lowercased contract address. */
+    /** Live total-pool snapshot keyed by lowercased contract address. Sums
+     *  every market on the contract (not just WINNER) so a match with bets
+     *  on GOALS_TOTAL / BOTH_SCORE / etc. surfaces to the league header. */
     readonly poolByContract: ReadonlyMap<string, bigint>;
+}
+
+function sumAcrossMarkets(data: MarketPoolsDto | undefined): bigint {
+    if (!data?.markets) return BigInt(0);
+    let total = BigInt(0);
+    for (const m of data.markets) {
+        total += BigInt(m.totalPool);
+    }
+    return total;
 }
 
 const STALE_TIME_MS = 30_000;
@@ -53,14 +64,13 @@ export function useMatchesByPoolStatus(matches: FlatMatch[]): MatchesByPoolStatu
                 return;
             }
             const q = queries[i];
-            const winner = pickWinnerSnapshot(q?.data);
-            if (winner) {
-                const total = BigInt(winner.totalPool);
-                poolByContract.set(m.contractAddress.toLowerCase(), total);
-                if (total > BigInt(0)) {
-                    pooled.push(m);
-                    return;
-                }
+            const totalAcrossMarkets = sumAcrossMarkets(q?.data);
+            if (q?.data) {
+                poolByContract.set(m.contractAddress.toLowerCase(), totalAcrossMarkets);
+            }
+            if (totalAcrossMarkets > BigInt(0)) {
+                pooled.push(m);
+                return;
             }
             if (q?.isLoading) {
                 pooled.push(m);

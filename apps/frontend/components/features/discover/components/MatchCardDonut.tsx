@@ -11,11 +11,10 @@ import {
     type FlatMatch,
 } from "../domain";
 import { useMatchPoolDistribution } from "../hooks";
-import { Donut, DONUT_SEGMENT_COLORS } from "./Donut";
+import { Donut, donutColor } from "./Donut";
 import { TeamLogo } from "./TeamLogo";
 
 const ACCENT = "#E8001D";
-const OUTCOME_LABELS = ["Home", "Draw", "Away"] as const;
 
 /**
  * Donut match card — radial 1X2 distribution + per-row legend + footer
@@ -155,12 +154,12 @@ export function MatchCardDonut({
                                 <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
                                     <span
                                         className="font-display text-[22px] font-extrabold leading-none tracking-[-0.02em]"
-                                        style={{ color: DONUT_SEGMENT_COLORS[distribution.favIdx] }}
+                                        style={{ color: donutColor(distribution.favIdx, distribution.shares.length) }}
                                     >
                                         {Math.round(distribution.shares[distribution.favIdx] * 100)}%
                                     </span>
                                     <span className="font-mono-ctv mt-1 text-[8px] uppercase tracking-[0.18em] text-white/55">
-                                        {OUTCOME_LABELS[distribution.favIdx]}
+                                        {distribution.outcomeLabels[distribution.favIdx] ?? "—"}
                                     </span>
                                 </div>
                             </>
@@ -169,22 +168,45 @@ export function MatchCardDonut({
                 </div>
 
                 <div className="flex min-w-0 flex-1 flex-col gap-1.5">
-                    {[0, 1, 2].map((i) => {
+                    {/* Market badge — clarifies which market the donut is showing
+                        when the WINNER pool is empty and we fall back to e.g.
+                        GOALS_TOTAL. Italic when we're rendering the cosmetic
+                        sharp-book reference instead of live shares. */}
+                    <div className="font-mono-ctv flex items-center gap-1.5 text-[9px] uppercase tracking-[0.16em] text-white/45">
+                        <span
+                            aria-hidden
+                            className="block h-px w-2.5"
+                            style={{ background: ACCENT }}
+                        />
+                        <span className={distribution.source === "oddsRef" ? "italic" : undefined}>
+                            {distribution.marketLabel}
+                        </span>
+                    </div>
+                    {(distribution.outcomeLabels.length > 0
+                        ? distribution.outcomeLabels
+                        : ["Home", "Draw", "Away"]
+                    ).map((rawLabel, i, arr) => {
                         const isFav = distribution.favIdx === i;
                         const pct = distribution.shares
-                            ? Math.round(distribution.shares[i] * 100)
+                            ? Math.round((distribution.shares[i] ?? 0) * 100)
                             : null;
                         const label =
-                            i === 0 ? `${homeShort} win` : i === 1 ? "Draw" : `${awayShort} win`;
+                            distribution.marketKey === "winner" || distribution.marketKey === "halftime"
+                                ? i === 0
+                                    ? `${homeShort} win`
+                                    : i === arr.length - 1
+                                        ? `${awayShort} win`
+                                        : rawLabel
+                                : rawLabel;
                         return (
-                            <div key={i} className="flex items-center gap-2">
+                            <div key={`${distribution.marketKey}-${i}`} className="flex items-center gap-2">
                                 <span
                                     aria-hidden
                                     style={{
                                         width: 8,
                                         height: 8,
                                         borderRadius: 2,
-                                        background: DONUT_SEGMENT_COLORS[i],
+                                        background: donutColor(i, arr.length),
                                         opacity: isFav ? 1 : 0.45,
                                     }}
                                 />

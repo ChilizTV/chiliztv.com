@@ -1,11 +1,9 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useBalance } from 'wagmi';
 import { useFanTokens } from '@/hooks/useFanTokens';
-import { useLpPosition } from '@/hooks/useLpPosition';
-import { PoolDepositDialog } from '@/components/features/discover/components/PoolDepositDialog';
 import { BackgroundFX } from '@/components/features/discover/sections/BackgroundFX';
 import { useDashboardUser } from './hooks/useDashboardUser';
 import { useIsStreamer } from './hooks/useIsStreamer';
@@ -15,7 +13,6 @@ import { usePortfolioCalculation } from './hooks/usePortfolioCalculation';
 import { DashboardHero } from './sections/DashboardHero';
 import { QuickActionsStrip, type QuickActionKey } from './sections/QuickActionsStrip';
 import { StatsHero } from './sections/StatsHero';
-import { LpPositionPanel } from './sections/LpPositionPanel';
 import { MyBetsSection } from './sections/MyBetsSection';
 import { MainTabs } from './sections/MainTabs';
 import { StreamerStudioSection } from './sections/streamer-studio';
@@ -34,7 +31,6 @@ export function Dashboard() {
     const router = useRouter();
     const user = useDashboardUser();
     const { isStreamer } = useIsStreamer({ wallet: user.wallet });
-    const lp = useLpPosition(user.wallet);
     const stats = useDashboardStats({ wallet: user.wallet });
     const activity = useDashboardActivity({ wallet: user.wallet });
 
@@ -57,19 +53,18 @@ export function Dashboard() {
         [realFanTokens],
     );
 
-    const [poolDialogOpen, setPoolDialogOpen] = useState(false);
-
     const handleQuickAction = (key: QuickActionKey) => {
         switch (key) {
             case 'discover':
                 router.push('/browse');
                 return;
-            case 'pool':
-            case 'swap':
-                scrollToId('pool');
-                return;
             case 'bets':
                 scrollToId('bets');
+                return;
+            case 'swap':
+                // Swap CHZ/fan-token → USDC happens inside MarketBetDialog;
+                // bounce the user to a match where they can use it.
+                router.push('/browse');
                 return;
             case 'withdraw':
                 scrollToId('streamer-revenue');
@@ -78,15 +73,13 @@ export function Dashboard() {
     };
 
     const goToDiscover = () => router.push('/browse');
-    const openPool = () => setPoolDialogOpen(true);
 
     return (
         <main className="relative bg-[#0A0A0A]">
             <BackgroundFX />
             <DashboardHero user={user} />
             <QuickActionsStrip isStreamer={isStreamer} onAction={handleQuickAction} />
-            <StatsHero stats={stats.data} onPlaceFirstBet={goToDiscover} onJoinPool={openPool} />
-            <LpPositionPanel lp={lp} onDeposit={openPool} onWithdraw={openPool} />
+            <StatsHero stats={stats.data} onPlaceFirstBet={goToDiscover} />
             <MyBetsSection
                 wallet={user.wallet}
                 onPlaceFirstBet={goToDiscover}
@@ -97,15 +90,12 @@ export function Dashboard() {
                 activity={activity.rows}
                 userId={user.userId}
                 wallet={user.wallet}
-                onSwap={openPool}
                 onPlaceFirstBet={goToDiscover}
                 onBrowseStreamers={goToDiscover}
             />
             <div id="streamer-revenue">
                 <StreamerStudioSection wallet={user.wallet} />
             </div>
-
-            <PoolDepositDialog open={poolDialogOpen} onClose={() => setPoolDialogOpen(false)} />
         </main>
     );
 }

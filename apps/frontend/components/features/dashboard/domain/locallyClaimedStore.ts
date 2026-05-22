@@ -1,16 +1,14 @@
 /**
- * Locally-claimed bets store.
+ * Locally-claimed positions store.
  *
- * The on-chain `Payout` / `Refund` events take a few seconds to a minute
- * to propagate from RPC → backend indexer → API. In that window the bet's
- * `claimedAt` / `refundedAt` are still null on the server, so a naive UI
- * would re-show the "Claim" button — and a second click reverts on-chain.
+ * The on-chain `PositionClaimed` / `StakeRefunded` events take a few seconds
+ * to a minute to propagate RPC → indexer → API. In that window the bet row's
+ * `claimedAt` is still null on the server, so a naive UI would re-show the
+ * "Claim" button — and a second click reverts on-chain.
  *
- * This module owns a tiny pub/sub store keyed by `(contract, marketId,
- * betIndex)` that records bets the user just claimed/refunded. Consumers
- * overlay it on top of the server data so the row flips immediately and
- * stays flipped across refetches. Entries auto-expire after 24h to bound
- * `localStorage` growth and let server data become authoritative.
+ * Pari-mutuel: `claim(marketId)` settles every stake the user holds on the
+ * winning outcome of that market in one tx, so the natural key is
+ * `(contract, marketId)`. Entries auto-expire after 24h.
  */
 
 const STORAGE_KEY = 'ctv:claimed-bets:v1';
@@ -27,13 +25,12 @@ export interface LocalClaimEntry {
     readonly txHash?: string;
 }
 
-/** Build a stable key for a bet position on a specific contract. */
+/** Build a stable key for a (contract, market) claim slot. */
 export function localClaimKey(input: {
     contractAddress: string;
     marketId: string | number | bigint;
-    betIndex: string | number | bigint;
 }): string {
-    return `${input.contractAddress.toLowerCase()}:${String(input.marketId)}:${String(input.betIndex)}`;
+    return `${input.contractAddress.toLowerCase()}:${String(input.marketId)}`;
 }
 
 type Listener = () => void;

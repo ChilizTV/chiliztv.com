@@ -30,15 +30,24 @@ import {StreamWalletFactory} from "../src/streamer/StreamWalletFactory.sol";
  * 
  * USAGE:
  * =====
- * Set environment variables:
- *   export PRIVATE_KEY=0x...           # Deployer private key
- *   export RPC_URL=https://...         # Network RPC endpoint
- *   export SAFE_ADDRESS=0x...          # Safe multisig (treasury)
- *   export KAYEN_ROUTER=0x...          # Kayen DEX MasterRouterV2
- *   export USDC_ADDRESS=0x...          # USDC token
+ * Required env:
+ *   SAFE_ADDRESS         Safe multisig (treasury) — receives platform fees
+ *   KAYEN_ROUTER         Kayen DEX router
+ *   USDC_ADDRESS         USDC token
+ *
+ * Optional env:
+ *   PLATFORM_FEE_BPS     Default 500 (= 5%)
+ *   TRANSFER_OWNERSHIP   "true" → factory.transferOwnership(SAFE_ADDRESS) at
+ *                         the end of the run. Default false. Note: ownership
+ *                         transfer is normally deferred until AFTER
+ *                         setSwapRouter() wiring, so the default leaves it to
+ *                         the operator. Setting to "true" here transfers
+ *                         immediately, which is fine if you'll handle the
+ *                         setSwapRouter wiring via the Safe.
  *
  * Run:
- *   forge script script/DeployStreaming.s.sol --rpc-url $RPC_URL --broadcast --verify
+ *   forge script script/DeployStreaming.s.sol \
+ *     --rpc-url $RPC_URL --broadcast --private-key $PRIVATE_KEY --verify
  */
 contract DeployStreaming is Script {
     
@@ -50,8 +59,10 @@ contract DeployStreaming is Script {
 
     address public deployer;
     address public treasury;    // Safe multisig
-    address public kayenRouter; // Kayen DEX MasterRouterV2
+    address public kayenRouter; // Kayen DEX router
     address public usdc;        // USDC token
+    uint16  public platformFeeBps;
+    bool    public transferOwnership;
 
 
     // ============================================================================
@@ -61,7 +72,7 @@ contract DeployStreaming is Script {
     function run() external {
         deployer = msg.sender;
 
-        // All three are required up-front so the factory ships in a usable state.
+        // All four are required up-front so the factory ships in a usable state.
         // The previous version passed address(0) for kayenRouter/usdc and relied on
         // post-deploy setter txs that were easy to forget — every subscribe/donate
         // call would revert until they ran. Fail fast here instead.
@@ -73,13 +84,32 @@ contract DeployStreaming is Script {
         require(kayenRouter != address(0), "KAYEN_ROUTER required");
         require(usdc        != address(0), "USDC_ADDRESS required");
 
+        try vm.envUint("PLATFORM_FEE_BPS") returns (uint256 v) {
+            platformFeeBps = uint16(v);
+        } catch {
+            platformFeeBps = 500;
+        }
+        try vm.envBool("TRANSFER_OWNERSHIP") returns (bool v) {
+            transferOwnership = v;
+        } catch {
+            transferOwnership = false;
+        }
+
         vm.startBroadcast();
 
         _printHeader();
         _deployFactory();
-        // NOTE: Ownership transfer skipped during deployment.
-        // After all post-deployment setup (setSwapRouter), transfer ownership to
-        // the Safe manually:  factory.transferOwnership(SAFE_ADDRESS)
+        // Ownership transfer is opt-in. The expected production flow is:
+        //   1) deploy here (deployer keeps owner)
+        //   2) wire the router (factory.setSwapRouter)
+        //   3) transfer to Safe
+        // ...but if you're handling step 2 via the Safe anyway, you can flip
+        // TRANSFER_OWNERSHIP=true and skip the manual transfer.
+        if (transferOwnership) {
+            factory.transferOwnership(treasury);
+            console.log("factory.transferOwnership ->", treasury);
+            console.log("");
+        }
         _printSummary();
 
         vm.stopBroadcast();
@@ -101,7 +131,7 @@ contract DeployStreaming is Script {
         factory = new StreamWalletFactory(
             deployer,
             treasury,
-            500,         // 5% platform fee
+            platformFeeBps,
             kayenRouter, // Kayen DEX router (required)
             usdc         // USDC token       (required)
         );
@@ -111,7 +141,7 @@ contract DeployStreaming is Script {
         console.log("  Treasury:", treasury);
         console.log("  Kayen Router:", kayenRouter);
         console.log("  USDC:", usdc);
-        console.log("  Platform Fee: 5%");
+        console.log("  Platform Fee bps:", platformFeeBps);
         console.log("");
     }
     
@@ -143,7 +173,11 @@ contract DeployStreaming is Script {
         console.log("------------------");
         console.log("StreamWalletFactory:", address(factory));
         console.log("  (Implementation deployed internally)");
-        console.log("  Owner:", deployer, "(transfer to Safe after setSwapRouter wiring)");
+        if (transferOwnership) {
+            console.log("  Owner:", treasury, "(transferred at deploy)");
+        } else {
+            console.log("  Owner:", deployer, "(transfer to Safe after setSwapRouter wiring)");
+        }
         console.log("");
         
         console.log("CREATE A STREAM WALLET:");

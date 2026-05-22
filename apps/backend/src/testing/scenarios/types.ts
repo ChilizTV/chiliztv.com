@@ -1,8 +1,7 @@
 import type { IMatchRepository } from '@chiliztv/domain/matches/repositories/IMatchRepository';
 import type { IBlockchainService } from '@chiliztv/domain/shared/ports/IBlockchainService';
 import type { IClock } from '@chiliztv/domain/shared/ports/IClock';
-import { Match, type MatchOdds } from '@chiliztv/domain/matches/entities/Match';
-import type { ExtendedOdds } from '@chiliztv/domain/shared/ports/IFootballApiService';
+import { Match } from '@chiliztv/domain/matches/entities/Match';
 
 export interface ScenarioContext {
     readonly matchRepo: IMatchRepository;
@@ -29,9 +28,9 @@ export interface MatchScenario {
 /**
  * Persists the match, then (when `deployContracts` is true) mirrors the prod
  * `SyncMatchesUseCase.createNewMatch` flow:
- *   1. deploy a FootballMatch proxy via the factory
- *   2. setup the 3 default markets (WINNER + GOALS_TOTAL + BOTH_SCORE) and
- *      open them — `setupMarkets` adds + opens in one helper
+ *   1. deploy a FootballPariMatch proxy via the factory
+ *   2. seed the 3 default markets (WINNER + GOALS_TOTAL + BOTH_SCORE) and
+ *      open them — no odds parameter in parimutuel
  *   3. update the persisted match with the `bettingContractAddress`
  *
  * Returns the count of contracts deployed (0 or 1).
@@ -48,9 +47,7 @@ export async function persistAndMaybeDeploy(
         const matchName = `${json.homeTeam.name} vs ${json.awayTeam.name}`;
         const adminAddress = ctx.blockchain.getAdminAddress();
         const { contractAddress } = await ctx.blockchain.deployBettingContract(matchName, adminAddress);
-
-        const extendedOdds = matchOddsToExtended(json.odds);
-        await ctx.blockchain.setupMarkets(contractAddress, extendedOdds);
+        await ctx.blockchain.setupDefaultMarkets(contractAddress);
 
         const withContract = Match.reconstitute({
             id: json.id,
@@ -82,23 +79,4 @@ export async function persistAndMaybeDeploy(
         warnings.push(`deploy/setup failed for match ${json.id}: ${err instanceof Error ? err.message : String(err)}`);
         return 0;
     }
-}
-
-/**
- * Maps the entity-side `MatchOdds` shape onto the flat `ExtendedOdds` shape
- * that `setupMarkets` expects. Falls back to sharp-book-ish defaults when a
- * fixture omits a market — `setupMarkets` would otherwise use the contract's
- * own implicit defaults.
- */
-function matchOddsToExtended(odds: MatchOdds | undefined): ExtendedOdds {
-    const winner = odds?.winner ?? { homeWin: 1.85, draw: 3.5, awayWin: 4.2 };
-    return {
-        homeWin: winner.homeWin,
-        draw: winner.draw,
-        awayWin: winner.awayWin,
-        over25: odds?.goalsTotal?.over ?? 1.85,
-        under25: odds?.goalsTotal?.under ?? 1.95,
-        bttsYes: odds?.bothScore?.yes ?? 1.70,
-        bttsNo: odds?.bothScore?.no ?? 2.10,
-    };
 }

@@ -10,9 +10,8 @@ import {
 import {
   BackgroundFX,
   DiscoverTicker,
+  HeroStrip,
   MatchExplorer,
-  PoolPanel,
-  SmokeBackdrop,
   TopStreamersSection,
 } from "./sections";
 
@@ -52,9 +51,7 @@ export function DiscoverPage() {
       <BackgroundFX />
       {/* Sticky live ticker — sits at the very top, follows on scroll. */}
       <DiscoverTicker matches={allMatches} now={now} />
-      <SmokeBackdrop>
-        <PoolPanel />
-      </SmokeBackdrop>
+      <HeroStrip />
       <MatchExplorer
         matches={allMatches}
         leagues={leagues}

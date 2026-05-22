@@ -54,9 +54,14 @@ export const queryKeys = {
     count: (streamerId: string) => [...queryKeys.follows.all, 'count', streamerId] as const,
     following: (followerId: string) => [...queryKeys.follows.all, 'following', followerId] as const,
   },
-  pool: {
-    all: ['pool'] as const,
-    state: () => [...queryKeys.pool.all, 'state'] as const,
-    apy: () => [...queryKeys.pool.all, 'apy'] as const,
+  markets: {
+    all: ['markets'] as const,
+    pools: (contractAddress: string) => [...queryKeys.markets.all, 'pools', contractAddress.toLowerCase()] as const,
+  },
+  leaderboard: {
+    all: ['leaderboard'] as const,
+    top: (limit: number) => [...queryKeys.leaderboard.all, 'top', limit] as const,
+    me: (wallet: string) => [...queryKeys.leaderboard.all, 'me', wallet.toLowerCase()] as const,
+    claimable: (wallet: string) => [...queryKeys.leaderboard.me(wallet), 'claimable'] as const,
   },
 } as const;

@@ -21,8 +21,10 @@ export * from './dto/stream-wallet/DonationResponseDto';
 export * from './dto/stream-wallet/SubscriptionResponseDto';
 export * from './dto/stream-wallet/StreamerStatsResponseDto';
 export * from './dto/waitlist/WaitlistEntryResponseDto';
-export * from './dto/pool/PoolStateDto';
-export * from './dto/pool/PoolApyDto';
+export * from './dto/markets/MarketPoolsDto';
+export * from './dto/leaderboard/LeaderboardTopDto';
+export * from './dto/leaderboard/MyLeaderboardPositionDto';
+export * from './dto/leaderboard/ClaimableEpochDto';
 
 // Zod schemas
 export * from './schemas/common.schemas';

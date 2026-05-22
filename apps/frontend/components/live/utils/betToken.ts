@@ -1,11 +1,9 @@
 import { formatUnits } from "viem";
 
 /**
- * The BettingMatch pools are denominated in the same token as the LiquidityPool
- * collateral (USDC). The on-chain decimals must be passed in by the caller —
- * Spicy test USDC is 18-decimal while mainnet (Circle) USDC is 6-decimal, so a
- * hardcoded constant breaks one of the two environments. Read the live value
- * via `usePoolDecimals().assetDecimals` and forward it here.
+ * PariMatch pools are hardcoded to USDC (6 dp). `usePoolDecimals()` is the
+ * canonical source — kept as a hook so call-sites that already destructure
+ * `assetDecimals` don't need rewriting.
  */
 export const BET_TOKEN_SYMBOL = "USDC";
 

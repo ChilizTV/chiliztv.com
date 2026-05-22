@@ -2,11 +2,10 @@
 pragma solidity ^0.8.24;
 
 import {Script, console} from "forge-std/Script.sol";
-import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {ERC1967Proxy}    from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 
-// Betting system
-import {BettingMatchFactory} from "../src/betting/BettingMatchFactory.sol";
+// Pari-mutuel betting system
+import {PariMatchFactory}  from "../src/pari/PariMatchFactory.sol";
 
 // Streaming system
 import {StreamWalletFactory} from "../src/streamer/StreamWalletFactory.sol";
@@ -14,68 +13,51 @@ import {StreamWalletFactory} from "../src/streamer/StreamWalletFactory.sol";
 // Unified swap router
 import {ChilizSwapRouter} from "../src/swap/ChilizSwapRouter.sol";
 
-// Liquidity pool (USDC custody)
-import {LiquidityPool} from "../src/liquidity/LiquidityPool.sol";
+// Leaderboard
+import {LeaderboardRewards} from "../src/leaderboard/LeaderboardRewards.sol";
 
 /**
  * @title DeployAll
  * @author ChilizTV
- * @notice One-shot deployment for the entire ChilizTV platform:
+ * @notice One-shot deployment for the ChilizTV pari-mutuel platform:
  *
- *           1. BettingMatchFactory  — Ownable factory that deploys ERC1967 UUPS
- *                                     proxies of FootballMatch / BasketballMatch.
- *           2. StreamWalletFactory  — Ownable factory that deploys ERC1967 UUPS
- *                                     proxies of StreamWallet.
- *           3. ChilizSwapRouter     — Stateless swap adapter (Ownable).
- *           4. LiquidityPool        — UUPS ERC-4626 vault behind ERC1967Proxy.
+ *           1. PariMatchFactory     — Deploys FootballPariMatch / BasketballPariMatch proxies.
+ *           2. StreamWalletFactory  — Deploys StreamWallet proxies.
+ *           3. ChilizSwapRouter     — Token-to-USDC swap adapter for both modules.
+ *           4. LeaderboardRewards   — UUPS proxy. Receives 1% of every pool
+ *                                      and distributes via epoch + merkle.
  *
  *         Plus all the wiring required to leave the system bet-ready in a single run:
- *           - swapRouter.setStreamWalletFactory(streamFactory)
- *           - swapRouter.setMatchFactory(bettingFactory)
+ *           - factory.setWiring(usdc, feeRecipient, swapRouter)
+ *           - factory.setLeaderboardWiring(leaderboard, 100)
+ *           - swapRouter.setMatchFactory(factory)
  *           - streamFactory.setSwapRouter(swapRouter)
- *           - bettingFactory.setWiring(pool, usdc, swapRouter)
- *           - pool.grantRole(MATCH_AUTHORIZER_ROLE, bettingFactory)
+ *           - swapRouter.setStreamWalletFactory(streamFactory)
+ *           - leaderboard.setMatchFactory(factory)
  *
- *         After this script succeeds, the only steps left are (a) creating
- *         the first match via `bettingFactory.createFootballMatch(...)` and
- *         (b) seeding LP capital via `pool.deposit(usdc, lp)`.
- *
- * ROLE SEPARATION (critical):
- * ===========================
- * The pool enforces a hard split between admin and treasury:
- *
- *   - ADMIN_ADDRESS: holds DEFAULT_ADMIN_ROLE + PAUSER_ROLE on the pool.
- *                    Authorizes matches, sets caps/fees, can pause, can upgrade.
- *                    Cannot touch `accruedTreasury` or rotate the treasury.
- *   - SAFE_ADDRESS:  stored in `treasury` state. Sole address that can rotate
- *                    the treasury or pull `withdrawTreasury`. No operational
- *                    powers on the pool.
- *
- * These MUST be different addresses. The script reverts if you pass the same.
- *
- * The deployer briefly holds DEFAULT_ADMIN_ROLE on the pool during the wiring
- * phase (so it can grant MATCH_AUTHORIZER_ROLE to the factory), then transfers
- * admin to ADMIN_ADDRESS and renounces its own grants before exiting.
+ *         NOTE: LiquidityPool (ERC-4626 vault) has been intentionally removed.
+ *         The pari-mutuel system uses match contracts as direct escrows — no
+ *         external LP pool is required or deployed.
  *
  * ENVIRONMENT VARIABLES (required):
- * =================================
- *   PRIVATE_KEY      - Deployer private key
- *   RPC_URL          - Network RPC endpoint
- *   SAFE_ADDRESS     - Treasury Safe multisig (treasury on pool + streaming/router)
- *   ADMIN_ADDRESS    - Admin key for the LiquidityPool. MUST be != SAFE_ADDRESS.
- *   KAYEN_ROUTER     - Kayen DEX MasterRouterV2 address
- *   WCHZ_ADDRESS     - Wrapped CHZ (WCHZ) token address
- *   USDC_ADDRESS     - USDC token address
+ * ==================================
+ *   PRIVATE_KEY          — Deployer private key
+ *   SAFE_ADDRESS         — Multi-sig: receives streaming platform fees AND
+ *                           serves as feeRecipient for match protocol fees.
+ *   KAYEN_MASTER_ROUTER  — Kayen MasterRouterV2 (CHZ → USDC path).
+ *   KAYEN_ROUTER         — Kayen standard router (ERC20 → USDC path).
+ *   WCHZ_ADDRESS         — Wrapped CHZ address.
+ *   USDC_ADDRESS         — USDC token address.
  *
- * OPTIONAL (sensible defaults):
- * =============================
- *   PLATFORM_FEE_BPS      - Streaming/router platform fee (default 500 = 5%)
- *   PROTOCOL_FEE_BPS      - Pool stake skim at bet placement (default 200 = 2%)
- *   MAX_MARKET_LIAB_BPS   - Per-market liability cap (default 500  = 5%  of NAV)
- *   MAX_MATCH_LIAB_BPS    - Per-match liability cap  (default 2000 = 20% of NAV)
- *   DEPOSIT_COOLDOWN_SECS - LP withdrawal cooldown (default 3600 = 1h)
- *   MAX_BET_AMOUNT        - Pool-wide per-bet cap, USDC atomic units
- *                           (default 10_000e6 = 10k USDC; 0 disables the cap)
+ * OPTIONAL:
+ * =========
+ *   PLATFORM_FEE_BPS    — Streaming platform fee bps (default 500 = 5%)
+ *   TRANSFER_OWNERSHIP  — When "true", transfers Ownable.owner of
+ *                          PariMatchFactory, StreamWalletFactory, and
+ *                          ChilizSwapRouter to SAFE_ADDRESS at the end of
+ *                          the run. Defaults to false so testnet iteration
+ *                          keeps the deployer EOA as owner. Set to "true"
+ *                          for production deployments.
  *
  * USAGE:
  * ======
@@ -83,34 +65,19 @@ import {LiquidityPool} from "../src/liquidity/LiquidityPool.sol";
  */
 contract DeployAll is Script {
 
-    // ── Deployed contracts ────────────────────────────────────────────────────
-    BettingMatchFactory public bettingFactory;
+    PariMatchFactory    public pariFactory;
     StreamWalletFactory public streamFactory;
     ChilizSwapRouter    public swapRouter;
-    LiquidityPool       public pool;
-    address             public poolImplementation;
+    LeaderboardRewards  public leaderboard;
 
-    // ── Config (loaded from env) ──────────────────────────────────────────────
     address public deployer;
-    address public treasury;     // SAFE_ADDRESS — pool treasury + streaming/router fee sink
-    address public adminAddress; // ADMIN_ADDRESS — pool DEFAULT_ADMIN_ROLE + PAUSER_ROLE
-    /// @notice Kayen Master Router V2 — handles native CHZ swaps with the
-    ///         Kayen-specific `swapExactETHForTokens(uint256,address[],bool,address,uint256)`
-    ///         signature. Used as `_masterRouter` in `ChilizSwapRouter`.
+    address public treasury;   // SAFE_ADDRESS — fee recipient for both modules
     address public kayenMasterRouter;
-    /// @notice Kayen Router (Uniswap V2 fork) — handles ERC20→ERC20 swaps with
-    ///         the standard `swapExactTokensForTokens(uint256,uint256,address[],address,uint256)`
-    ///         signature. Used as `_tokenRouter` in `ChilizSwapRouter`.
     address public kayenRouter;
     address public wchz;
     address public usdcAddress;
-
-    uint16  public platformFeeBps;       // streaming + router
-    uint16  public protocolFeeBps;       // pool
-    uint16  public maxMarketLiabBps;     // pool
-    uint16  public maxMatchLiabBps;      // pool
-    uint48  public depositCooldownSecs;  // pool
-    uint256 public maxBetAmount;         // pool
+    uint16  public platformFeeBps;
+    bool    public transferOwnership;
 
     function run() external {
         deployer = msg.sender;
@@ -119,13 +86,14 @@ contract DeployAll is Script {
         vm.startBroadcast();
 
         _printHeader();
-        _deployBettingFactory();
+        _deployPariFactory();
         _deployStreamingFactory();
         _deploySwapRouter();
-        _deployLiquidityPool();
+        _deployLeaderboard();
         _wirePlatform();
-        _configurePool();
-        _handOffPoolAdmin();
+        if (transferOwnership) {
+            _transferOwnershipToSafe();
+        }
         _printSummary();
         _printPostDeploymentSteps();
 
@@ -137,129 +105,83 @@ contract DeployAll is Script {
     // ══════════════════════════════════════════════════════════════════════════
 
     function _loadConfig() internal {
-        treasury           = vm.envAddress("SAFE_ADDRESS");
-        adminAddress       = vm.envAddress("ADMIN_ADDRESS");
-        kayenMasterRouter  = vm.envAddress("KAYEN_MASTER_ROUTER");
-        kayenRouter        = vm.envAddress("KAYEN_ROUTER");
-        wchz               = vm.envAddress("WCHZ_ADDRESS");
-        usdcAddress        = vm.envAddress("USDC_ADDRESS");
+        treasury          = vm.envAddress("SAFE_ADDRESS");
+        kayenMasterRouter = vm.envAddress("KAYEN_MASTER_ROUTER");
+        kayenRouter       = vm.envAddress("KAYEN_ROUTER");
+        wchz              = vm.envAddress("WCHZ_ADDRESS");
+        usdcAddress       = vm.envAddress("USDC_ADDRESS");
 
-        require(treasury           != address(0),  "SAFE_ADDRESS required");
-        require(adminAddress       != address(0),  "ADMIN_ADDRESS required");
-        require(kayenMasterRouter  != address(0),  "KAYEN_MASTER_ROUTER required");
-        require(kayenRouter        != address(0),  "KAYEN_ROUTER required");
-        require(wchz               != address(0),  "WCHZ_ADDRESS required");
-        require(usdcAddress        != address(0),  "USDC_ADDRESS required");
-        require(
-            adminAddress != treasury,
-            "ADMIN_ADDRESS and SAFE_ADDRESS MUST be distinct (pool role separation)"
-        );
-        // NOTE: previously required `masterRouter != tokenRouter` because the
-        // Kayen V1 master router exposed a different `swapExactETHForTokens`
-        // signature. On Spicy testnet none of the deployed routers ship that
-        // V1 variant — they're all standard Uniswap-V2 forks (selector
-        // 0x7ff36ab5). Both fields can therefore safely point at the same
-        // V2 router.
+        require(treasury          != address(0), "SAFE_ADDRESS required");
+        require(kayenMasterRouter != address(0), "KAYEN_MASTER_ROUTER required");
+        require(kayenRouter       != address(0), "KAYEN_ROUTER required");
+        require(wchz              != address(0), "WCHZ_ADDRESS required");
+        require(usdcAddress       != address(0), "USDC_ADDRESS required");
 
-        platformFeeBps      = uint16(_envUintOr("PLATFORM_FEE_BPS",        500));
-        // PROTOCOL_FEE_BPS is deprecated — bettors pay no placement fee in
-        // the current model. Default to 0; the slot exists in storage for
-        // upgrade-safe layout but is no longer read on the bet path.
-        protocolFeeBps      = uint16(_envUintOr("PROTOCOL_FEE_BPS",          0));
-        maxMarketLiabBps    = uint16(_envUintOr("MAX_MARKET_LIAB_BPS",     500));
-        maxMatchLiabBps     = uint16(_envUintOr("MAX_MATCH_LIAB_BPS",     2000));
-        depositCooldownSecs = uint48(_envUintOr("DEPOSIT_COOLDOWN_SECS", 3_600));
-        maxBetAmount        =        _envUintOr("MAX_BET_AMOUNT",     10_000e6);
+        platformFeeBps    = uint16(_envUintOr("PLATFORM_FEE_BPS", 500));
+        transferOwnership = _envBoolOr("TRANSFER_OWNERSHIP", false);
     }
 
     // ══════════════════════════════════════════════════════════════════════════
     // DEPLOYMENT
     // ══════════════════════════════════════════════════════════════════════════
 
-    function _deployBettingFactory() internal {
-        console.log("[1/4] BETTING MATCH FACTORY");
-        console.log("===========================");
-        bettingFactory = new BettingMatchFactory();
-        console.log("BettingMatchFactory:", address(bettingFactory));
-        console.log("  Owner:", deployer);
-        console.log("  Football impl:   ", bettingFactory.footballImplementation());
-        console.log("  Basketball impl: ", bettingFactory.basketballImplementation());
+    function _deployPariFactory() internal {
+        console.log("[1/3] PARI MATCH FACTORY");
+        console.log("========================");
+        pariFactory = new PariMatchFactory();
+        console.log("PariMatchFactory    :", address(pariFactory));
+        console.log("  Football impl     :", pariFactory.footballImplementation());
+        console.log("  Basketball impl   :", pariFactory.basketballImplementation());
         console.log("");
     }
 
     function _deployStreamingFactory() internal {
-        console.log("[2/4] STREAM WALLET FACTORY");
+        console.log("[2/3] STREAM WALLET FACTORY");
         console.log("===========================");
         streamFactory = new StreamWalletFactory(
             deployer, treasury, platformFeeBps, kayenRouter, usdcAddress
         );
-        console.log("StreamWalletFactory:", address(streamFactory));
-        console.log("  Owner:    ", deployer);
-        console.log("  Treasury: ", treasury);
-        console.log("  Fee bps:  ", platformFeeBps);
-        console.log("  StreamWallet impl:", streamFactory.streamWalletImplementation());
+        console.log("StreamWalletFactory :", address(streamFactory));
+        console.log("  Treasury          :", treasury);
+        console.log("  Fee bps           :", platformFeeBps);
+        console.log("  StreamWallet impl :", streamFactory.streamWalletImplementation());
         console.log("");
     }
 
     function _deploySwapRouter() internal {
-        console.log("[3/4] CHILIZ SWAP ROUTER (unified)");
-        console.log("===================================");
-        // _masterRouter handles native CHZ paths (Kayen-specific signature
-        // with `bool receiveUnwrappedToken`); _tokenRouter handles ERC20→ERC20
-        // (standard Uniswap V2 signature). On Kayen these are different
-        // contracts with disjoint selectors — passing the same address for
-        // both would silently break one of the two paths.
+        console.log("[3/4] CHILIZ SWAP ROUTER");
+        console.log("========================");
         swapRouter = new ChilizSwapRouter(
             kayenMasterRouter, kayenRouter, usdcAddress, wchz, treasury, platformFeeBps
         );
-        console.log("ChilizSwapRouter:", address(swapRouter));
-        console.log("  Owner:    ", deployer);
-        console.log("  USDC:     ", usdcAddress);
-        console.log("  Master rt:", kayenMasterRouter);
-        console.log("  Token rt: ", kayenRouter);
-        console.log("  WCHZ:     ", wchz);
-        console.log("  Treasury: ", treasury);
-        console.log("  Fee bps:  ", platformFeeBps);
+        console.log("ChilizSwapRouter    :", address(swapRouter));
+        console.log("  Treasury          :", treasury);
+        console.log("  Master router     :", kayenMasterRouter);
+        console.log("  Token router      :", kayenRouter);
+        console.log("  WCHZ              :", wchz);
+        console.log("  Platform fee bps  :", platformFeeBps);
         console.log("");
     }
 
-    /// @dev Deploys the LiquidityPool ERC1967 proxy with the **deployer** as
-    ///      temporary DEFAULT_ADMIN_ROLE / PAUSER_ROLE. We need that during
-    ///      the wiring phase so the deployer can `grantRole(MATCH_AUTHORIZER_ROLE,
-    ///      bettingFactory)` without a separate ADMIN_ADDRESS transaction.
-    ///      Admin is handed off to ADMIN_ADDRESS at the end of the script and
-    ///      the deployer renounces its grants before exiting.
-    function _deployLiquidityPool() internal {
-        console.log("[4/4] LIQUIDITY POOL (UUPS / ERC-4626)");
-        console.log("=======================================");
-
-        LiquidityPool impl = new LiquidityPool();
-        poolImplementation = address(impl);
-        console.log("  Implementation:", poolImplementation);
-
+    /// @dev Deploys the LeaderboardRewards behind an ERC1967 proxy. The
+    ///      deployer is the admin; the treasury (Safe) is granted ORACLE_ROLE
+    ///      so it can post merkle roots from the off-chain ranker. Production
+    ///      should grant ORACLE_ROLE to a dedicated oracle EOA after deploy.
+    function _deployLeaderboard() internal {
+        console.log("[4/4] LEADERBOARD REWARDS");
+        console.log("=========================");
+        LeaderboardRewards impl = new LeaderboardRewards();
         bytes memory initData = abi.encodeWithSelector(
-            LiquidityPool.initialize.selector,
-            IERC20(usdcAddress),
-            deployer,           // temp admin (handed off below)
-            treasury,           // permanent treasury (Safe)
-            protocolFeeBps,
-            maxMarketLiabBps,
-            maxMatchLiabBps,
-            depositCooldownSecs
+            LeaderboardRewards.initialize.selector,
+            usdcAddress,
+            deployer,   // admin (can transfer later)
+            treasury    // oracle placeholder — rotate to dedicated key post-deploy
         );
-
-        ERC1967Proxy proxy = new ERC1967Proxy(address(impl), initData);
-        pool = LiquidityPool(address(proxy));
-
-        console.log("  Proxy:                     ", address(pool));
-        console.log("  Treasury (state, Safe):    ", treasury);
-        console.log("  Temp admin (deployer):     ", deployer);
-        console.log("  Protocol fee bps (DEPREC): ", protocolFeeBps);
-        console.log("  Max market liab bps:       ", maxMarketLiabBps);
-        console.log("  Max match  liab bps:       ", maxMatchLiabBps);
-        console.log("  Withdraw cooldown (s):     ", depositCooldownSecs);
-        console.log("  Treasury share bps (loss): ", uint256(pool.treasuryShareBps()));
-        console.log("  LP exit fee bps (gain):    ", uint256(pool.lpWithdrawalFeeBps()));
+        leaderboard = LeaderboardRewards(address(new ERC1967Proxy(address(impl), initData)));
+        console.log("LeaderboardRewards   :", address(leaderboard));
+        console.log("  Implementation     :", address(impl));
+        console.log("  Admin              :", deployer);
+        console.log("  Oracle (initial)   :", treasury);
         console.log("");
     }
 
@@ -267,124 +189,85 @@ contract DeployAll is Script {
     // WIRING
     // ══════════════════════════════════════════════════════════════════════════
 
-    /// @dev All the cross-contract wiring needed for a usable platform.
-    ///      Order matters:
-    ///        1. swap router learns about the streaming factory and the betting
-    ///           factory (router refuses bets/streams until both pointers exist).
-    ///        2. streaming factory learns about the swap router (the router
-    ///           verifies factory→router back-pointer when it accepts the
-    ///           registration; this is the H-1 atomic-wiring fix from the audit).
-    ///        3. betting factory is told about pool/usdc/swap-router so every
-    ///           future `createFootballMatch` can wire the new proxy in one tx.
-    ///        4. pool grants MATCH_AUTHORIZER_ROLE to the betting factory so
-    ///           `createFootballMatch` can call `pool.authorizeMatch(proxy)`
-    ///           atomically inside the create flow.
     function _wirePlatform() internal {
         console.log("WIRING PLATFORM");
         console.log("===============");
 
-        // Step 1+2: streaming factory <-> swap router
+        // 1. Factory learns about USDC + fee recipient + swap router.
+        pariFactory.setWiring(usdcAddress, treasury, address(swapRouter));
+        console.log("  pariFactory.setWiring            -> usdc/feeRecipient/router");
+
+        // 2. Factory learns about the leaderboard (1% of pool by default).
+        //    The factory stamps this on every match it creates from now on.
+        pariFactory.setLeaderboardWiring(address(leaderboard), 100);
+        console.log("  pariFactory.setLeaderboardWiring -> leaderboard / 100 bps");
+
+        // 3. Swap router learns about the pari match factory (validates match addrs).
+        swapRouter.setMatchFactory(address(pariFactory));
+        console.log("  swapRouter.setMatchFactory       ->", address(pariFactory));
+
+        // 4. Streaming factory learns about the swap router first (back-pointer check).
         streamFactory.setSwapRouter(address(swapRouter));
         console.log("  streamFactory.setSwapRouter      ->", address(swapRouter));
 
+        // 5. Swap router learns about the streaming factory.
         swapRouter.setStreamWalletFactory(address(streamFactory));
         console.log("  swapRouter.setStreamWalletFactory ->", address(streamFactory));
 
-        // Step 3: swap router learns about betting factory.
-        // CRITICAL: without this every `placeBetWith*` reverts with
-        // `BettingMatchFactoryNotSet`. The router will not silently forward
-        // USDC to a match address it can't validate as factory-deployed.
-        swapRouter.setMatchFactory(address(bettingFactory));
-        console.log("  swapRouter.setMatchFactory       ->", address(bettingFactory));
-
-        // Step 4: betting factory learns about pool / usdc / swap router. After
-        // this call, every `createFootballMatch` / `createBasketballMatch` will:
-        //   - deploy + initialize the match proxy
-        //   - call `pool.authorizeMatch(proxy)`
-        //   - call `match.setLiquidityPool(pool)`
-        //   - call `match.setUSDCToken(usdc)`
-        //   - grant SWAP_ROUTER_ROLE on match to swapRouter
-        //   - grant RESOLVER_ROLE on match to oracle
-        //   - hand over admin roles to the match owner
-        // ...all in a single transaction (H-4 atomic match wiring).
-        bettingFactory.setWiring(address(pool), usdcAddress, address(swapRouter));
-        console.log("  bettingFactory.setWiring         -> pool/usdc/router");
-
-        // Step 5: pool grants MATCH_AUTHORIZER_ROLE to the betting factory.
-        // Without this the factory's in-create `pool.authorizeMatch(proxy)` call
-        // reverts and the whole create flow fails. Deployer holds DEFAULT_ADMIN_ROLE
-        // on the pool right now (we handed it the temp admin during init), so
-        // this grant succeeds from the broadcast key.
-        pool.grantRole(pool.MATCH_AUTHORIZER_ROLE(), address(bettingFactory));
-        console.log("  pool.grantRole(MATCH_AUTHORIZER_ROLE, bettingFactory) [granted]");
-
-        // Step 6: swap router learns about the pool so depositLiquidityWith*
-        // entrypoints can mint LP shares in a single tx. setLiquidityPool also
-        // verifies the pool's asset() matches the router's USDC immutable.
-        swapRouter.setLiquidityPool(address(pool));
-        console.log("  swapRouter.setLiquidityPool      ->", address(pool));
+        // 6. Leaderboard learns about the factory so it can authorize
+        //    `recordWin` callers via `factory.isMatch(msg.sender)`.
+        leaderboard.setMatchFactory(address(pariFactory));
+        console.log("  leaderboard.setMatchFactory      ->", address(pariFactory));
 
         console.log("");
     }
 
     // ══════════════════════════════════════════════════════════════════════════
-    // POOL POST-INIT CONFIG
+    // OWNERSHIP TRANSFER (env-flag gated)
     // ══════════════════════════════════════════════════════════════════════════
 
-    function _configurePool() internal {
-        console.log("CONFIGURING POOL");
-        console.log("================");
-        if (maxBetAmount != 0) {
-            // setMaxBetAmount is DEFAULT_ADMIN_ROLE-gated. Deployer still holds
-            // it at this point (the handoff happens after this call), so it works.
-            pool.setMaxBetAmount(maxBetAmount);
-            console.log("  pool.setMaxBetAmount ->", maxBetAmount);
-        } else {
-            console.log("  maxBetAmount disabled (0)");
-        }
+    /// @dev Transfers admin authority on all top-level contracts to the
+    ///      Safe. Skipped by default — set TRANSFER_OWNERSHIP=true to enable.
+    ///
+    ///      - PariMatchFactory / StreamWalletFactory / ChilizSwapRouter use
+    ///        Ownable → simple transferOwnership.
+    ///      - LeaderboardRewards uses AccessControl (UUPS, no Ownable) →
+    ///        grant the Safe DEFAULT_ADMIN_ROLE + ADMIN_ROLE + PAUSER_ROLE,
+    ///        then renounce the deployer's roles. Note ORACLE_ROLE stays on
+    ///        the initial holder (treasury by default) — admin can rotate
+    ///        it post-deploy via grant/revoke.
+    function _transferOwnershipToSafe() internal {
+        console.log("TRANSFERRING OWNERSHIP TO SAFE");
+        console.log("==============================");
+        console.log("Target Safe:", treasury);
+
+        pariFactory.transferOwnership(treasury);
+        console.log("  pariFactory.transferOwnership    -> Safe");
+
+        streamFactory.transferOwnership(treasury);
+        console.log("  streamFactory.transferOwnership  -> Safe");
+
+        swapRouter.transferOwnership(treasury);
+        console.log("  swapRouter.transferOwnership     -> Safe");
+
+        // LeaderboardRewards uses AccessControl. Grant the Safe every role
+        // the deployer currently holds, then renounce from the deployer.
+        bytes32 DEFAULT_ADMIN = 0x00;
+        leaderboard.grantRole(DEFAULT_ADMIN, treasury);
+        leaderboard.grantRole(leaderboard.ADMIN_ROLE(),  treasury);
+        leaderboard.grantRole(leaderboard.PAUSER_ROLE(), treasury);
+        leaderboard.renounceRole(leaderboard.PAUSER_ROLE(), deployer);
+        leaderboard.renounceRole(leaderboard.ADMIN_ROLE(),  deployer);
+        leaderboard.renounceRole(DEFAULT_ADMIN,             deployer);
+        console.log("  leaderboard.{grant+renounce}     -> Safe holds admin");
+
         console.log("");
-    }
-
-    // ══════════════════════════════════════════════════════════════════════════
-    // ADMIN HANDOFF
-    // ══════════════════════════════════════════════════════════════════════════
-
-    /// @dev Grant the real admin (ADMIN_ADDRESS) DEFAULT_ADMIN_ROLE + PAUSER_ROLE
-    ///      on the pool, then renounce both from the deployer. After this
-    ///      function returns, the deployer has zero permissions on the pool.
-    ///      The factory ownerships (BettingMatchFactory / StreamWalletFactory)
-    ///      and the swap router are intentionally left with the deployer — those
-    ///      are operational keys (createFootballMatch etc. are routine), and
-    ///      requiring a Safe multisig per match would break the UX. Transfer
-    ///      them to the Safe later if and when you decide to.
-    function _handOffPoolAdmin() internal {
-        console.log("HANDING OFF POOL ADMIN");
-        console.log("======================");
-
-        bytes32 adminRole  = pool.DEFAULT_ADMIN_ROLE();
-        bytes32 pauserRole = pool.PAUSER_ROLE();
-
-        // Grant the real admin first — order matters: if we renounced before
-        // granting, no one would hold DEFAULT_ADMIN_ROLE and the pool would be
-        // permanently uncontrollable.
-        pool.grantRole(adminRole,  adminAddress);
-        pool.grantRole(pauserRole, adminAddress);
-        console.log("  granted DEFAULT_ADMIN_ROLE + PAUSER_ROLE to:", adminAddress);
-
-        // Renounce the deployer's grants ONLY when the deployer differs from
-        // the intended admin. If they happen to be the same EOA (a common
-        // misconfiguration on testnet), grant + renounce nets to zero and
-        // the pool ends up with no admin forever. Skip the renounce in that
-        // case so the live admin keeps control.
-        if (deployer != adminAddress) {
-            pool.renounceRole(pauserRole, deployer);
-            pool.renounceRole(adminRole,  deployer);
-            console.log("  renounced deployer's pool roles");
-        } else {
-            console.log("  deployer == adminAddress -- skipped renounce to avoid losing the role");
-        }
-        console.log("  renounced deployer's pool roles");
-
+        console.log("WARNING: the deployer EOA can no longer call:");
+        console.log("  pariFactory.{createFootballMatch, createBasketballMatch, setWiring, setImplementation}");
+        console.log("  streamFactory.{setSwapRouter, setImplementation, upgradeWallet, ...}");
+        console.log("  swapRouter.{setMatchFactory, setStreamWalletFactory, setTreasury, setPlatformFeeBps}");
+        console.log("  leaderboard.{setMatchFactory, grantRole, revokeRole, upgradeToAndCall, pause}");
+        console.log("Any such call must now come from the Safe.");
         console.log("");
     }
 
@@ -393,73 +276,73 @@ contract DeployAll is Script {
     // ══════════════════════════════════════════════════════════════════════════
 
     function _printHeader() internal view {
-        console.log("=========================================");
-        console.log("CHILIZ-TV COMPLETE PLATFORM DEPLOYMENT");
-        console.log("=========================================");
-        console.log("Deployer:        ", deployer);
-        console.log("Treasury (Safe): ", treasury);
-        console.log("Admin (pool):    ", adminAddress);
-        console.log("Kayen Router:    ", kayenRouter);
-        console.log("WCHZ:            ", wchz);
-        console.log("USDC:            ", usdcAddress);
-        console.log("Platform fee bps:", platformFeeBps);
-        console.log("Protocol fee bps:", protocolFeeBps);
-        console.log("=========================================");
+        console.log("==============================================");
+        console.log("CHILIZTV PARI-MUTUEL PLATFORM - DEPLOY ALL");
+        console.log("==============================================");
+        console.log("Deployer         :", deployer);
+        console.log("Treasury (Safe)  :", treasury);
+        console.log("USDC             :", usdcAddress);
+        console.log("WCHZ             :", wchz);
+        console.log("Platform fee bps :", platformFeeBps);
+        console.log("==============================================");
         console.log("");
     }
 
     function _printSummary() internal view {
-        console.log("=========================================");
+        console.log("==============================================");
         console.log("DEPLOYMENT COMPLETE");
-        console.log("=========================================");
-        console.log("BettingMatchFactory: ", address(bettingFactory));
-        console.log("StreamWalletFactory: ", address(streamFactory));
-        console.log("ChilizSwapRouter:    ", address(swapRouter));
-        console.log("LiquidityPool (impl):", poolImplementation);
-        console.log("LiquidityPool (proxy):", address(pool));
-        console.log("=========================================");
+        console.log("==============================================");
+        console.log("PariMatchFactory    :", address(pariFactory));
+        console.log("StreamWalletFactory :", address(streamFactory));
+        console.log("ChilizSwapRouter    :", address(swapRouter));
+        console.log("LeaderboardRewards  :", address(leaderboard));
+        console.log("Owner of contracts  :", transferOwnership ? treasury : deployer);
+        if (!transferOwnership) {
+            console.log("");
+            console.log("Ownership held by deployer EOA -- set TRANSFER_OWNERSHIP=true");
+            console.log("in production to hand ownership to SAFE_ADDRESS at deploy time.");
+        }
+        console.log("==============================================");
         console.log("");
     }
 
-    function _printPostDeploymentSteps() internal view {
+    function _printPostDeploymentSteps() internal pure {
         console.log("POST-DEPLOYMENT STEPS:");
         console.log("======================");
-        console.log("All cross-contract wiring is done. Remaining work:");
-        console.log("");
         console.log("1. Create your first match (factory owner only):");
-        console.log("   cast send <BETTING_FACTORY> \\");
+        console.log("   cast send <PARI_FACTORY> \\");
         console.log("     'createFootballMatch(string,address,address)' \\");
         console.log("     <NAME> <MATCH_OWNER> <ORACLE>");
         console.log("");
-        console.log("   This single tx deploys the proxy, authorizes it on the");
-        console.log("   pool, sets USDC/pool/swap-router on the match, grants");
-        console.log("   RESOLVER_ROLE to the oracle, and hands match admin to");
-        console.log("   <MATCH_OWNER>.");
+        console.log("   This single tx deploys the proxy, sets USDC/feeRecipient,");
+        console.log("   grants SWAP_ROUTER_ROLE to the router, grants RESOLVER_ROLE");
+        console.log("   to the oracle, and hands admin roles to <MATCH_OWNER>.");
         console.log("");
-        console.log("2. (Optional) cap the per-match odds:");
-        console.log("   cast send <MATCH> 'setMaxAllowedOdds(uint32)' <cap>");
+        console.log("2. Add markets to the match (ADMIN_ROLE on match):");
+        console.log("   cast send <MATCH> 'addMarketWithLine(bytes32,int16)' <TYPE> <LINE>");
         console.log("");
-        console.log("3. Seed initial LP capital. Anyone can deposit; the");
-        console.log("   treasury Safe is a sensible first depositor:");
-        console.log("   cast send <USDC> 'approve(address,uint256)' <POOL> <AMOUNT>");
-        console.log("   cast send <POOL> 'deposit(uint256,address)' <AMOUNT> <RECEIVER>");
+        console.log("3. Open markets and accept stakes:");
+        console.log("   cast send <MATCH> 'openMarket(uint256)' <MARKET_ID>");
         console.log("");
-        console.log("4. (Optional) transfer factory + router ownership to the Safe");
-        console.log("   if you decide operational ownership should live there.");
-        console.log("   Leaving them with the deployer is fine for routine ops.");
-        console.log("=========================================");
+        console.log("4. Close markets and resolve (oracle key):");
+        console.log("   cast send <MATCH> 'closeMarket(uint256)' <MARKET_ID>");
+        console.log("   cast send <MATCH> 'resolveMarket(uint256,uint64)' <MARKET_ID> <OUTCOME>");
+        console.log("");
+        console.log("5. Winners call claim(marketId) to receive their payout.");
+        console.log("==============================================");
     }
 
-    // ══════════════════════════════════════════════════════════════════════════
-    // HELPERS
-    // ══════════════════════════════════════════════════════════════════════════
-
     function _envUintOr(string memory key, uint256 defaultVal)
-        internal
-        view
-        returns (uint256)
+        internal view returns (uint256)
     {
         try vm.envUint(key) returns (uint256 v) { return v; }
+        catch { return defaultVal; }
+    }
+
+    function _envBoolOr(string memory key, bool defaultVal)
+        internal view returns (bool)
+    {
+        try vm.envBool(key) returns (bool v) { return v; }
         catch { return defaultVal; }
     }
 }

@@ -55,8 +55,8 @@ export function BetStakeStep({
             </div>
             <div className="mt-2 text-[12px] font-light leading-[1.55] text-white/55">
                 {token.needsSwap
-                    ? `Your ${token.sym} will be swapped to USDC via Kayen, then locked in the BettingMatch contract.`
-                    : 'USDC is locked in the BettingMatch contract. Settles automatically on full-time.'}
+                    ? `Your ${token.sym} is swapped to USDC via Kayen, then staked into the outcome pool.`
+                    : 'USDC is staked into the outcome pool. Winners share the pool pro-rata at full-time.'}
             </div>
 
             {/* Amount card */}

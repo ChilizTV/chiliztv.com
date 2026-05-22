@@ -1,8 +1,7 @@
 import { chilizConfig } from '../config/chiliz.config';
 
 export const CONTRACTS_ADDRESSES = {
-    betting: chilizConfig.bettingContract, // Legacy betting contract (deprecated)
-    bettingMatchFactory: chilizConfig.bettingMatchFactory,
+    pariMatchFactory: chilizConfig.pariMatchFactory,
     streamWalletFactory: chilizConfig.streamWalletFactory,
 } as const;
 

@@ -1,5 +1,11 @@
 import { defineChain } from 'viem';
 
+// Canonical Multicall3 — deterministic CREATE2 deploy at the same address
+// on every chain that has it. Verified live on Chiliz Spicy + mainnet.
+// Required by `useReadContracts` (front) and `client.multicall(...)` (back);
+// without it viem throws `client chain not configured. multicallAddress is required.`
+const MULTICALL3_ADDRESS = '0xcA11bde05977b3631167028862bE2a173976CA11' as const;
+
 export const chilizSpicy = defineChain({
     id: 88882,
     name: 'Chiliz Spicy Testnet',
@@ -18,6 +24,9 @@ export const chilizSpicy = defineChain({
             name: 'Spicy Explorer',
             url: 'https://testnet.chiliscan.com',
         },
+    },
+    contracts: {
+        multicall3: { address: MULTICALL3_ADDRESS },
     },
     testnet: true,
 });
@@ -40,6 +49,9 @@ export const chilizMainnet = defineChain({
             name: 'ChiliScan',
             url: 'https://chiliscan.com',
         },
+    },
+    contracts: {
+        multicall3: { address: MULTICALL3_ADDRESS },
     },
     testnet: false,
 });

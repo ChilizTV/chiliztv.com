@@ -28,9 +28,9 @@ import {
 } from "@/hooks/api";
 import type { Address } from "viem";
 import {
-  useBettingMatchFactoryReadGetAllMatches,
-  useBettingMatchFactoryReadGetSportType,
-  useBettingMatchReadMatchName,
+  usePariMatchFactoryReadGetAllMatches,
+  usePariMatchFactoryReadGetSportType,
+  useFootballPariMatchReadMatchName,
 } from "@/lib/contracts/generated";
 import { chilizConfig } from "@/config/chiliz.config";
 import { LiveStream } from "@/models/stream.model";
@@ -56,21 +56,21 @@ export default function LiveDetailsPage({ id }: LiveDetailsPageProps) {
   } = useMatch(isTestMatch ? "" : id);
 
   // ── On-chain path (test match: bind to the latest factory deployment) ────
-  const { data: allMatches } = useBettingMatchFactoryReadGetAllMatches({
-    address: chilizConfig.bettingMatchFactory,
+  const { data: allMatches } = usePariMatchFactoryReadGetAllMatches({
+    address: chilizConfig.pariMatchFactory,
     chainId: chilizConfig.chainId,
     query: { enabled: isTestMatch },
   });
   const latestProxy = (allMatches as readonly Address[] | undefined)?.at(-1);
 
-  const { data: onChainMatchName } = useBettingMatchReadMatchName({
+  const { data: onChainMatchName } = useFootballPariMatchReadMatchName({
     address: latestProxy,
     chainId: chilizConfig.chainId,
     query: { enabled: isTestMatch && !!latestProxy },
   });
 
-  const { data: onChainSportType } = useBettingMatchFactoryReadGetSportType({
-    address: chilizConfig.bettingMatchFactory,
+  const { data: onChainSportType } = usePariMatchFactoryReadGetSportType({
+    address: chilizConfig.pariMatchFactory,
     chainId: chilizConfig.chainId,
     args: latestProxy ? [latestProxy] : undefined,
     query: { enabled: isTestMatch && !!latestProxy },

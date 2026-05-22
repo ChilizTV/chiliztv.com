@@ -1,20 +1,22 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { type Address } from "viem";
+import { useEffect, useMemo, useState } from "react";
+import { type Address, formatUnits } from "viem";
 import { Trophy, Target, Users, Hash, Flag, Clock3, type LucideIcon } from "lucide-react";
 import { isBettable, type BettableResult } from "@chiliztv/domain/matches/policies/BettablePolicy";
-import {
-  useBettingMatchReadGetMarketInfo,
-  useBettingMatchReadMarketCount,
-  useBettingMatchFactoryReadGetSportType,
-  useFootballMatchReadGetFootballMarket,
-  useBettingMatchWatchOddsUpdated,
-} from "@/lib/contracts/generated";
 import { useQueryClient } from "@tanstack/react-query";
+import {
+  usePariMatchFactoryReadGetSportType,
+  usePariMatchBaseWatchMarketStateChanged,
+  usePariMatchBaseWatchMarketResolved,
+  usePariMatchBaseWatchMarketCancelled,
+  usePariMatchBaseWatchPositionTaken,
+} from "@/lib/contracts/generated";
+import { useMarketPools } from "@/hooks/api/useMarketPools";
 import { usePoolDecimals } from "@/hooks/usePoolDecimals";
 import { formatBetAmount, BET_TOKEN_SYMBOL } from "./utils/betToken";
 import { chilizConfig } from "@/config/chiliz.config";
+import { queryKeys } from "@/lib/query/keys";
 import {
   getMarketSpec,
   getOddsForMarket,
@@ -24,14 +26,13 @@ import {
   stateAccent,
   MarketState,
   type MarketKey,
+  type MarketPoolSnapshot,
 } from "@/lib/contracts/markets";
 import type { MatchOdds } from "@/types/api.types";
 import { MarketBetDialog } from "./MarketBetDialog";
 import { UnsupportedSportPanel } from "./UnsupportedSportPanel";
 
-// Pin contract reads to Chiliz Spicy testnet so they don't depend on the
-// connected wallet's active chain (otherwise the request never fires).
-const BETTING_CHAIN_ID = 88882 as const;
+const BETTING_CHAIN_ID = chilizConfig.chainId;
 
 /** Buffer en secondes avant le kickoff durant lequel on bloque les paris. */
 const KICKOFF_BUFFER_SEC = 120;
@@ -49,7 +50,7 @@ interface MatchMarketsListProps {
   walletAddress?: string;
   homeTeam?: string;
   awayTeam?: string;
-  /** Per-market DB odds — drives the cells + gates the bet when missing. */
+  /** Per-market DB odds — cosmetic hint when the pool is empty. */
   matchOdds?: MatchOdds;
   /** Match metadata pour le check `isBettable` (couche 2 du defense-in-depth). */
   match?: MatchBettableContext;
@@ -80,13 +81,17 @@ function bettableBlockLabel(verdict: BettableResult, kickoffAt: string, now: Dat
   }
 }
 
-// Icon mapping is UI-side. The catalog (Lot 1) stays presentation-agnostic.
 const MARKET_ICONS: Record<MarketKey, LucideIcon> = {
   winner: Trophy,
   goalstotal: Target,
   bothscore: Users,
   halftime: Clock3,
   firstscorer: Flag,
+  goalsexact: Hash,
+  'bb-winner': Trophy,
+  totalpoints: Target,
+  spread: Target,
+  pointsexact: Hash,
 };
 
 export interface MarketSelection {
@@ -96,15 +101,17 @@ export interface MarketSelection {
   line: number;
   state: number;
   totalPool: bigint;
-  /** Optional pre-selected outcome (0/1/2) when the user clicked a specific odds cell. */
+  /** Inclusive max valid outcome (uint8 on-chain). UI renders `maxOutcome + 1` cells. */
+  maxOutcome: number;
+  /** Optional pre-selected outcome when the user clicked a specific cell. */
   defaultSelection?: number;
-  /** Per-outcome odds from the DB JSONB (selection → decimal). Empty map = bet disabled. */
+  /** Cosmetic DB odds fallback (selection → decimal). Empty Map = no hint. */
   oddsBySelection?: ReadonlyMap<number, number>;
 }
 
 interface MarketRowProps {
   contractAddress: Address;
-  marketId: number;
+  snapshot: MarketPoolSnapshot;
   homeTeam?: string;
   awayTeam?: string;
   matchOdds?: MatchOdds;
@@ -113,80 +120,42 @@ interface MarketRowProps {
   onBet: (selection: MarketSelection) => void;
 }
 
-function MarketRow({ contractAddress, marketId, homeTeam, awayTeam, matchOdds, match, now, onBet }: MarketRowProps) {
-  const qc = useQueryClient();
-  const { data, isLoading, queryKey } = useBettingMatchReadGetMarketInfo({
-    address: contractAddress,
-    args: [BigInt(marketId)],
-    chainId: BETTING_CHAIN_ID,
-  });
+function MarketRow({ contractAddress, snapshot, homeTeam, awayTeam, matchOdds, match, now, onBet }: MarketRowProps) {
   const { assetDecimals } = usePoolDecimals();
 
-  // FootballMatch view returns the `line` (int16) along with current odds.
-  // Used for GOALS_TOTAL Over/Under labels (`Over 2.5`).
-  const { data: footballMarket, queryKey: footballQK } =
-    useFootballMatchReadGetFootballMarket({
-      address: contractAddress,
-      args: [BigInt(marketId)],
-      chainId: BETTING_CHAIN_ID,
-    });
+  const marketId = Number(snapshot.marketId);
+  const marketTypeHash = snapshot.marketType as `0x${string}`;
+  const state = snapshot.state;
+  const line = snapshot.line;
+  const totalPool = BigInt(snapshot.totalPool);
 
-  // Live odds invalidation — when the resolver pushes new odds, refetch.
-  useBettingMatchWatchOddsUpdated({
-    address: contractAddress,
-    chainId: BETTING_CHAIN_ID,
-    args: { marketId: BigInt(marketId) },
-    onLogs() {
-      void qc.invalidateQueries({ queryKey });
-      void qc.invalidateQueries({ queryKey: footballQK });
-    },
-  });
-
-  if (isLoading || !data) {
-    return <SkeletonRow first={marketId === 0} />;
-  }
-
-  // getMarketInfo returns: (bytes32 marketType, uint8 state, uint32 currentOdds, uint64 result, uint256 totalPool)
-  const [marketTypeHash, state, , , totalPool] = data as readonly [
-    `0x${string}`,
-    number,
-    number,
-    bigint,
-    bigint,
-  ];
-
-  // Hidden markets (CORRECT_SCORE) are filtered out entirely — return null so
-  // the parent's loop renders nothing for this row index.
   if (isHiddenMarket(marketTypeHash)) return null;
 
   const spec = getMarketSpec(marketTypeHash);
   const label = spec?.label ?? "Unknown market";
   const hint = spec?.hint ?? "";
   const Icon = spec ? MARKET_ICONS[spec.key] ?? Hash : Hash;
-  const line = footballMarket ? Number((footballMarket as readonly [string, number, number, number, number, bigint, bigint])[1]) : 0;
   const lineLabel = spec?.hasLine && line > 0 ? `${(line / 10).toFixed(1)}` : null;
   const isOpen = state === MarketState.Open;
 
-  // Per-outcome odds from the DB JSONB. Single source of truth — no fake odds
-  // when the admin hasn't posted any. `bySelection` empty ⇒ bet disabled here.
-  const dbOdds = spec ? getOddsForMarket(matchOdds, spec.key) : { bySelection: new Map<number, number>(), hasAny: false };
+  // DB hint — only used cosmetically when the pool is still empty.
+  const dbOdds = spec
+    ? getOddsForMarket(matchOdds, spec.key)
+    : { bySelection: new Map<number, number>(), hasAny: false };
 
-  // Couche 2 du defense-in-depth no-live-betting : la policy domain bloque
-  // les paris dès qu'on entre dans le buffer kickoff / le match passe live /
-  // est postponed. Si `now` n'est pas encore résolu (SSR), on n'applique pas
-  // le check — fallback sur le state on-chain seul.
   const verdict: BettableResult =
     match && now
       ? isBettable(match, now, { kickoffBufferSec: KICKOFF_BUFFER_SEC })
       : { ok: true };
   const blockedByPolicy = !verdict.ok;
-  const canBet = isOpen && !blockedByPolicy && !!spec?.supportsBetting && dbOdds.hasAny;
+  const canBet = isOpen && !blockedByPolicy && !!spec?.supportsBetting;
   const policyMessage = match && now ? bettableBlockLabel(verdict, match.kickoffAt, now) : '';
 
   const stateName = catalogStateLabel(state);
   const stateColor = stateAccent(state);
 
   const outcomes = spec ? spec.getOutcomes(line, homeTeam, awayTeam) : [];
+  const poolHasLiquidity = totalPool > BigInt(0);
 
   const handleCellClick = (selectionIdx: number) => {
     if (!canBet) return;
@@ -197,6 +166,7 @@ function MarketRow({ contractAddress, marketId, homeTeam, awayTeam, matchOdds, m
       line,
       state,
       totalPool,
+      maxOutcome: snapshot.maxOutcome,
       defaultSelection: selectionIdx,
       oddsBySelection: dbOdds.bySelection,
     });
@@ -207,7 +177,7 @@ function MarketRow({ contractAddress, marketId, homeTeam, awayTeam, matchOdds, m
       className="px-4 py-4"
       style={{ borderTop: marketId > 0 ? "1px solid #1E1E1E" : "none" }}
     >
-      {/* Top row : icon + label + state + pool */}
+      {/* Top row: icon + label + state + pool */}
       <div className="flex items-center gap-3">
         <div
           className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md"
@@ -244,27 +214,32 @@ function MarketRow({ contractAddress, marketId, homeTeam, awayTeam, matchOdds, m
             {stateName}
           </span>
           <span className="font-mono-ctv text-[10px] tabular-nums text-white/45">
-            {formatBetAmount(totalPool, assetDecimals)} {BET_TOKEN_SYMBOL}
+            Pool {formatBetAmount(totalPool, assetDecimals)} {BET_TOKEN_SYMBOL}
           </span>
         </div>
       </div>
 
-      {/* Odds-not-available hint */}
-      {isOpen && spec?.supportsBetting && !dbOdds.hasAny && !blockedByPolicy && (
-        <div
-          className="mt-2 px-3 py-1.5 rounded text-[10px] uppercase tracking-[0.16em]"
-          style={{
-            background: "rgba(245,197,24,0.08)",
-            border: "1px solid rgba(245,197,24,0.3)",
-            color: "#F5C518",
-            fontFamily: "'Barlow', sans-serif",
-          }}
-        >
-          Odds not posted yet — betting disabled
+      {/* Outcome distribution bar — visible only when the pool has liquidity. */}
+      {poolHasLiquidity && outcomes.length > 0 && (
+        <div className="mt-3 flex h-1.5 w-full overflow-hidden rounded-full bg-[#141414]">
+          {snapshot.outcomePools.map((raw: string, idx: number) => {
+            const fraction = totalPool > BigInt(0)
+              ? Number(BigInt(raw) * BigInt(10_000) / totalPool) / 100
+              : 0;
+            if (fraction <= 0) return null;
+            const tint = idx === 0 ? '#E8001D' : idx === 1 ? '#F5C518' : '#2dd4a4';
+            return (
+              <span
+                key={idx}
+                style={{ width: `${fraction}%`, background: tint, opacity: 0.8 }}
+                aria-hidden
+              />
+            );
+          })}
         </div>
       )}
 
-      {/* Policy gate — pari bloqué pour cause de live / halftime / buffer / postponed. */}
+      {/* Policy gate — blocked by live / halftime / buffer / postponed. */}
       {isOpen && spec?.supportsBetting && blockedByPolicy && policyMessage && (
         <div
           role="status"
@@ -280,37 +255,41 @@ function MarketRow({ contractAddress, marketId, homeTeam, awayTeam, matchOdds, m
         </div>
       )}
 
-      {/* Outcome cells — clickable, pre-fill defaultSelection in the dialog. */}
+      {/* Outcome cells — three display modes: probability if pool>0, ref odds
+          if DB hint available, else "be the first" prompt. */}
       {outcomes.length > 0 && (
         <div
           className="mt-3 grid gap-2"
           style={{ gridTemplateColumns: `repeat(${outcomes.length}, minmax(0, 1fr))` }}
         >
           {outcomes.map((o) => {
-            const cellOdds = dbOdds.bySelection.get(o.selection) ?? null;
-            const cellBettable = canBet && cellOdds !== null;
+            const outcomeIdx = o.selection;
+            const outcomePoolRaw = snapshot.outcomePools[outcomeIdx];
+            const outcomePool = outcomePoolRaw ? BigInt(outcomePoolRaw) : BigInt(0);
+            const probBps = snapshot.impliedProbBps[outcomeIdx] ?? 0;
+            const refOdds = dbOdds.bySelection.get(outcomeIdx) ?? null;
             return (
               <button
-                key={o.selection}
+                key={outcomeIdx}
                 type="button"
-                onClick={() => handleCellClick(o.selection)}
-                disabled={!cellBettable}
-                className="group flex items-center justify-between rounded-md px-3 py-2.5 transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E8001D]"
+                onClick={() => handleCellClick(outcomeIdx)}
+                disabled={!canBet}
+                className="group flex flex-col gap-1 rounded-md px-3 py-2.5 transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E8001D]"
                 style={{
                   background: "#0d0d0d",
                   border: "1px solid #1E1E1E",
-                  color: cellBettable ? "#fff" : "#666",
-                  cursor: cellBettable ? "pointer" : "not-allowed",
-                  opacity: cellBettable ? 1 : 0.4,
+                  color: canBet ? "#fff" : "#666",
+                  cursor: canBet ? "pointer" : "not-allowed",
+                  opacity: canBet ? 1 : 0.5,
                 }}
                 onMouseEnter={(e) => {
-                  if (!cellBettable) return;
+                  if (!canBet) return;
                   const el = e.currentTarget as HTMLButtonElement;
                   el.style.background = "rgba(232,0,29,0.08)";
                   el.style.borderColor = "#E8001D";
                 }}
                 onMouseLeave={(e) => {
-                  if (!cellBettable) return;
+                  if (!canBet) return;
                   const el = e.currentTarget as HTMLButtonElement;
                   el.style.background = "#0d0d0d";
                   el.style.borderColor = "#1E1E1E";
@@ -319,12 +298,22 @@ function MarketRow({ contractAddress, marketId, homeTeam, awayTeam, matchOdds, m
                 <span className="font-display truncate text-[12px] font-extrabold uppercase tracking-tight">
                   {o.label}
                 </span>
-                <span
-                  className="font-mono-ctv ml-2 text-[12px] font-bold tabular-nums"
-                  style={{ color: cellOdds !== null ? "#E8001D" : "#666" }}
-                >
-                  {cellOdds !== null ? `× ${cellOdds.toFixed(2)}` : "—"}
-                </span>
+                {poolHasLiquidity ? (
+                  <span className="font-mono-ctv flex items-center justify-between text-[10px] tabular-nums">
+                    <span style={{ color: "#E8001D" }}>{(probBps / 100).toFixed(1)}%</span>
+                    <span className="text-white/45">
+                      ${Number(formatUnits(outcomePool, assetDecimals)).toLocaleString()}
+                    </span>
+                  </span>
+                ) : refOdds !== null ? (
+                  <span className="font-mono-ctv text-[10px] italic tabular-nums text-white/45">
+                    Ref × {refOdds.toFixed(2)} · no positions yet
+                  </span>
+                ) : (
+                  <span className="font-mono-ctv text-[10px] tabular-nums text-white/45">
+                    Be the first to bet
+                  </span>
+                )}
               </button>
             );
           })}
@@ -342,11 +331,10 @@ export function MatchMarketsList({
   matchOdds,
   match,
 }: MatchMarketsListProps) {
+  const qc = useQueryClient();
   const [activeMarket, setActiveMarket] = useState<MarketSelection | null>(null);
 
-  // Clock — null en SSR pour éviter un hydration mismatch, ticke toutes les
-  // 15s côté client. Suffit largement pour détecter une transition vers le
-  // kickoff buffer (changement 1-fois, pas un compteur en temps réel).
+  // Clock — null en SSR pour éviter un hydration mismatch.
   const [now, setNow] = useState<Date | null>(null);
   useEffect(() => {
     setNow(new Date());
@@ -354,20 +342,57 @@ export function MatchMarketsList({
     return () => clearInterval(id);
   }, []);
 
-  // Sport-type guard (Lot 2.5) — if this match is basketball, render the
-  // "coming soon" placeholder instead of the football markets list.
-  const { data: sportType } = useBettingMatchFactoryReadGetSportType({
-    address: chilizConfig.bettingMatchFactory,
+  // Sport-type guard — basketball renders the placeholder.
+  const { data: sportType } = usePariMatchFactoryReadGetSportType({
+    address: chilizConfig.pariMatchFactory,
     args: contractAddress ? [contractAddress] : undefined,
     chainId: BETTING_CHAIN_ID,
     query: { enabled: !!contractAddress },
   });
   const isFootball = sportType === undefined ? true : isFootballMatch(sportType);
 
-  const { data: marketCountData, isLoading } = useBettingMatchReadMarketCount({
+  // Single round-trip multicall for every market on this proxy.
+  const { data: pools, isLoading } = useMarketPools(contractAddress);
+
+  const sortedMarkets = useMemo(
+    () => [...(pools?.markets ?? [])].sort(
+      (a, b) => Number(BigInt(a.marketId) - BigInt(b.marketId)),
+    ),
+    [pools?.markets],
+  );
+
+  const invalidatePools = () => {
+    if (!contractAddress) return;
+    void qc.invalidateQueries({
+      queryKey: queryKeys.markets.pools(contractAddress.toLowerCase()),
+    });
+  };
+
+  // Live invalidation — pool ratios change on every new position, state moves
+  // on resolve/cancel/close, and the resolver tick.
+  usePariMatchBaseWatchPositionTaken({
     address: contractAddress,
     chainId: BETTING_CHAIN_ID,
-    query: { enabled: !!contractAddress && isFootball },
+    enabled: !!contractAddress,
+    onLogs: invalidatePools,
+  });
+  usePariMatchBaseWatchMarketStateChanged({
+    address: contractAddress,
+    chainId: BETTING_CHAIN_ID,
+    enabled: !!contractAddress,
+    onLogs: invalidatePools,
+  });
+  usePariMatchBaseWatchMarketResolved({
+    address: contractAddress,
+    chainId: BETTING_CHAIN_ID,
+    enabled: !!contractAddress,
+    onLogs: invalidatePools,
+  });
+  usePariMatchBaseWatchMarketCancelled({
+    address: contractAddress,
+    chainId: BETTING_CHAIN_ID,
+    enabled: !!contractAddress,
+    onLogs: invalidatePools,
   });
 
   if (!contractAddress) {
@@ -378,9 +403,7 @@ export function MatchMarketsList({
     return <UnsupportedSportPanel />;
   }
 
-  const count = marketCountData ? Number(marketCountData) : 0;
-
-  if (isLoading && count === 0) {
+  if (isLoading && !pools) {
     return (
       <div>
         <SkeletonRow first />
@@ -389,18 +412,18 @@ export function MatchMarketsList({
     );
   }
 
-  if (count === 0) {
+  if (sortedMarkets.length === 0) {
     return <EmptyState message="No markets opened yet on this match." />;
   }
 
   return (
     <>
       <div>
-        {Array.from({ length: count }, (_, i) => (
+        {sortedMarkets.map((snapshot) => (
           <MarketRow
-            key={i}
+            key={snapshot.marketId}
             contractAddress={contractAddress}
-            marketId={i}
+            snapshot={snapshot}
             homeTeam={homeTeam}
             awayTeam={awayTeam}
             matchOdds={matchOdds}

@@ -16,16 +16,16 @@ import { chilizConfig } from "@/config/chiliz.config";
 import { decodeContractError } from "@/lib/contracts/errors";
 import { NetworkGuard } from "@/components/web3/NetworkGuard";
 import {
-  useBettingMatchReadGetCurrentOdds,
-  useBettingMatchReadGetMarketLiability,
-  useBettingMatchReadQuoteNetExposure,
-  useBettingMatchWatchBetPlaced,
-  useBettingMatchFactoryReadGetSportType,
+  usePariMatchFactoryReadGetSportType,
+  usePariMatchBaseReadFeeBps,
+  usePariMatchBaseWatchPositionTaken,
   useChilizSwapRouterSimulatePlaceBetWithUsdc,
   useChilizSwapRouterSimulatePlaceBetWithChz,
   useChilizSwapRouterSimulatePlaceBetWithToken,
 } from "@/lib/contracts/generated";
-import { usePoolState } from "@/hooks/api/usePoolState";
+import { useMarketPools } from "@/hooks/api/useMarketPools";
+import { useMyBetOnOutcome } from "@/hooks/useMyBetOnOutcome";
+import { parimutuelPayoutPreview } from "@/hooks/useParimutuelPayoutPreview";
 import {
   fmtSelectionByMarket,
   getMarketSpec,
@@ -76,7 +76,13 @@ const FAN_TOKEN_DECIMALS = 18;
 const DEADLINE_MIN = 20; // minutes
 const DEFAULT_SLIPPAGE_BPS = 50; // 0.5%
 const SLIPPAGE_PRESETS_BPS = [10, 50, 100] as const;
-const PROTOCOL_FEE_BPS = 250; // 2.5% on win — matches the design copy.
+// Default fee — mirrors PariMatchBase.sol:91 (feeBps configurable, default 500 = 5%).
+// Read on-chain via usePariMatchBaseReadFeeBps; this constant is the fallback.
+const DEFAULT_FEE_BPS = 500;
+// Contract floor — PariMatchBase.sol:90 `uint256 public constant MIN_STAKE = 10_000;`
+// = 0.01 USDC at 6 dp. Pre-checked here so the user gets a clear UI message
+// rather than a wallet-popup gas-estimation revert (StakeBelowMinimum).
+const MIN_STAKE_USDC_RAW = BigInt(10_000);
 
 function tokenLabel(t: BetToken): string {
   if (t.kind === "USDC") return "USDC";
@@ -153,8 +159,8 @@ export function MarketBetDialog({
   const [failureReason, setFailureReason] = useState<string | null>(null);
 
   // ── Sport-type guard ────────────────────────────────────────────────────
-  const { data: sportType } = useBettingMatchFactoryReadGetSportType({
-    address: chilizConfig.bettingMatchFactory,
+  const { data: sportType } = usePariMatchFactoryReadGetSportType({
+    address: chilizConfig.pariMatchFactory,
     args: contractAddress ? [contractAddress] : undefined,
     chainId: chilizConfig.chainId,
     query: { enabled: !!contractAddress && open },
@@ -210,7 +216,7 @@ export function MarketBetDialog({
     }
   }, [open, selection, marketSpec, isFootball, onClose]);
 
-  // ── Tx wiring (existing path) ──────────────────────────────────────────
+  // ── Tx wiring (parimutuel path) ────────────────────────────────────────
   const { placeBet, betState, routerAddress } = useChilizSwapRouter();
   const { assetDecimals: usdcDecimals } = usePoolDecimals();
 
@@ -257,14 +263,6 @@ export function MarketBetDialog({
     useWriteContract();
   const { isLoading: isApproveConfirming, isSuccess: isApproveSuccess } =
     useWaitForTransactionReceipt({ hash: approveTxHash });
-  useEffect(() => {
-    if (!isApproveSuccess) return;
-    refetchAllowance();
-    // Force the simulate hooks to retry — they may hold a cached
-    // "allowance too low" revert from before the approve mined.
-    void usdcSim.refetch();
-    void tokenSim.refetch();
-  }, [isApproveSuccess, refetchAllowance]);
 
   const quoteTokenIn: Address | undefined =
     token.kind === "ERC20" ? token.address : token.kind === "CHZ" ? chilizConfig.wchz : undefined;
@@ -282,96 +280,87 @@ export function MarketBetDialog({
     return (quotedUsdcOut * slippageMul) / BigInt(10_000);
   }, [token.kind, quotedUsdcOut, slippageBps]);
 
-  // Contract's MIN_NET_STAKE = 0.1 USDC (in 6dp raw = 100_000). Anything below
-  // that reverts with `StakeBelowMinimum`. Gate on the front so the user
-  // sees a clear message instead of a wallet-popup gas-estimation error.
-  const MIN_NET_STAKE_USDC_RAW = BigInt(100_000); // 0.10 USDC at 6 decimals.
+  // USDC amount the contract will actually see (post-swap on non-USDC paths).
   const expectedStakeUsdc: bigint =
     token.kind === "USDC" ? parsedAmount : amountOutMin > BigInt(0) ? amountOutMin : BigInt(0);
 
-  const { data: quoteNetExposure } = useBettingMatchReadQuoteNetExposure({
-    address: contractAddress,
-    args: expectedStakeUsdc > BigInt(0)
-      ? [BigInt(selection?.marketId ?? 0), expectedStakeUsdc]
-      : undefined,
-    chainId: chilizConfig.chainId,
-    query: { enabled: !!selection && expectedStakeUsdc > BigInt(0) },
-  });
-  // Pool-global reads mutualised through `/pool/state` (backend cache 15 s).
-  const { data: poolState } = usePoolState();
-  const poolFreeBalance: bigint | undefined = poolState?.freeBalance;
-  const insufficientLiquidity: boolean =
-    quoteNetExposure !== undefined &&
-    poolFreeBalance !== undefined &&
-    (quoteNetExposure as bigint) > poolFreeBalance;
-
   const insufficientBalance = parsedAmount > BigInt(0) && balance < numericAmount;
-
-  // DB odds drive the picker. On-chain `currentOdds` is *only* read here as a
-  // gate: if the admin hasn't synced odds on-chain (`= 0`), the contract will
-  // revert at place-time with `OddsNotSet` regardless of what the DB says.
-  // Block the user before they sign and burn gas.
-  const { data: onChainOddsRaw } = useBettingMatchReadGetCurrentOdds({
-    address: contractAddress,
-    args: selection ? [BigInt(selection.marketId)] : undefined,
-    chainId: chilizConfig.chainId,
-    query: { enabled: !!selection && open, refetchInterval: 8_000 },
-  });
-  const onChainOddsSet =
-    typeof onChainOddsRaw === "number" ? onChainOddsRaw > 0 : false;
-
-  const maxBetAmountRaw: bigint | undefined = poolState?.maxBetAmount;
-  const maxBetAmountCapped =
-    maxBetAmountRaw !== undefined && maxBetAmountRaw > BigInt(0) ? maxBetAmountRaw : null;
-  const expectedStakeExceedsCap =
-    !!maxBetAmountCapped && expectedStakeUsdc > BigInt(0) && expectedStakeUsdc > maxBetAmountCapped;
-
   const stakeBelowMinimum =
-    expectedStakeUsdc > BigInt(0) && expectedStakeUsdc < MIN_NET_STAKE_USDC_RAW;
-
-  // Liability caps replicated front-side: pool reverts when
-  // existing + thisBet > totalAssets × bps / 10_000, costing the user
-  // a Kayen-swap gas spend with nothing to show for it.
-  const totalAssetsRaw: bigint | undefined = poolState?.totalAssets;
-  const maxMarketBps: number | undefined = poolState?.maxLiabilityPerMarketBps;
-  const maxMatchBps: number | undefined = poolState?.maxLiabilityPerMatchBps;
-
-  const marketLiabilityQuery = useBettingMatchReadGetMarketLiability({
-    address: contractAddress,
-    args: selection ? [BigInt(selection.marketId)] : undefined,
-    chainId: chilizConfig.chainId,
-    query: { enabled: !!selection && open },
-  });
-  const currentMarketLiability: bigint =
-    (marketLiabilityQuery.data as bigint | undefined) ?? BigInt(0);
-
-  const maxMarketLiability: bigint | null =
-    totalAssetsRaw !== undefined && maxMarketBps !== undefined && maxMarketBps > 0
-      ? (totalAssetsRaw * BigInt(maxMarketBps)) / BigInt(10_000)
-      : null;
-
-  const maxMatchLiability: bigint | null =
-    totalAssetsRaw !== undefined && maxMatchBps !== undefined && maxMatchBps > 0
-      ? (totalAssetsRaw * BigInt(maxMatchBps)) / BigInt(10_000)
-      : null;
-
-  const exposureForBet: bigint =
-    (quoteNetExposure as bigint | undefined) ?? BigInt(0);
-
-  const exceedsMarketLiabilityCap =
-    maxMarketLiability !== null &&
-    exposureForBet > BigInt(0) &&
-    currentMarketLiability + exposureForBet > maxMarketLiability;
+    expectedStakeUsdc > BigInt(0) && expectedStakeUsdc < MIN_STAKE_USDC_RAW;
 
   // Non-USDC paths need the Kayen quote to compute the actual stake the
   // contract will see. While the quote is loading or the token has no path,
-  // we don't yet know if the bet will clear `MIN_NET_STAKE` — block Continue
-  // so the user can't slide past the gate during the quote round-trip.
+  // we don't yet know if the bet will clear MIN_STAKE — block Continue so the
+  // user can't slide past the gate during the quote round-trip.
   const quotePending =
     token.kind !== "USDC" &&
     parsedAmount > BigInt(0) &&
     (quoteLoading || quotedUsdcOut === undefined) &&
     !swapPathMissing;
+
+  // ── Parimutuel pool snapshot + payout preview ──────────────────────────
+  const { data: marketPools } = useMarketPools(contractAddress);
+  const marketSnapshot = useMemo(
+    () => selection
+      ? marketPools?.markets.find((m) => BigInt(m.marketId) === BigInt(selection.marketId))
+      : undefined,
+    [marketPools, selection],
+  );
+  const ZERO_BIG = BigInt(0);
+  const totalPoolBig = marketSnapshot ? BigInt(marketSnapshot.totalPool) : ZERO_BIG;
+  const outcomePoolBig = (() => {
+    if (!marketSnapshot || selectedOutcome === null) return ZERO_BIG;
+    const raw = marketSnapshot.outcomePools[selectedOutcome];
+    return raw ? BigInt(raw) : ZERO_BIG;
+  })();
+  const impliedProbBpsBySelection = useMemo(() => {
+    const map = new Map<number, number>();
+    if (!marketSnapshot || BigInt(marketSnapshot.totalPool) === BigInt(0)) return map;
+    marketSnapshot.impliedProbBps.forEach((bps: number, idx: number) => map.set(idx, bps));
+    return map;
+  }, [marketSnapshot]);
+  const outcomePoolsBySelection = useMemo(() => {
+    const map = new Map<number, bigint>();
+    if (!marketSnapshot) return map;
+    marketSnapshot.outcomePools.forEach((raw: string, idx: number) => map.set(idx, BigInt(raw)));
+    return map;
+  }, [marketSnapshot]);
+
+  // User's existing stake on the picked outcome — single lazy read, fires
+  // only once `selectedOutcome` is set. Feeds parimutuelPayoutPreview.
+  const { existingStake } = useMyBetOnOutcome({
+    contractAddress,
+    marketId: selection ? BigInt(selection.marketId) : undefined,
+    outcome: selectedOutcome !== null ? BigInt(selectedOutcome) : null,
+    userAddress: walletAddress as Address | undefined,
+    enabled: open && phase !== 'success' && phase !== 'failure',
+  });
+
+  // Fee in basis points — defaults to 500 (5%) per contract default. Read
+  // on-chain so configured overrides are picked up automatically.
+  const { data: feeBpsOnchain } = usePariMatchBaseReadFeeBps({
+    address: contractAddress,
+    chainId: chilizConfig.chainId,
+    query: { enabled: open && !!contractAddress },
+  });
+  const feeBps = typeof feeBpsOnchain === 'number' ? feeBpsOnchain : DEFAULT_FEE_BPS;
+
+  // Payout preview — mirrors PariMatchBase.sol:534 exactly. Returns the
+  // USDC raw payout the user receives if their picked outcome wins.
+  const grossPayoutRaw: bigint = useMemo(() => {
+    if (selectedOutcome === null || expectedStakeUsdc === BigInt(0)) return BigInt(0);
+    return parimutuelPayoutPreview({
+      totalPool: totalPoolBig,
+      outcomePool: outcomePoolBig,
+      existingStake,
+      additionalStake: expectedStakeUsdc,
+      feeBps,
+    });
+  }, [selectedOutcome, expectedStakeUsdc, totalPoolBig, outcomePoolBig, existingStake, feeBps]);
+  const grossPayoutUsdc: number | null =
+    grossPayoutRaw > BigInt(0) && usdcDecimals !== undefined
+      ? Number(formatUnits(grossPayoutRaw, usdcDecimals))
+      : null;
 
   // ── Tx flags ────────────────────────────────────────────────────────────
   const { isPending, isConfirming, isSuccess, txHash, error: txError, isReverted, isUserRejected } = betState;
@@ -380,30 +369,24 @@ export function MarketBetDialog({
   const isMarketOpen = selection?.state === MarketState.Open;
 
   // Couche 2 du defense-in-depth no-live-betting. Si match metadata absent
-  // (composant ancien call-site), `verdict.ok = true` par défaut — on
-  // s'appuie alors uniquement sur `isMarketOpen` (couche 3 contrat).
+  // (composant ancien call-site), `verdict.ok = true` par défaut.
   const verdict: BettableResult =
     match && now
       ? isBettable(match, now, { kickoffBufferSec: KICKOFF_BUFFER_SEC })
       : { ok: true };
   const policyAllowsBetting = verdict.ok;
 
-  // Si l'utilisateur a ouvert le dialog en pré-match et le kickoff buffer
-  // arrive pendant qu'il joue avec l'amount, on bascule en "blocked" pour
-  // qu'il ne puisse pas signer une tx qui reverte côté contrat.
   useEffect(() => {
     if (!open) return;
     if (!policyAllowsBetting && (phase === "pick" || phase === "stake" || phase === "review")) {
       setPhase("pick");
     }
-    // `policyAllowsBetting` is the only dynamic we want to react to here —
-    // ne pas dépendre de `phase` sinon on rebondit en boucle.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [policyAllowsBetting, open]);
 
   const policyBlockMessage = !policyAllowsBetting && match && now ? policyMessageFor(verdict, match.kickoffAt, now) : "";
 
-  // Map the stake decimal stream into the token shape the design's StakeStep wants.
+  // Map the stake decimal stream into the token shape the StakeStep wants.
   const fanTokens = (chilizConfig.tokens || []).filter((t) => !!t.tokenAddress);
   const tokenOptions: ReadonlyArray<BetTokenOption & { kind: BetToken["kind"]; address?: Address }> = useMemo(() => {
     const usdc: BetTokenOption & { kind: BetToken["kind"] } = {
@@ -463,29 +446,22 @@ export function MarketBetDialog({
   const needsApproval =
     token.kind !== "CHZ" && parsedAmount > BigInt(0) && allowance < parsedAmount;
 
-  // Per-outcome DB odds. Source of truth for the picker, stake/review labels,
-  // and the `canPlaceBet` gate — no fake odds when the admin hasn't posted any.
+  // DB odds drive the picker as a cosmetic hint when the pool is empty.
   const oddsBySelection = selection?.oddsBySelection ?? new Map<number, number>();
-  const oddsDecimal =
-    selectedOutcome !== null ? oddsBySelection.get(selectedOutcome) ?? null : null;
-  const hasAnyOdds = oddsBySelection.size > 0;
 
   // ── Pre-flight simulation ──────────────────────────────────────────────
-  // Runs the same call viem will send and surfaces the contract's revert
-  // reason BEFORE the user signs. Each path has its own simulate hook.
   const deadlineForSim = BigInt(Math.floor(Date.now() / 1000) + DEADLINE_MIN * 60);
   const simEnabled =
     !!walletAddress &&
     !!selection &&
     selectedOutcome !== null &&
     parsedAmount > BigInt(0) &&
-    onChainOddsSet &&
     isMarketOpen;
 
-  // ABI signatures (verified against ChilizSwapRouter):
-  //   placeBetWithUSDC(bettingMatch, marketId, selection, amount)
-  //   placeBetWithCHZ (bettingMatch, marketId, selection, amountOutMin, deadline)  payable
-  //   placeBetWithToken(token, amount, bettingMatch, marketId, selection, amountOutMin, deadline)
+  // ABI signatures (verified against ChilizSwapRouter parimutuel):
+  //   placeBetWithUSDC(bettingMatch, marketId, outcome, amount)
+  //   placeBetWithCHZ (bettingMatch, marketId, outcome, amountOutMin, deadline)  payable
+  //   placeBetWithToken(token, amount, bettingMatch, marketId, outcome, amountOutMin, deadline)
   const usdcSim = useChilizSwapRouterSimulatePlaceBetWithUsdc({
     address: routerAddress,
     args: simEnabled && token.kind === "USDC"
@@ -511,6 +487,16 @@ export function MarketBetDialog({
     chainId: chilizConfig.chainId,
     query: { enabled: simEnabled && token.kind === "ERC20" && !needsApproval },
   });
+
+  // Refetch sims after a successful approve so they pick up the new allowance.
+  useEffect(() => {
+    if (!isApproveSuccess) return;
+    refetchAllowance();
+    void usdcSim.refetch();
+    void tokenSim.refetch();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isApproveSuccess, refetchAllowance]);
+
   const simError =
     token.kind === "USDC"
       ? usdcSim.error
@@ -532,18 +518,13 @@ export function MarketBetDialog({
 
   const canPlaceBet =
     selectedOutcome !== null &&
-    oddsDecimal !== null &&
-    onChainOddsSet &&
     isValidAmount &&
     isMarketOpen &&
     policyAllowsBetting &&
     !submitting &&
     !insufficientBalance &&
-    !insufficientLiquidity &&
     !swapPathMissing &&
     !usdcZeroBalance &&
-    !expectedStakeExceedsCap &&
-    !exceedsMarketLiabilityCap &&
     !stakeBelowMinimum &&
     !quotePending &&
     !simulationFailed &&
@@ -578,9 +559,9 @@ export function MarketBetDialog({
     }
   };
 
-  // ── Watch BetPlaced for indexer status ──────────────────────────────────
+  // ── Watch PositionTaken for indexer status ──────────────────────────────
   const [eventConfirmed, setEventConfirmed] = useState(false);
-  useBettingMatchWatchBetPlaced({
+  usePariMatchBaseWatchPositionTaken({
     address: contractAddress,
     chainId: chilizConfig.chainId,
     args: walletAddress && selection
@@ -608,9 +589,7 @@ export function MarketBetDialog({
     if (!open) advancedRef.current = false;
   }, [open, isSuccess, txHash]);
 
-  // Refetch My Bets shortly after the tx confirms. The indexer batches every
-  // ~6s, so we re-invalidate a few times to land in the same window without
-  // waiting for the 30s background poll.
+  // Refetch My Bets shortly after the tx confirms.
   const invalidateMyBets = useInvalidateMyBets();
   useEffect(() => {
     if (!isSuccess) return;
@@ -619,8 +598,6 @@ export function MarketBetDialog({
     return () => handles.forEach(clearTimeout);
   }, [isSuccess, invalidateMyBets]);
 
-  // Tx rejected by the wallet — flip the dialog to a dedicated failure step
-  // so the user can't miss what happened. We don't keep them on `review`.
   useEffect(() => {
     if (!isUserRejected) return;
     if (!advancedRef.current) {
@@ -631,9 +608,6 @@ export function MarketBetDialog({
     }
   }, [isUserRejected]);
 
-  // Other bet-path errors (gas estimation revert, RPC, encoding…) that
-  // never reach the receipt phase — surface them too so the user isn't
-  // stuck on review thinking nothing happened.
   useEffect(() => {
     if (!txError || isUserRejected || isReverted) return;
     if (advancedRef.current) return;
@@ -644,10 +618,6 @@ export function MarketBetDialog({
     setPhase('failure');
   }, [txError, isUserRejected, isReverted]);
 
-  // Receipt came back with `status: 'reverted'` — tx mined, contract refused.
-  // Decode the revert reason from the simulation hook (the same call viem
-  // tried) so we can show the actual contract error rather than a generic
-  // "transaction reverted".
   useEffect(() => {
     if (!isReverted) return;
     if (!advancedRef.current) {
@@ -668,14 +638,9 @@ export function MarketBetDialog({
     }
   }, [isReverted, txError, token.kind, usdcSim.error, chzSim.error, tokenSim.error]);
 
-  // Approve-flow errors are surfaced as a dismissable banner, NOT as a
-  // dialog-takeover failure step — approve is a precursor and the user
-  // should be able to immediately retry without resetting the form.
+  // Approve-flow errors surfaced as a dismissable banner, not a takeover.
   useEffect(() => {
-    if (!approveError) {
-      // Don't clobber an existing banner from a different source.
-      return;
-    }
+    if (!approveError) return;
     const decoded = decodeContractError(approveError);
     const reason = decoded.description ? `${decoded.title} — ${decoded.description}` : decoded.title;
     setBannerError(`Approval failed — ${reason}`);
@@ -689,8 +654,6 @@ export function MarketBetDialog({
     }
     return null;
   })();
-  const grossPayoutUsdc =
-    stakeUsdcEquivNum !== null && oddsDecimal !== null ? stakeUsdcEquivNum * oddsDecimal : null;
 
   const selectionLabel = selection
     ? fmtSelectionByMarket(
@@ -702,10 +665,9 @@ export function MarketBetDialog({
       )
     : "—";
   const stakeLabel = `${amount || "0"} ${tokenLabel(token)}`;
-  const netPayoutLabel =
-    grossPayoutUsdc !== null
-      ? fmtUsd(grossPayoutUsdc * (1 - PROTOCOL_FEE_BPS / 10_000))
-      : null;
+  // Net payout = gross payout already nets the fee (parimutuelPayoutPreview
+  // multiplies by (10_000 - feeBps) / 10_000 — same as the contract).
+  const netPayoutLabel = grossPayoutUsdc !== null ? fmtUsd(grossPayoutUsdc) : null;
 
   // Compute the next-button state for each phase.
   const continueLabelByPhase: Record<Phase, string> = {
@@ -716,16 +678,15 @@ export function MarketBetDialog({
     failure: "Close",
   };
   const nextDisabled = (() => {
-    // Policy block — n'autorise plus aucune transition (sauf success/failure
-    // qui ferment le dialog). Renforcé en complément du panneau body qui
-    // remplace le step quand `!policyAllowsBetting`.
     if (!policyAllowsBetting && (phase === "pick" || phase === "stake" || phase === "review")) {
       return true;
     }
     if (phase === "pick") {
-      return selectedOutcome === null || !isMarketOpen || oddsDecimal === null;
+      return selectedOutcome === null || !isMarketOpen;
     }
-    if (phase === "stake") return !isValidAmount || insufficientBalance || swapPathMissing || usdcZeroBalance || stakeBelowMinimum || exceedsMarketLiabilityCap || quotePending;
+    if (phase === "stake") {
+      return !isValidAmount || insufficientBalance || swapPathMissing || usdcZeroBalance || stakeBelowMinimum || quotePending;
+    }
     if (phase === "review") return !canPlaceBet && !needsApproval;
     return false;
   })();
@@ -750,28 +711,14 @@ export function MarketBetDialog({
   // Banner string — surface the most recent error, then secondary contextual hints.
   const banner: string | null = (() => {
     if (bannerError) return bannerError;
-    if (hasAnyOdds && !onChainOddsSet && phase !== "pick")
-      return "Odds posted in the back-office aren't yet synced on-chain — the contract would reject this prediction. Ask the admin to run setOdds, then retry.";
-    if (exceedsMarketLiabilityCap && maxMarketLiability !== null) {
-      const remaining = maxMarketLiability > currentMarketLiability
-        ? maxMarketLiability - currentMarketLiability
-        : BigInt(0);
-      return `This market's liability cap is ${formatUsdc(maxMarketLiability, usdcDecimals)} USDC (pool × ${((maxMarketBps ?? 0) / 100).toFixed(1)}%). After existing predictions, only ${formatUsdc(remaining, usdcDecimals)} USDC of new exposure fits. Reduce your stake or wait for the LP to deposit more.`;
-    }
     if (stakeBelowMinimum && token.kind !== "USDC") {
-      // Surface the actual swap quote so the user understands why their input
-      // isn't enough — Kayen testnet pricing can be far below mainnet.
       const usdcOut = formatUsdc(expectedStakeUsdc, usdcDecimals);
-      return `${amount} ${tokenLabel(token)} swaps to ≈ ${usdcOut} USDC after Kayen — below the 0.10 USDC contract minimum. Predict a larger amount or switch to USDC.`;
+      return `${amount} ${tokenLabel(token)} swaps to ≈ ${usdcOut} USDC after Kayen — below the 0.01 USDC contract minimum. Predict a larger amount or switch to USDC.`;
     }
     if (stakeBelowMinimum)
-      return `Stake below the contract minimum (0.10 USDC). Increase your amount.`;
+      return `Stake below the contract minimum (0.01 USDC). Increase your amount.`;
     if (quotePending && phase !== "pick")
-      return "Loading the FanX/Kayen quote — checking the swap output is above the 0.10 USDC minimum.";
-    if (expectedStakeExceedsCap && maxBetAmountCapped)
-      return `Stake exceeds the pool's per-prediction cap of ${formatUsdc(maxBetAmountCapped, usdcDecimals)} USDC. Try a smaller amount.`;
-    if (insufficientLiquidity)
-      return `Pool too thin for this stake. Free balance: ${formatUsdc(poolFreeBalance as bigint | undefined, usdcDecimals)} USDC.`;
+      return "Loading the FanX/Kayen quote — checking the swap output is above the 0.01 USDC minimum.";
     if (swapPathMissing) return `No FanX/Kayen liquidity for ${tokenLabel(token)} → USDC. Pick another token.`;
     if (usdcZeroBalance && phase === "stake")
       return `You hold 0 USDC at ${chilizConfig.usdc.slice(0, 8)}…${chilizConfig.usdc.slice(-6)}. Acquire test USDC before predicting.`;
@@ -833,11 +780,6 @@ export function MarketBetDialog({
             <div className="flex-1 overflow-y-auto px-7 py-6">
               <NetworkGuard />
 
-              {/* Policy gate — couche 2 du defense-in-depth no-live-betting.
-                  Si le match est passé live / dans le buffer kickoff /
-                  postponed pendant que le dialog était ouvert (ou ouvert
-                  trop tard), on remplace tout le step par ce panneau et le
-                  CTA bascule en "Close". */}
               {!policyAllowsBetting && (phase === "pick" || phase === "stake" || phase === "review") ? (
                 <div className="flex flex-col items-center gap-4 py-10 text-center">
                   <div
@@ -884,6 +826,9 @@ export function MarketBetDialog({
                   homeTeam={homeTeam}
                   awayTeam={awayTeam}
                   oddsBySelection={oddsBySelection}
+                  impliedProbBpsBySelection={impliedProbBpsBySelection}
+                  outcomePoolsBySelection={outcomePoolsBySelection}
+                  usdcDecimals={usdcDecimals}
                 />
               )}
 
@@ -922,14 +867,13 @@ export function MarketBetDialog({
                   marketBadge={(marketSpec?.key ?? "").toUpperCase()}
                   marketLabel={marketSpec?.label ?? "—"}
                   selectionLabel={selectionLabel}
-                  oddsDecimal={oddsDecimal}
                   stakeLabel={stakeLabel}
                   stakeUsdcEquiv={
                     stakeUsdcEquivNum !== null ? `${fmtUsd(stakeUsdcEquivNum)} USDC` : null
                   }
                   slippageBps={token.kind !== "USDC" ? slippageBps : null}
-                  grossPayoutUsdc={grossPayoutUsdc}
-                  feeBps={PROTOCOL_FEE_BPS}
+                  netPayoutUsdc={grossPayoutUsdc}
+                  feeBps={feeBps}
                 />
               )}
 
@@ -938,7 +882,7 @@ export function MarketBetDialog({
                   txHash={txHash}
                   selectionLabel={selectionLabel}
                   stakeLabel={stakeLabel}
-                  oddsDecimal={oddsDecimal}
+                  oddsDecimal={null}
                   netPayoutLabel={netPayoutLabel}
                   onAnother={() => {
                     setPhase("pick");
@@ -957,7 +901,6 @@ export function MarketBetDialog({
                   txHash={txHash}
                   reason={failureReason}
                   onRetry={() => {
-                    // Back to the review step so the user can re-submit.
                     setBannerError(null);
                     setFailureReason(null);
                     advancedRef.current = false;
@@ -978,7 +921,6 @@ export function MarketBetDialog({
                   nextDisabled={nextDisabled}
                   submitting={phase === "review" && submitting}
                 />
-                {/* Indexer-status hint below the action while we're awaiting the event */}
                 {phase === "review" && submitting && (
                   <div className="font-mono-ctv mt-3 text-center text-[10px] uppercase tracking-[0.16em] text-white/40">
                     {isApproving ? `Approving ${tokenLabel(token)}…` : isPending ? "Confirm in wallet…" : "Placing prediction…"}

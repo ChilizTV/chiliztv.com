@@ -13,6 +13,8 @@ export interface BrowseMatchDto {
   status: string;
   score: { home: number; away: number } | null;
   odds: { home: number | null; draw: number | null; away: number | null } | null;
+  /** PariMatch proxy address (lowercased). Null when the match has no contract deployed yet. */
+  contractAddress: string | null;
   streamsPreview: StreamPreviewDto[];
 }
 

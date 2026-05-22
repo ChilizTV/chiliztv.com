@@ -6,8 +6,8 @@ import { useWaitForTransactionReceipt } from 'wagmi';
 import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
-    useBettingMatchWriteClaim,
-    useBettingMatchWriteClaimRefund,
+    usePariMatchBaseWriteClaim,
+    usePariMatchBaseWriteClaimRefund,
 } from '@/lib/contracts/generated';
 import { chilizConfig } from '@/config/chiliz.config';
 import { describeError } from '@/lib/contracts/errors';
@@ -48,10 +48,10 @@ export function BetRow({ bet }: BetRowProps) {
     const isPending = bet.status === 'PENDING';
 
     // ── Claim / refund tx state ─────────────────────────────────────────
-    const { writeContract: writeClaim, data: claimHash, isPending: claimPending, error: claimError } = useBettingMatchWriteClaim();
+    const { writeContract: writeClaim, data: claimHash, isPending: claimPending, error: claimError } = usePariMatchBaseWriteClaim();
     const { isLoading: claimConfirming, isSuccess: claimSuccess } = useWaitForTransactionReceipt({ hash: claimHash });
 
-    const { writeContract: writeRefund, data: refundHash, isPending: refundPending, error: refundError } = useBettingMatchWriteClaimRefund();
+    const { writeContract: writeRefund, data: refundHash, isPending: refundPending, error: refundError } = usePariMatchBaseWriteClaimRefund();
     const { isLoading: refundConfirming, isSuccess: refundSuccess } = useWaitForTransactionReceipt({ hash: refundHash });
 
     const invalidateBets = useInvalidateMyBets();
@@ -86,25 +86,33 @@ export function BetRow({ bet }: BetRowProps) {
     }, [claimError, refundError]);
 
     const onClaim = () => {
-        const args: readonly [bigint, bigint] = [BigInt(bet.marketId), BigInt(bet.betIndex)];
+        const args: readonly [bigint] = [BigInt(bet.marketId)];
         const writeArgs = { address: bet.contractAddress as Address, args, chainId: chilizConfig.chainId } as const;
         if (refundable) writeRefund(writeArgs);
         else writeClaim(writeArgs);
     };
 
     const isTxPending = claimPending || claimConfirming || refundPending || refundConfirming;
-    const stake = Number(bet.netStake) / 10 ** (assetDecimals ?? 6);
-    const potential = stake * (bet.oddsX10000 / 10_000);
-    // `bet.payout` is only populated on the Payout event (i.e. after the user
-    // claims). When a market settles but the user hasn't claimed yet, the
-    // backend marks status=WON but leaves payout null — fall back to the
-    // expected `stake × odds` so the row never displays "$0.00 Won".
-    const claimedPayout = bet.payout ? Number(bet.payout) / 10 ** (assetDecimals ?? 6) : 0;
-    const payout = claimedPayout > 0 ? claimedPayout : potential;
+    const decimals = assetDecimals ?? 6;
+    const stake = Number(bet.stakeAmount) / 10 ** decimals;
+    // Pari-mutuel: no fixed odds → no client-side "potential" computable
+    // without the live pool snapshot. Display the actual payoutAmount when
+    // the indexer has filled it (PositionClaimed/StakeRefunded), otherwise
+    // the column shows "—" / "Pending" for un-settled rows.
+    const claimedPayout = bet.payoutAmount ? Number(bet.payoutAmount) / 10 ** decimals : null;
+    // Implied probability AT placement time — recorded on-chain via
+    // newOutcomePool / newTotalPool. Useful historical info on the row.
+    const placementProbPct = (() => {
+        const total = Number(bet.newTotalPool);
+        const outcome = Number(bet.newOutcomePool);
+        if (!Number.isFinite(total) || total <= 0) return null;
+        if (!Number.isFinite(outcome) || outcome < 0) return null;
+        return (outcome / total) * 100;
+    })();
 
     const matchLabel = bet.match ? `${bet.match.homeTeamName} vs ${bet.match.awayTeamName}` : 'Unknown match';
     const sel = fmtSelection(
-        bet.selection,
+        bet.outcome,
         bet.match?.homeTeamName,
         bet.match?.awayTeamName,
         bet.marketType,
@@ -112,15 +120,15 @@ export function BetRow({ bet }: BetRowProps) {
     );
 
     // Visible status — overlay first (the user just acted), server second.
-    // The indexer's authoritative `claimedAt` / `refundedAt` also drives
-    // the "Claimed" / "Refunded" pills.
+    // The indexer's authoritative `claimedAt` drives both pills (parimutuel
+    // collapses claim/refund into a single timestamp).
     const overlayEntry = lookup(bet);
     const showClaimedPill =
         overlayEntry?.kind === 'claimed' ||
         (bet.status === 'WON' && bet.claimedAt !== null);
     const showRefundedPill =
         overlayEntry?.kind === 'refunded' ||
-        (bet.status === 'REFUNDED' && bet.refundedAt !== null);
+        (bet.status === 'REFUNDED' && bet.claimedAt !== null);
 
     return (
         <div
@@ -144,7 +152,7 @@ export function BetRow({ bet }: BetRowProps) {
 
             <div>
                 <div className="font-mono-ctv text-[13px] font-semibold tabular-nums text-white">
-                    ×{(bet.oddsX10000 / 10_000).toFixed(2)}
+                    {placementProbPct !== null ? `${placementProbPct.toFixed(1)}%` : '—'}
                 </div>
                 <div className="font-mono-ctv mt-0.5 text-[10px] uppercase tracking-[0.14em] text-white/45">
                     {timeAgo(new Date(bet.placedAt).getTime())}
@@ -152,22 +160,22 @@ export function BetRow({ bet }: BetRowProps) {
             </div>
 
             <div>
-                {bet.status === 'WON' || bet.status === 'REFUNDED' ? (
+                {(bet.status === 'WON' || bet.status === 'REFUNDED') && claimedPayout !== null ? (
                     <div
                         className="font-mono-ctv text-[13px] font-semibold tabular-nums"
                         style={{ color: isWon ? '#2dd4a4' : 'rgba(255,255,255,0.65)' }}
                     >
-                        {fmtUsd(payout)}
+                        {fmtUsd(claimedPayout)}
                     </div>
                 ) : isLost ? (
                     <div className="font-mono-ctv text-[13px] font-semibold tabular-nums text-white/35">—</div>
                 ) : (
                     <div className="font-mono-ctv text-[13px] font-semibold tabular-nums text-white/65">
-                        {fmtUsd(potential)}
+                        —
                     </div>
                 )}
                 <div className="font-mono-ctv mt-0.5 text-[10px] uppercase tracking-[0.14em] text-white/45">
-                    {isPending ? 'Potential' : isWon ? 'Won' : isLost ? 'Lost' : 'Refund'}
+                    {isPending ? 'Pending settle' : isWon ? 'Won' : isLost ? 'Lost' : 'Refund'}
                 </div>
             </div>
 

@@ -13,7 +13,6 @@ import type { DashboardStats } from '../hooks/useDashboardStats';
 interface StatsHeroProps {
     readonly stats: DashboardStats;
     readonly onPlaceFirstBet?: () => void;
-    readonly onJoinPool?: () => void;
 }
 
 const EMPTY_PLACEHOLDERS = [
@@ -22,7 +21,7 @@ const EMPTY_PLACEHOLDERS = [
     { eyebrow: 'Open positions',             value: '0', sub: 'Nothing pending' },
 ] as const;
 
-export function StatsHero({ stats, onPlaceFirstBet, onJoinPool }: StatsHeroProps) {
+export function StatsHero({ stats, onPlaceFirstBet }: StatsHeroProps) {
     const isEmpty = stats.totalBets === 0 && stats.openBets === 0 && stats.portfolioUSD === 0;
 
     if (isEmpty) {
@@ -46,7 +45,7 @@ export function StatsHero({ stats, onPlaceFirstBet, onJoinPool }: StatsHeroProps
                             $0.00
                         </div>
                         <div className="font-mono-ctv mt-3 text-[11px] uppercase tracking-[0.18em] text-white/35">
-                            No predictions · no LP shares · no fan tokens
+                            No predictions · no fan tokens
                         </div>
                         <div className="mt-8">
                             <PlaceholderSparkline width={520} height={48} />
@@ -55,7 +54,6 @@ export function StatsHero({ stats, onPlaceFirstBet, onJoinPool }: StatsHeroProps
                             <ActionPill primary onClick={onPlaceFirstBet}>
                                 Make your first prediction →
                             </ActionPill>
-                            <ActionPill onClick={onJoinPool}>Or join the pool</ActionPill>
                         </div>
                     </div>
 
@@ -85,7 +83,7 @@ export function StatsHero({ stats, onPlaceFirstBet, onJoinPool }: StatsHeroProps
                 <HeroStat
                     eyebrow="Portfolio · USDC equivalent"
                     value={fmtUsd(stats.portfolioUSD, { dp: 2 })}
-                    sub="Across CHZ · LP shares · fan tokens"
+                    sub="Across CHZ · fan tokens"
                     spark={stats.pnlSeries ?? undefined}
                     sparkColor="#2dd4a4"
                 />

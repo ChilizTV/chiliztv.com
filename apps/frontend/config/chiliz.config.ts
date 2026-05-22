@@ -12,14 +12,16 @@ export interface ChilizToken {
 export interface ChilizNetworkConfig {
     rpcUrl: string;
     chainId: number;
-    bettingContract: `0x${string}`; // Legacy (deprecated)
-    bettingMatchFactory: `0x${string}`;
+    /** PariMatchFactory — deploys FootballPariMatch / BasketballPariMatch proxies. */
+    pariMatchFactory: `0x${string}`;
     streamWalletFactory: `0x${string}`;
-    liquidityPool: `0x${string}`;
-    /** Unified swap router (FanX/Kayen adapter). Source of multi-asset bets,
-     *  donations, subscriptions, and LP deposits. */
+    /** Unified swap router (Kayen adapter). Source of multi-asset bets,
+     *  donations, and subscriptions. No more LP deposits in parimutuel model. */
     chilizSwapRouter: `0x${string}`;
-    /** USDC token used as settlement currency by the pool and swap router. */
+    /** LeaderboardRewards proxy — epoch-based merkle distribution of the
+     *  leaderboard fee split (default 1% of every resolved market). */
+    leaderboardRewards: `0x${string}`;
+    /** USDC token — settlement currency for stakes, payouts, refunds. */
     usdc: `0x${string}`;
     /** Wrapped CHZ — used by the swap router's native-CHZ swap path. */
     wchz: `0x${string}`;
@@ -215,68 +217,33 @@ const MAINNET_TOKENS: ChilizToken[] = [
 
 const NETWORK = (process.env.NEXT_PUBLIC_NETWORK || process.env.NETWORK || 'testnet').toLowerCase();
 
-// Legacy betting contract
-const TESTNET_BETTING_CONTRACT = (process.env.NEXT_PUBLIC_BETTING_CONTRACT_ADDRESS_TESTNET || '0x0000000000000000000000000000000000000000') as `0x${string}`;
-const MAINNET_BETTING_CONTRACT = (process.env.NEXT_PUBLIC_BETTING_CONTRACT_ADDRESS_MAINNET || process.env.NEXT_PUBLIC_BETTING_CONTRACT_ADDRESS || '0x0000000000000000000000000000000000000000') as `0x${string}`;
+const ZERO = '0x0000000000000000000000000000000000000000' as const;
 
-// New betting system
-const TESTNET_BETTING_FACTORY = (process.env.NEXT_PUBLIC_BETTING_MATCH_FACTORY_ADDRESS || '0x0000000000000000000000000000000000000000') as `0x${string}`;
-const MAINNET_BETTING_FACTORY = (process.env.NEXT_PUBLIC_BETTING_MATCH_FACTORY_ADDRESS_MAINNET || '0x0000000000000000000000000000000000000000') as `0x${string}`;
+const TESTNET_PARI_MATCH_FACTORY = (process.env.NEXT_PUBLIC_PARI_MATCH_FACTORY_ADDRESS || ZERO) as `0x${string}`;
+const MAINNET_PARI_MATCH_FACTORY = (process.env.NEXT_PUBLIC_PARI_MATCH_FACTORY_ADDRESS_MAINNET || ZERO) as `0x${string}`;
 
-// Stream wallet factory
-const TESTNET_STREAM_WALLET_FACTORY = (process.env.NEXT_PUBLIC_STREAM_WALLET_FACTORY_ADDRESS || '0x0000000000000000000000000000000000000000') as `0x${string}`;
-const MAINNET_STREAM_WALLET_FACTORY = (process.env.NEXT_PUBLIC_STREAM_WALLET_FACTORY_ADDRESS_MAINNET || '0x0000000000000000000000000000000000000000') as `0x${string}`;
+const TESTNET_STREAM_WALLET_FACTORY = (process.env.NEXT_PUBLIC_STREAM_WALLET_FACTORY_ADDRESS || ZERO) as `0x${string}`;
+const MAINNET_STREAM_WALLET_FACTORY = (process.env.NEXT_PUBLIC_STREAM_WALLET_FACTORY_ADDRESS_MAINNET || ZERO) as `0x${string}`;
 
-// Liquidity pool — always the proxy address (users interact with the proxy, not the implementation)
-const TESTNET_LIQUIDITY_POOL = (
-    process.env.NEXT_PUBLIC_LIQUIDITY_POOL_PROXY ||
-    process.env.NEXT_PUBLIC_LIQUIDITY_POOL_ADDRESS ||
-    '0x0000000000000000000000000000000000000000'
-) as `0x${string}`;
-const MAINNET_LIQUIDITY_POOL = (
-    process.env.NEXT_PUBLIC_LIQUIDITY_POOL_PROXY_MAINNET ||
-    process.env.NEXT_PUBLIC_LIQUIDITY_POOL_ADDRESS_MAINNET ||
-    '0x0000000000000000000000000000000000000000'
-) as `0x${string}`;
+const TESTNET_SWAP_ROUTER = (process.env.NEXT_PUBLIC_CHILIZ_SWAP_ROUTER_ADDRESS || ZERO) as `0x${string}`;
+const MAINNET_SWAP_ROUTER = (process.env.NEXT_PUBLIC_CHILIZ_SWAP_ROUTER_ADDRESS_MAINNET || ZERO) as `0x${string}`;
 
-// Unified swap router (FanX/Kayen adapter). Single entrypoint for multi-asset
-// bets, donations, subscriptions, and LP deposits.
-const TESTNET_SWAP_ROUTER = (
-    process.env.NEXT_PUBLIC_CHILIZ_SWAP_ROUTER_ADDRESS ||
-    '0x0000000000000000000000000000000000000000'
-) as `0x${string}`;
-const MAINNET_SWAP_ROUTER = (
-    process.env.NEXT_PUBLIC_CHILIZ_SWAP_ROUTER_ADDRESS_MAINNET ||
-    '0x0000000000000000000000000000000000000000'
-) as `0x${string}`;
+const TESTNET_LEADERBOARD = (process.env.NEXT_PUBLIC_LEADERBOARD_REWARDS_ADDRESS || ZERO) as `0x${string}`;
+const MAINNET_LEADERBOARD = (process.env.NEXT_PUBLIC_LEADERBOARD_REWARDS_ADDRESS_MAINNET || ZERO) as `0x${string}`;
 
-// USDC + WCHZ — settlement and native-CHZ swap path tokens.
-const TESTNET_USDC = (
-    process.env.NEXT_PUBLIC_USDC_ADDRESS ||
-    '0x0000000000000000000000000000000000000000'
-) as `0x${string}`;
-const MAINNET_USDC = (
-    process.env.NEXT_PUBLIC_USDC_ADDRESS_MAINNET ||
-    '0x0000000000000000000000000000000000000000'
-) as `0x${string}`;
+const TESTNET_USDC = (process.env.NEXT_PUBLIC_USDC_ADDRESS || ZERO) as `0x${string}`;
+const MAINNET_USDC = (process.env.NEXT_PUBLIC_USDC_ADDRESS_MAINNET || ZERO) as `0x${string}`;
 
-const TESTNET_WCHZ = (
-    process.env.NEXT_PUBLIC_WCHZ_ADDRESS ||
-    '0x0000000000000000000000000000000000000000'
-) as `0x${string}`;
-const MAINNET_WCHZ = (
-    process.env.NEXT_PUBLIC_WCHZ_ADDRESS_MAINNET ||
-    '0x0000000000000000000000000000000000000000'
-) as `0x${string}`;
+const TESTNET_WCHZ = (process.env.NEXT_PUBLIC_WCHZ_ADDRESS || ZERO) as `0x${string}`;
+const MAINNET_WCHZ = (process.env.NEXT_PUBLIC_WCHZ_ADDRESS_MAINNET || ZERO) as `0x${string}`;
 
 const TESTNET_CONFIG: ChilizNetworkConfig = {
     rpcUrl: 'https://spicy-rpc.chiliz.com',
     chainId: 88882,
-    bettingContract: TESTNET_BETTING_CONTRACT,
-    bettingMatchFactory: TESTNET_BETTING_FACTORY,
+    pariMatchFactory: TESTNET_PARI_MATCH_FACTORY,
     streamWalletFactory: TESTNET_STREAM_WALLET_FACTORY,
-    liquidityPool: TESTNET_LIQUIDITY_POOL,
     chilizSwapRouter: TESTNET_SWAP_ROUTER,
+    leaderboardRewards: TESTNET_LEADERBOARD,
     usdc: TESTNET_USDC,
     wchz: TESTNET_WCHZ,
     tokens: TESTNET_TOKENS.map(token => ({
@@ -288,11 +255,10 @@ const TESTNET_CONFIG: ChilizNetworkConfig = {
 const MAINNET_CONFIG: ChilizNetworkConfig = {
     rpcUrl: 'https://rpc.ankr.com/chiliz',
     chainId: 88888,
-    bettingContract: MAINNET_BETTING_CONTRACT,
-    bettingMatchFactory: MAINNET_BETTING_FACTORY,
+    pariMatchFactory: MAINNET_PARI_MATCH_FACTORY,
     streamWalletFactory: MAINNET_STREAM_WALLET_FACTORY,
-    liquidityPool: MAINNET_LIQUIDITY_POOL,
     chilizSwapRouter: MAINNET_SWAP_ROUTER,
+    leaderboardRewards: MAINNET_LEADERBOARD,
     usdc: MAINNET_USDC,
     wchz: MAINNET_WCHZ,
     tokens: MAINNET_TOKENS
@@ -311,13 +277,13 @@ if (typeof window !== 'undefined') {
     // Surface the FULL set of addresses the frontend is reading from env so
     // a stale `.env` (or a missing `.env.local`) is immediately visible — if
     // any of these are 0x0000…, that env var didn't load.
-    console.log(`🌐 Chiliz Network Configuration: ${networkType.toUpperCase()}`);
+    console.log(`Chiliz Network Configuration: ${networkType.toUpperCase()}`);
     console.log(`   RPC URL                : ${chilizConfig.rpcUrl}`);
     console.log(`   Chain ID               : ${chilizConfig.chainId}`);
-    console.log(`   BettingMatchFactory    : ${chilizConfig.bettingMatchFactory}`);
+    console.log(`   PariMatchFactory       : ${chilizConfig.pariMatchFactory}`);
     console.log(`   StreamWalletFactory    : ${chilizConfig.streamWalletFactory}`);
     console.log(`   ChilizSwapRouter       : ${chilizConfig.chilizSwapRouter}`);
-    console.log(`   LiquidityPool (proxy)  : ${chilizConfig.liquidityPool}`);
+    console.log(`   LeaderboardRewards     : ${chilizConfig.leaderboardRewards}`);
     console.log(`   USDC                   : ${chilizConfig.usdc}`);
     console.log(`   WCHZ                   : ${chilizConfig.wchz}`);
     console.log(`   Fan tokens             : ${chilizConfig.tokens.length}`);

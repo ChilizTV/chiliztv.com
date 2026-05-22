@@ -6,16 +6,23 @@ import {
 } from 'wagmi/codegen'
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// BasketballMatch
+// BasketballPariMatch
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-export const basketballMatchAbi = [
+export const basketballPariMatchAbi = [
   { type: 'constructor', inputs: [], stateMutability: 'nonpayable' },
   {
     type: 'function',
     inputs: [],
     name: 'ADMIN_ROLE',
     outputs: [{ name: '', internalType: 'bytes32', type: 'bytes32' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'BPS_DENOM',
+    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
     stateMutability: 'view',
   },
   {
@@ -36,6 +43,13 @@ export const basketballMatchAbi = [
     type: 'function',
     inputs: [],
     name: 'MARKET_HIGHEST_QUARTER',
+    outputs: [{ name: '', internalType: 'bytes32', type: 'bytes32' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'MARKET_POINTS_EXACT',
     outputs: [{ name: '', internalType: 'bytes32', type: 'bytes32' }],
     stateMutability: 'view',
   },
@@ -70,36 +84,15 @@ export const basketballMatchAbi = [
   {
     type: 'function',
     inputs: [],
-    name: 'MAX_ODDS',
-    outputs: [{ name: '', internalType: 'uint32', type: 'uint32' }],
+    name: 'MAX_FEE_BPS',
+    outputs: [{ name: '', internalType: 'uint16', type: 'uint16' }],
     stateMutability: 'view',
   },
   {
     type: 'function',
     inputs: [],
-    name: 'MIN_NET_STAKE',
+    name: 'MIN_STAKE',
     outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [],
-    name: 'MIN_ODDS',
-    outputs: [{ name: '', internalType: 'uint32', type: 'uint32' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [],
-    name: 'ODDS_PRECISION',
-    outputs: [{ name: '', internalType: 'uint32', type: 'uint32' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [],
-    name: 'ODDS_SETTER_ROLE',
-    outputs: [{ name: '', internalType: 'bytes32', type: 'bytes32' }],
     stateMutability: 'view',
   },
   {
@@ -134,30 +127,28 @@ export const basketballMatchAbi = [
     type: 'function',
     inputs: [
       { name: 'marketType', internalType: 'bytes32', type: 'bytes32' },
-      { name: 'initialOdds', internalType: 'uint32', type: 'uint32' },
       { name: 'line', internalType: 'int16', type: 'int16' },
+      { name: 'extra', internalType: 'uint8', type: 'uint8' },
+      { name: 'groupId', internalType: 'uint16', type: 'uint16' },
     ],
-    name: 'addMarketWithLine',
-    outputs: [],
+    name: 'addMarketAdvanced',
+    outputs: [{ name: 'marketId', internalType: 'uint256', type: 'uint256' }],
     stateMutability: 'nonpayable',
   },
   {
     type: 'function',
     inputs: [
       { name: 'marketType', internalType: 'bytes32', type: 'bytes32' },
-      { name: 'initialOdds', internalType: 'uint32', type: 'uint32' },
       { name: 'line', internalType: 'int16', type: 'int16' },
-      { name: 'quarter', internalType: 'uint8', type: 'uint8' },
     ],
-    name: 'addMarketWithQuarter',
-    outputs: [],
+    name: 'addMarketWithLine',
+    outputs: [{ name: 'marketId', internalType: 'uint256', type: 'uint256' }],
     stateMutability: 'nonpayable',
   },
   {
     type: 'function',
     inputs: [
       { name: 'marketTypes', internalType: 'bytes32[]', type: 'bytes32[]' },
-      { name: 'initialOdds', internalType: 'uint32[]', type: 'uint32[]' },
       { name: 'lines', internalType: 'int16[]', type: 'int16[]' },
     ],
     name: 'addMarketsBatch',
@@ -168,25 +159,34 @@ export const basketballMatchAbi = [
     type: 'function',
     inputs: [
       { name: 'marketTypes', internalType: 'bytes32[]', type: 'bytes32[]' },
-      { name: 'initialOdds', internalType: 'uint32[]', type: 'uint32[]' },
       { name: 'lines', internalType: 'int16[]', type: 'int16[]' },
-      { name: 'quarters', internalType: 'uint8[]', type: 'uint8[]' },
+      { name: 'extras', internalType: 'uint8[]', type: 'uint8[]' },
+      { name: 'groupIds', internalType: 'uint16[]', type: 'uint16[]' },
     ],
-    name: 'addMarketsBatchWithQuarter',
+    name: 'addMarketsBatchAdvanced',
     outputs: [],
     stateMutability: 'nonpayable',
   },
   {
     type: 'function',
-    inputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
-    name: 'basketballMarkets',
-    outputs: [
+    inputs: [
+      { name: 'line', internalType: 'int16', type: 'int16' },
+      { name: 'step', internalType: 'uint8', type: 'uint8' },
+    ],
+    name: 'addPointsExactMarket',
+    outputs: [{ name: 'marketId', internalType: 'uint256', type: 'uint256' }],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [
       { name: 'marketType', internalType: 'bytes32', type: 'bytes32' },
       { name: 'line', internalType: 'int16', type: 'int16' },
       { name: 'quarter', internalType: 'uint8', type: 'uint8' },
-      { name: 'maxSelections', internalType: 'uint8', type: 'uint8' },
     ],
-    stateMutability: 'view',
+    name: 'addQuarterMarket',
+    outputs: [{ name: 'marketId', internalType: 'uint256', type: 'uint256' }],
+    stateMutability: 'nonpayable',
   },
   {
     type: 'function',
@@ -200,39 +200,33 @@ export const basketballMatchAbi = [
   },
   {
     type: 'function',
-    inputs: [
-      { name: 'marketId', internalType: 'uint256', type: 'uint256' },
-      { name: 'betIndex', internalType: 'uint256', type: 'uint256' },
-    ],
+    inputs: [{ name: 'marketId', internalType: 'uint256', type: 'uint256' }],
     name: 'claim',
     outputs: [],
     stateMutability: 'nonpayable',
   },
   {
     type: 'function',
+    inputs: [
+      { name: 'marketIds', internalType: 'uint256[]', type: 'uint256[]' },
+    ],
+    name: 'claimBatch',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
     inputs: [{ name: 'marketId', internalType: 'uint256', type: 'uint256' }],
-    name: 'claimAll',
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    inputs: [
-      { name: 'marketId', internalType: 'uint256', type: 'uint256' },
-      { name: 'start', internalType: 'uint256', type: 'uint256' },
-      { name: 'end', internalType: 'uint256', type: 'uint256' },
-    ],
-    name: 'claimRange',
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    inputs: [
-      { name: 'marketId', internalType: 'uint256', type: 'uint256' },
-      { name: 'betIndex', internalType: 'uint256', type: 'uint256' },
-    ],
     name: 'claimRefund',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'marketIds', internalType: 'uint256[]', type: 'uint256[]' },
+    ],
+    name: 'claimRefundBatch',
     outputs: [],
     stateMutability: 'nonpayable',
   },
@@ -254,6 +248,34 @@ export const basketballMatchAbi = [
   },
   {
     type: 'function',
+    inputs: [
+      { name: 'marketId', internalType: 'uint256', type: 'uint256' },
+      {
+        name: 's',
+        internalType: 'struct BasketballPariMatch.BasketballScore',
+        type: 'tuple',
+        components: [
+          { name: 'homeQ1', internalType: 'uint8', type: 'uint8' },
+          { name: 'awayQ1', internalType: 'uint8', type: 'uint8' },
+          { name: 'homeQ2', internalType: 'uint8', type: 'uint8' },
+          { name: 'awayQ2', internalType: 'uint8', type: 'uint8' },
+          { name: 'homeQ3', internalType: 'uint8', type: 'uint8' },
+          { name: 'awayQ3', internalType: 'uint8', type: 'uint8' },
+          { name: 'homeQ4', internalType: 'uint8', type: 'uint8' },
+          { name: 'awayQ4', internalType: 'uint8', type: 'uint8' },
+          { name: 'firstToScore', internalType: 'uint8', type: 'uint8' },
+        ],
+      },
+    ],
+    name: 'computeOutcome',
+    outputs: [
+      { name: 'outcome', internalType: 'uint64', type: 'uint64' },
+      { name: 'resolvable', internalType: 'bool', type: 'bool' },
+    ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
     inputs: [],
     name: 'emergencyPause',
     outputs: [],
@@ -261,47 +283,26 @@ export const basketballMatchAbi = [
   },
   {
     type: 'function',
-    inputs: [{ name: 'marketId', internalType: 'uint256', type: 'uint256' }],
-    name: 'getBasketballMarket',
-    outputs: [
-      { name: 'marketTypeStr', internalType: 'string', type: 'string' },
-      { name: 'line', internalType: 'int16', type: 'int16' },
-      { name: 'quarter', internalType: 'uint8', type: 'uint8' },
-      { name: 'maxSelections', internalType: 'uint8', type: 'uint8' },
-      {
-        name: 'state',
-        internalType: 'enum BettingMatch.MarketState',
-        type: 'uint8',
-      },
-      { name: 'currentOdds', internalType: 'uint32', type: 'uint32' },
-      { name: 'result', internalType: 'uint64', type: 'uint64' },
-      { name: 'totalPool', internalType: 'uint256', type: 'uint256' },
-    ],
+    inputs: [],
+    name: 'feeBps',
+    outputs: [{ name: '', internalType: 'uint16', type: 'uint16' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'feeRecipient',
+    outputs: [{ name: '', internalType: 'address', type: 'address' }],
     stateMutability: 'view',
   },
   {
     type: 'function',
     inputs: [
       { name: 'marketId', internalType: 'uint256', type: 'uint256' },
-      { name: 'user', internalType: 'address', type: 'address' },
-      { name: 'betIndex', internalType: 'uint256', type: 'uint256' },
+      { name: 'outcome', internalType: 'uint64', type: 'uint64' },
     ],
-    name: 'getBetDetails',
-    outputs: [
-      { name: 'amount', internalType: 'uint256', type: 'uint256' },
-      { name: 'selection', internalType: 'uint64', type: 'uint64' },
-      { name: 'odds', internalType: 'uint32', type: 'uint32' },
-      { name: 'timestamp', internalType: 'uint40', type: 'uint40' },
-      { name: 'claimed', internalType: 'bool', type: 'bool' },
-      { name: 'potentialPayout', internalType: 'uint256', type: 'uint256' },
-    ],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [{ name: 'marketId', internalType: 'uint256', type: 'uint256' }],
-    name: 'getCurrentOdds',
-    outputs: [{ name: '', internalType: 'uint32', type: 'uint32' }],
+    name: 'getImpliedProbabilityBps',
+    outputs: [{ name: 'bps', internalType: 'uint256', type: 'uint256' }],
     stateMutability: 'view',
   },
   {
@@ -311,18 +312,18 @@ export const basketballMatchAbi = [
     outputs: [
       {
         name: '',
-        internalType: 'struct BettingMatch.MarketCore',
+        internalType: 'struct PariMatchBase.MarketCore',
         type: 'tuple',
         components: [
           {
             name: 'state',
-            internalType: 'enum BettingMatch.MarketState',
+            internalType: 'enum PariMatchBase.MarketState',
             type: 'uint8',
           },
           { name: 'result', internalType: 'uint64', type: 'uint64' },
           { name: 'createdAt', internalType: 'uint40', type: 'uint40' },
           { name: 'resolvedAt', internalType: 'uint40', type: 'uint40' },
-          { name: 'totalPool', internalType: 'uint256', type: 'uint256' },
+          { name: 'resolvedNetPool', internalType: 'uint256', type: 'uint256' },
         ],
       },
     ],
@@ -336,27 +337,43 @@ export const basketballMatchAbi = [
       { name: 'marketType', internalType: 'bytes32', type: 'bytes32' },
       {
         name: 'state',
-        internalType: 'enum BettingMatch.MarketState',
+        internalType: 'enum PariMatchBase.MarketState',
         type: 'uint8',
       },
-      { name: 'currentOdds', internalType: 'uint32', type: 'uint32' },
       { name: 'result', internalType: 'uint64', type: 'uint64' },
       { name: 'totalPool', internalType: 'uint256', type: 'uint256' },
+      { name: 'outcomeCount', internalType: 'uint256', type: 'uint256' },
     ],
     stateMutability: 'view',
   },
   {
     type: 'function',
     inputs: [{ name: 'marketId', internalType: 'uint256', type: 'uint256' }],
-    name: 'getMarketLiability',
-    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
+    name: 'getMarketSpec',
+    outputs: [
+      {
+        name: '',
+        internalType: 'struct PariMatchBase.MarketSpec',
+        type: 'tuple',
+        components: [
+          { name: 'marketType', internalType: 'bytes32', type: 'bytes32' },
+          { name: 'line', internalType: 'int16', type: 'int16' },
+          { name: 'maxOutcome', internalType: 'uint8', type: 'uint8' },
+          { name: 'extra', internalType: 'uint8', type: 'uint8' },
+          { name: 'groupId', internalType: 'uint16', type: 'uint16' },
+        ],
+      },
+    ],
     stateMutability: 'view',
   },
   {
     type: 'function',
-    inputs: [{ name: 'marketId', internalType: 'uint256', type: 'uint256' }],
-    name: 'getOddsHistory',
-    outputs: [{ name: '', internalType: 'uint32[]', type: 'uint32[]' }],
+    inputs: [
+      { name: 'marketId', internalType: 'uint256', type: 'uint256' },
+      { name: 'outcome', internalType: 'uint64', type: 'uint64' },
+    ],
+    name: 'getOutcomePool',
+    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
     stateMutability: 'view',
   },
   {
@@ -368,25 +385,30 @@ export const basketballMatchAbi = [
   },
   {
     type: 'function',
+    inputs: [{ name: 'marketId', internalType: 'uint256', type: 'uint256' }],
+    name: 'getTotalPool',
+    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'marketId', internalType: 'uint256', type: 'uint256' },
+      { name: 'user', internalType: 'address', type: 'address' },
+      { name: 'outcome', internalType: 'uint64', type: 'uint64' },
+    ],
+    name: 'getUserStake',
+    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
     inputs: [
       { name: 'marketId', internalType: 'uint256', type: 'uint256' },
       { name: 'user', internalType: 'address', type: 'address' },
     ],
-    name: 'getUserBets',
-    outputs: [
-      {
-        name: '',
-        internalType: 'struct BettingMatch.Bet[]',
-        type: 'tuple[]',
-        components: [
-          { name: 'amount', internalType: 'uint256', type: 'uint256' },
-          { name: 'selection', internalType: 'uint64', type: 'uint64' },
-          { name: 'oddsIndex', internalType: 'uint16', type: 'uint16' },
-          { name: 'timestamp', internalType: 'uint40', type: 'uint40' },
-          { name: 'claimed', internalType: 'bool', type: 'bool' },
-        ],
-      },
-    ],
+    name: 'getUserTotalStake',
+    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
     stateMutability: 'view',
   },
   {
@@ -398,6 +420,16 @@ export const basketballMatchAbi = [
     name: 'grantRole',
     outputs: [],
     stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'marketId', internalType: 'uint256', type: 'uint256' },
+      { name: 'user', internalType: 'address', type: 'address' },
+    ],
+    name: 'hasClaimed',
+    outputs: [{ name: '', internalType: 'bool', type: 'bool' }],
+    stateMutability: 'view',
   },
   {
     type: 'function',
@@ -422,10 +454,15 @@ export const basketballMatchAbi = [
   {
     type: 'function',
     inputs: [],
-    name: 'liquidityPool',
-    outputs: [
-      { name: '', internalType: 'contract ILiquidityPool', type: 'address' },
-    ],
+    name: 'leaderboardFeeBps',
+    outputs: [{ name: '', internalType: 'uint16', type: 'uint16' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'leaderboardRecipient',
+    outputs: [{ name: '', internalType: 'address', type: 'address' }],
     stateMutability: 'view',
   },
   {
@@ -440,13 +477,6 @@ export const basketballMatchAbi = [
     inputs: [],
     name: 'matchName',
     outputs: [{ name: '', internalType: 'string', type: 'string' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [],
-    name: 'maxAllowedOdds',
-    outputs: [{ name: '', internalType: 'uint32', type: 'uint32' }],
     stateMutability: 'view',
   },
   {
@@ -483,7 +513,7 @@ export const basketballMatchAbi = [
     type: 'function',
     inputs: [
       { name: 'marketId', internalType: 'uint256', type: 'uint256' },
-      { name: 'selection', internalType: 'uint64', type: 'uint64' },
+      { name: 'outcome', internalType: 'uint64', type: 'uint64' },
       { name: 'amount', internalType: 'uint256', type: 'uint256' },
     ],
     name: 'placeBetUSDC',
@@ -495,7 +525,7 @@ export const basketballMatchAbi = [
     inputs: [
       { name: 'user', internalType: 'address', type: 'address' },
       { name: 'marketId', internalType: 'uint256', type: 'uint256' },
-      { name: 'selection', internalType: 'uint64', type: 'uint64' },
+      { name: 'outcome', internalType: 'uint64', type: 'uint64' },
       { name: 'amount', internalType: 'uint256', type: 'uint256' },
     ],
     name: 'placeBetUSDCFor',
@@ -507,18 +537,6 @@ export const basketballMatchAbi = [
     inputs: [],
     name: 'proxiableUUID',
     outputs: [{ name: '', internalType: 'bytes32', type: 'bytes32' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [
-      { name: 'marketId', internalType: 'uint256', type: 'uint256' },
-      { name: 'amount', internalType: 'uint256', type: 'uint256' },
-    ],
-    name: 'quoteNetExposure',
-    outputs: [
-      { name: 'netExposure', internalType: 'uint256', type: 'uint256' },
-    ],
     stateMutability: 'view',
   },
   {
@@ -536,6 +554,59 @@ export const basketballMatchAbi = [
     ],
     name: 'renounceRole',
     outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'marketIds', internalType: 'uint256[]', type: 'uint256[]' },
+      {
+        name: 's',
+        internalType: 'struct BasketballPariMatch.BasketballScore',
+        type: 'tuple',
+        components: [
+          { name: 'homeQ1', internalType: 'uint8', type: 'uint8' },
+          { name: 'awayQ1', internalType: 'uint8', type: 'uint8' },
+          { name: 'homeQ2', internalType: 'uint8', type: 'uint8' },
+          { name: 'awayQ2', internalType: 'uint8', type: 'uint8' },
+          { name: 'homeQ3', internalType: 'uint8', type: 'uint8' },
+          { name: 'awayQ3', internalType: 'uint8', type: 'uint8' },
+          { name: 'homeQ4', internalType: 'uint8', type: 'uint8' },
+          { name: 'awayQ4', internalType: 'uint8', type: 'uint8' },
+          { name: 'firstToScore', internalType: 'uint8', type: 'uint8' },
+        ],
+      },
+    ],
+    name: 'resolveBatchByScore',
+    outputs: [
+      { name: 'marketsResolved', internalType: 'uint256', type: 'uint256' },
+    ],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [
+      {
+        name: 's',
+        internalType: 'struct BasketballPariMatch.BasketballScore',
+        type: 'tuple',
+        components: [
+          { name: 'homeQ1', internalType: 'uint8', type: 'uint8' },
+          { name: 'awayQ1', internalType: 'uint8', type: 'uint8' },
+          { name: 'homeQ2', internalType: 'uint8', type: 'uint8' },
+          { name: 'awayQ2', internalType: 'uint8', type: 'uint8' },
+          { name: 'homeQ3', internalType: 'uint8', type: 'uint8' },
+          { name: 'awayQ3', internalType: 'uint8', type: 'uint8' },
+          { name: 'homeQ4', internalType: 'uint8', type: 'uint8' },
+          { name: 'awayQ4', internalType: 'uint8', type: 'uint8' },
+          { name: 'firstToScore', internalType: 'uint8', type: 'uint8' },
+        ],
+      },
+    ],
+    name: 'resolveByScore',
+    outputs: [
+      { name: 'marketsResolved', internalType: 'uint256', type: 'uint256' },
+    ],
     stateMutability: 'nonpayable',
   },
   {
@@ -570,31 +641,35 @@ export const basketballMatchAbi = [
   },
   {
     type: 'function',
-    inputs: [{ name: '_pool', internalType: 'address', type: 'address' }],
-    name: 'setLiquidityPool',
+    inputs: [{ name: '_feeBps', internalType: 'uint16', type: 'uint16' }],
+    name: 'setFeeBps',
     outputs: [],
     stateMutability: 'nonpayable',
   },
   {
     type: 'function',
-    inputs: [
-      { name: 'marketId', internalType: 'uint256', type: 'uint256' },
-      { name: 'newOdds', internalType: 'uint32', type: 'uint32' },
-    ],
-    name: 'setMarketOdds',
+    inputs: [{ name: '_recipient', internalType: 'address', type: 'address' }],
+    name: 'setFeeRecipient',
     outputs: [],
     stateMutability: 'nonpayable',
   },
   {
     type: 'function',
-    inputs: [{ name: 'newMax', internalType: 'uint32', type: 'uint32' }],
-    name: 'setMaxAllowedOdds',
+    inputs: [{ name: '_bps', internalType: 'uint16', type: 'uint16' }],
+    name: 'setLeaderboardFeeBps',
     outputs: [],
     stateMutability: 'nonpayable',
   },
   {
     type: 'function',
-    inputs: [{ name: '_usdcToken', internalType: 'address', type: 'address' }],
+    inputs: [{ name: '_recipient', internalType: 'address', type: 'address' }],
+    name: 'setLeaderboardRecipient',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [{ name: '_usdc', internalType: 'address', type: 'address' }],
     name: 'setUSDCToken',
     outputs: [],
     stateMutability: 'nonpayable',
@@ -656,39 +731,38 @@ export const basketballMatchAbi = [
     anonymous: false,
     inputs: [
       {
-        name: 'marketId',
-        internalType: 'uint256',
-        type: 'uint256',
-        indexed: true,
-      },
-      { name: 'user', internalType: 'address', type: 'address', indexed: true },
-      {
-        name: 'betIndex',
-        internalType: 'uint256',
-        type: 'uint256',
+        name: 'oldBps',
+        internalType: 'uint16',
+        type: 'uint16',
         indexed: false,
       },
       {
-        name: 'amount',
-        internalType: 'uint256',
-        type: 'uint256',
-        indexed: false,
-      },
-      {
-        name: 'selection',
-        internalType: 'uint64',
-        type: 'uint64',
-        indexed: false,
-      },
-      { name: 'odds', internalType: 'uint32', type: 'uint32', indexed: false },
-      {
-        name: 'oddsIndex',
+        name: 'newBps',
         internalType: 'uint16',
         type: 'uint16',
         indexed: false,
       },
     ],
-    name: 'BetPlaced',
+    name: 'FeeBpsSet',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
+        name: 'oldRecipient',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+      {
+        name: 'newRecipient',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+    ],
+    name: 'FeeRecipientSet',
   },
   {
     type: 'event',
@@ -707,9 +781,59 @@ export const basketballMatchAbi = [
     type: 'event',
     anonymous: false,
     inputs: [
-      { name: 'pool', internalType: 'address', type: 'address', indexed: true },
+      {
+        name: 'oldBps',
+        internalType: 'uint16',
+        type: 'uint16',
+        indexed: false,
+      },
+      {
+        name: 'newBps',
+        internalType: 'uint16',
+        type: 'uint16',
+        indexed: false,
+      },
     ],
-    name: 'LiquidityPoolSet',
+    name: 'LeaderboardFeeBpsSet',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
+        name: 'oldRecipient',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+      {
+        name: 'newRecipient',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+    ],
+    name: 'LeaderboardRecipientSet',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
+        name: 'leaderboard',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+      { name: 'user', internalType: 'address', type: 'address', indexed: true },
+      {
+        name: 'payout',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: false,
+      },
+    ],
+    name: 'LeaderboardRecordFailed',
   },
   {
     type: 'event',
@@ -742,14 +866,21 @@ export const basketballMatchAbi = [
       },
       {
         name: 'marketType',
-        internalType: 'string',
-        type: 'string',
+        internalType: 'bytes32',
+        type: 'bytes32',
+        indexed: true,
+      },
+      { name: 'line', internalType: 'int16', type: 'int16', indexed: false },
+      {
+        name: 'maxOutcome',
+        internalType: 'uint8',
+        type: 'uint8',
         indexed: false,
       },
       {
-        name: 'initialOdds',
-        internalType: 'uint32',
-        type: 'uint32',
+        name: 'groupId',
+        internalType: 'uint16',
+        type: 'uint16',
         indexed: false,
       },
     ],
@@ -772,9 +903,16 @@ export const basketballMatchAbi = [
         indexed: false,
       },
       {
-        name: 'resolvedAt',
-        internalType: 'uint40',
-        type: 'uint40',
+        name: 'totalPool',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: false,
+      },
+      { name: 'fee', internalType: 'uint256', type: 'uint256', indexed: false },
+      {
+        name: 'resolvedNetPool',
+        internalType: 'uint256',
+        type: 'uint256',
         indexed: false,
       },
     ],
@@ -792,13 +930,13 @@ export const basketballMatchAbi = [
       },
       {
         name: 'oldState',
-        internalType: 'enum BettingMatch.MarketState',
+        internalType: 'enum PariMatchBase.MarketState',
         type: 'uint8',
         indexed: false,
       },
       {
         name: 'newState',
-        internalType: 'enum BettingMatch.MarketState',
+        internalType: 'enum PariMatchBase.MarketState',
         type: 'uint8',
         indexed: false,
       },
@@ -830,50 +968,31 @@ export const basketballMatchAbi = [
     anonymous: false,
     inputs: [
       {
-        name: 'oldMax',
-        internalType: 'uint32',
-        type: 'uint32',
-        indexed: false,
-      },
-      {
-        name: 'newMax',
-        internalType: 'uint32',
-        type: 'uint32',
-        indexed: false,
-      },
-    ],
-    name: 'MaxAllowedOddsSet',
-  },
-  {
-    type: 'event',
-    anonymous: false,
-    inputs: [
-      {
-        name: 'marketId',
-        internalType: 'uint256',
-        type: 'uint256',
-        indexed: true,
-      },
-      {
-        name: 'oldOdds',
-        internalType: 'uint32',
-        type: 'uint32',
-        indexed: false,
-      },
-      {
-        name: 'newOdds',
-        internalType: 'uint32',
-        type: 'uint32',
-        indexed: false,
-      },
-      {
-        name: 'oddsIndex',
+        name: 'homeTotal',
         internalType: 'uint16',
         type: 'uint16',
         indexed: false,
       },
+      {
+        name: 'awayTotal',
+        internalType: 'uint16',
+        type: 'uint16',
+        indexed: false,
+      },
+      {
+        name: 'firstToScore',
+        internalType: 'uint8',
+        type: 'uint8',
+        indexed: false,
+      },
+      {
+        name: 'marketsResolved',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: false,
+      },
     ],
-    name: 'OddsUpdated',
+    name: 'MatchScoreResolved',
   },
   {
     type: 'event',
@@ -919,19 +1038,19 @@ export const basketballMatchAbi = [
       },
       { name: 'user', internalType: 'address', type: 'address', indexed: true },
       {
-        name: 'betIndex',
+        name: 'stake',
         internalType: 'uint256',
         type: 'uint256',
         indexed: false,
       },
       {
-        name: 'amount',
+        name: 'payout',
         internalType: 'uint256',
         type: 'uint256',
         indexed: false,
       },
     ],
-    name: 'Payout',
+    name: 'PositionClaimed',
   },
   {
     type: 'event',
@@ -945,19 +1064,31 @@ export const basketballMatchAbi = [
       },
       { name: 'user', internalType: 'address', type: 'address', indexed: true },
       {
-        name: 'betIndex',
+        name: 'outcome',
+        internalType: 'uint64',
+        type: 'uint64',
+        indexed: false,
+      },
+      {
+        name: 'stake',
         internalType: 'uint256',
         type: 'uint256',
         indexed: false,
       },
       {
-        name: 'amount',
+        name: 'newOutcomePool',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: false,
+      },
+      {
+        name: 'newTotalPool',
         internalType: 'uint256',
         type: 'uint256',
         indexed: false,
       },
     ],
-    name: 'Refund',
+    name: 'PositionTaken',
   },
   {
     type: 'event',
@@ -1024,6 +1155,26 @@ export const basketballMatchAbi = [
     anonymous: false,
     inputs: [
       {
+        name: 'marketId',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: true,
+      },
+      { name: 'user', internalType: 'address', type: 'address', indexed: true },
+      {
+        name: 'amount',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: false,
+      },
+    ],
+    name: 'StakeRefunded',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
         name: 'token',
         internalType: 'address',
         type: 'address',
@@ -1082,29 +1233,10 @@ export const basketballMatchAbi = [
     inputs: [
       { name: 'marketId', internalType: 'uint256', type: 'uint256' },
       { name: 'user', internalType: 'address', type: 'address' },
-      { name: 'betIndex', internalType: 'uint256', type: 'uint256' },
     ],
     name: 'AlreadyClaimed',
   },
   { type: 'error', inputs: [], name: 'ArrayLengthMismatch' },
-  {
-    type: 'error',
-    inputs: [
-      { name: 'marketId', internalType: 'uint256', type: 'uint256' },
-      { name: 'user', internalType: 'address', type: 'address' },
-      { name: 'betIndex', internalType: 'uint256', type: 'uint256' },
-    ],
-    name: 'BetLost',
-  },
-  {
-    type: 'error',
-    inputs: [
-      { name: 'marketId', internalType: 'uint256', type: 'uint256' },
-      { name: 'user', internalType: 'address', type: 'address' },
-      { name: 'betIndex', internalType: 'uint256', type: 'uint256' },
-    ],
-    name: 'BetNotFound',
-  },
   {
     type: 'error',
     inputs: [
@@ -1116,7 +1248,24 @@ export const basketballMatchAbi = [
   { type: 'error', inputs: [], name: 'EnforcedPause' },
   { type: 'error', inputs: [], name: 'ExpectedPause' },
   { type: 'error', inputs: [], name: 'FailedInnerCall' },
+  {
+    type: 'error',
+    inputs: [
+      { name: 'provided', internalType: 'uint16', type: 'uint16' },
+      { name: 'max', internalType: 'uint16', type: 'uint16' },
+    ],
+    name: 'FeeBpsExceedsMax',
+  },
+  { type: 'error', inputs: [], name: 'FeeRecipientNotConfigured' },
   { type: 'error', inputs: [], name: 'InvalidInitialization' },
+  {
+    type: 'error',
+    inputs: [
+      { name: 'marketType', internalType: 'bytes32', type: 'bytes32' },
+      { name: 'line', internalType: 'int16', type: 'int16' },
+    ],
+    name: 'InvalidLine',
+  },
   {
     type: 'error',
     inputs: [{ name: 'marketId', internalType: 'uint256', type: 'uint256' }],
@@ -1128,12 +1277,12 @@ export const basketballMatchAbi = [
       { name: 'marketId', internalType: 'uint256', type: 'uint256' },
       {
         name: 'current',
-        internalType: 'enum BettingMatch.MarketState',
+        internalType: 'enum PariMatchBase.MarketState',
         type: 'uint8',
       },
       {
         name: 'required',
-        internalType: 'enum BettingMatch.MarketState',
+        internalType: 'enum PariMatchBase.MarketState',
         type: 'uint8',
       },
     ],
@@ -1147,11 +1296,19 @@ export const basketballMatchAbi = [
   {
     type: 'error',
     inputs: [
-      { name: 'odds', internalType: 'uint32', type: 'uint32' },
-      { name: 'min', internalType: 'uint32', type: 'uint32' },
-      { name: 'max', internalType: 'uint32', type: 'uint32' },
+      { name: 'marketId', internalType: 'uint256', type: 'uint256' },
+      { name: 'outcome', internalType: 'uint64', type: 'uint64' },
     ],
-    name: 'InvalidOddsValue',
+    name: 'InvalidOutcome',
+  },
+  {
+    type: 'error',
+    inputs: [
+      { name: 'marketId', internalType: 'uint256', type: 'uint256' },
+      { name: 'outcome', internalType: 'uint64', type: 'uint64' },
+      { name: 'maxAllowed', internalType: 'uint8', type: 'uint8' },
+    ],
+    name: 'InvalidOutcomeValue',
   },
   {
     type: 'error',
@@ -1161,23 +1318,28 @@ export const basketballMatchAbi = [
   {
     type: 'error',
     inputs: [
-      { name: 'marketId', internalType: 'uint256', type: 'uint256' },
-      { name: 'selection', internalType: 'uint64', type: 'uint64' },
-      { name: 'maxAllowed', internalType: 'uint8', type: 'uint8' },
+      { name: 'leaderboardBps', internalType: 'uint16', type: 'uint16' },
+      { name: 'totalBps', internalType: 'uint16', type: 'uint16' },
     ],
-    name: 'InvalidSelection',
+    name: 'LeaderboardFeeExceedsTotal',
   },
-  { type: 'error', inputs: [], name: 'LiquidityPoolNotConfigured' },
-  {
-    type: 'error',
-    inputs: [{ name: 'marketId', internalType: 'uint256', type: 'uint256' }],
-    name: 'MaxOddsEntriesReached',
-  },
+  { type: 'error', inputs: [], name: 'LeaderboardRecipientNotConfigured' },
   { type: 'error', inputs: [], name: 'NotInitializing' },
   {
     type: 'error',
-    inputs: [{ name: 'marketId', internalType: 'uint256', type: 'uint256' }],
-    name: 'OddsNotSet',
+    inputs: [
+      { name: 'marketId', internalType: 'uint256', type: 'uint256' },
+      { name: 'user', internalType: 'address', type: 'address' },
+    ],
+    name: 'NothingToClaim',
+  },
+  {
+    type: 'error',
+    inputs: [
+      { name: 'marketId', internalType: 'uint256', type: 'uint256' },
+      { name: 'user', internalType: 'address', type: 'address' },
+    ],
+    name: 'NothingToRefund',
   },
   {
     type: 'error',
@@ -1198,7 +1360,7 @@ export const basketballMatchAbi = [
   {
     type: 'error',
     inputs: [
-      { name: 'netStake', internalType: 'uint256', type: 'uint256' },
+      { name: 'stake', internalType: 'uint256', type: 'uint256' },
       { name: 'minimum', internalType: 'uint256', type: 'uint256' },
     ],
     name: 'StakeBelowMinimum',
@@ -1210,1393 +1372,7 @@ export const basketballMatchAbi = [
     inputs: [{ name: 'slot', internalType: 'bytes32', type: 'bytes32' }],
     name: 'UUPSUnsupportedProxiableUUID',
   },
-  { type: 'error', inputs: [], name: 'ZeroBetAmount' },
-  {
-    type: 'error',
-    inputs: [{ name: 'marketId', internalType: 'uint256', type: 'uint256' }],
-    name: 'ZeroNetExposure',
-  },
-] as const
-
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// BettingMatch
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-export const bettingMatchAbi = [
-  {
-    type: 'function',
-    inputs: [],
-    name: 'ADMIN_ROLE',
-    outputs: [{ name: '', internalType: 'bytes32', type: 'bytes32' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [],
-    name: 'DEFAULT_ADMIN_ROLE',
-    outputs: [{ name: '', internalType: 'bytes32', type: 'bytes32' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [],
-    name: 'MAX_ODDS',
-    outputs: [{ name: '', internalType: 'uint32', type: 'uint32' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [],
-    name: 'MIN_NET_STAKE',
-    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [],
-    name: 'MIN_ODDS',
-    outputs: [{ name: '', internalType: 'uint32', type: 'uint32' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [],
-    name: 'ODDS_PRECISION',
-    outputs: [{ name: '', internalType: 'uint32', type: 'uint32' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [],
-    name: 'ODDS_SETTER_ROLE',
-    outputs: [{ name: '', internalType: 'bytes32', type: 'bytes32' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [],
-    name: 'PAUSER_ROLE',
-    outputs: [{ name: '', internalType: 'bytes32', type: 'bytes32' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [],
-    name: 'RESOLVER_ROLE',
-    outputs: [{ name: '', internalType: 'bytes32', type: 'bytes32' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [],
-    name: 'SWAP_ROUTER_ROLE',
-    outputs: [{ name: '', internalType: 'bytes32', type: 'bytes32' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [],
-    name: 'UPGRADE_INTERFACE_VERSION',
-    outputs: [{ name: '', internalType: 'string', type: 'string' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [
-      { name: 'marketType', internalType: 'bytes32', type: 'bytes32' },
-      { name: 'initialOdds', internalType: 'uint32', type: 'uint32' },
-      { name: 'line', internalType: 'int16', type: 'int16' },
-    ],
-    name: 'addMarketWithLine',
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    inputs: [
-      { name: 'marketId', internalType: 'uint256', type: 'uint256' },
-      { name: 'reason', internalType: 'string', type: 'string' },
-    ],
-    name: 'cancelMarket',
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    inputs: [
-      { name: 'marketId', internalType: 'uint256', type: 'uint256' },
-      { name: 'betIndex', internalType: 'uint256', type: 'uint256' },
-    ],
-    name: 'claim',
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    inputs: [{ name: 'marketId', internalType: 'uint256', type: 'uint256' }],
-    name: 'claimAll',
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    inputs: [
-      { name: 'marketId', internalType: 'uint256', type: 'uint256' },
-      { name: 'start', internalType: 'uint256', type: 'uint256' },
-      { name: 'end', internalType: 'uint256', type: 'uint256' },
-    ],
-    name: 'claimRange',
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    inputs: [
-      { name: 'marketId', internalType: 'uint256', type: 'uint256' },
-      { name: 'betIndex', internalType: 'uint256', type: 'uint256' },
-    ],
-    name: 'claimRefund',
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    inputs: [{ name: 'marketId', internalType: 'uint256', type: 'uint256' }],
-    name: 'closeMarket',
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    inputs: [
-      { name: 'marketIds', internalType: 'uint256[]', type: 'uint256[]' },
-    ],
-    name: 'closeMarketsBatch',
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    inputs: [],
-    name: 'emergencyPause',
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    inputs: [
-      { name: 'marketId', internalType: 'uint256', type: 'uint256' },
-      { name: 'user', internalType: 'address', type: 'address' },
-      { name: 'betIndex', internalType: 'uint256', type: 'uint256' },
-    ],
-    name: 'getBetDetails',
-    outputs: [
-      { name: 'amount', internalType: 'uint256', type: 'uint256' },
-      { name: 'selection', internalType: 'uint64', type: 'uint64' },
-      { name: 'odds', internalType: 'uint32', type: 'uint32' },
-      { name: 'timestamp', internalType: 'uint40', type: 'uint40' },
-      { name: 'claimed', internalType: 'bool', type: 'bool' },
-      { name: 'potentialPayout', internalType: 'uint256', type: 'uint256' },
-    ],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [{ name: 'marketId', internalType: 'uint256', type: 'uint256' }],
-    name: 'getCurrentOdds',
-    outputs: [{ name: '', internalType: 'uint32', type: 'uint32' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [{ name: 'marketId', internalType: 'uint256', type: 'uint256' }],
-    name: 'getMarketCore',
-    outputs: [
-      {
-        name: '',
-        internalType: 'struct BettingMatch.MarketCore',
-        type: 'tuple',
-        components: [
-          {
-            name: 'state',
-            internalType: 'enum BettingMatch.MarketState',
-            type: 'uint8',
-          },
-          { name: 'result', internalType: 'uint64', type: 'uint64' },
-          { name: 'createdAt', internalType: 'uint40', type: 'uint40' },
-          { name: 'resolvedAt', internalType: 'uint40', type: 'uint40' },
-          { name: 'totalPool', internalType: 'uint256', type: 'uint256' },
-        ],
-      },
-    ],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [{ name: 'marketId', internalType: 'uint256', type: 'uint256' }],
-    name: 'getMarketInfo',
-    outputs: [
-      { name: 'marketType', internalType: 'bytes32', type: 'bytes32' },
-      {
-        name: 'state',
-        internalType: 'enum BettingMatch.MarketState',
-        type: 'uint8',
-      },
-      { name: 'currentOdds', internalType: 'uint32', type: 'uint32' },
-      { name: 'result', internalType: 'uint64', type: 'uint64' },
-      { name: 'totalPool', internalType: 'uint256', type: 'uint256' },
-    ],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [{ name: 'marketId', internalType: 'uint256', type: 'uint256' }],
-    name: 'getMarketLiability',
-    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [{ name: 'marketId', internalType: 'uint256', type: 'uint256' }],
-    name: 'getOddsHistory',
-    outputs: [{ name: '', internalType: 'uint32[]', type: 'uint32[]' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [{ name: 'role', internalType: 'bytes32', type: 'bytes32' }],
-    name: 'getRoleAdmin',
-    outputs: [{ name: '', internalType: 'bytes32', type: 'bytes32' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [
-      { name: 'marketId', internalType: 'uint256', type: 'uint256' },
-      { name: 'user', internalType: 'address', type: 'address' },
-    ],
-    name: 'getUserBets',
-    outputs: [
-      {
-        name: '',
-        internalType: 'struct BettingMatch.Bet[]',
-        type: 'tuple[]',
-        components: [
-          { name: 'amount', internalType: 'uint256', type: 'uint256' },
-          { name: 'selection', internalType: 'uint64', type: 'uint64' },
-          { name: 'oddsIndex', internalType: 'uint16', type: 'uint16' },
-          { name: 'timestamp', internalType: 'uint40', type: 'uint40' },
-          { name: 'claimed', internalType: 'bool', type: 'bool' },
-        ],
-      },
-    ],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [
-      { name: 'role', internalType: 'bytes32', type: 'bytes32' },
-      { name: 'account', internalType: 'address', type: 'address' },
-    ],
-    name: 'grantRole',
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    inputs: [
-      { name: 'role', internalType: 'bytes32', type: 'bytes32' },
-      { name: 'account', internalType: 'address', type: 'address' },
-    ],
-    name: 'hasRole',
-    outputs: [{ name: '', internalType: 'bool', type: 'bool' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [],
-    name: 'liquidityPool',
-    outputs: [
-      { name: '', internalType: 'contract ILiquidityPool', type: 'address' },
-    ],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [],
-    name: 'marketCount',
-    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [],
-    name: 'matchName',
-    outputs: [{ name: '', internalType: 'string', type: 'string' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [],
-    name: 'maxAllowedOdds',
-    outputs: [{ name: '', internalType: 'uint32', type: 'uint32' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [{ name: 'marketId', internalType: 'uint256', type: 'uint256' }],
-    name: 'openMarket',
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    inputs: [
-      { name: 'marketIds', internalType: 'uint256[]', type: 'uint256[]' },
-    ],
-    name: 'openMarketsBatch',
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    inputs: [],
-    name: 'owner',
-    outputs: [{ name: '', internalType: 'address', type: 'address' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [],
-    name: 'paused',
-    outputs: [{ name: '', internalType: 'bool', type: 'bool' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [
-      { name: 'marketId', internalType: 'uint256', type: 'uint256' },
-      { name: 'selection', internalType: 'uint64', type: 'uint64' },
-      { name: 'amount', internalType: 'uint256', type: 'uint256' },
-    ],
-    name: 'placeBetUSDC',
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    inputs: [
-      { name: 'user', internalType: 'address', type: 'address' },
-      { name: 'marketId', internalType: 'uint256', type: 'uint256' },
-      { name: 'selection', internalType: 'uint64', type: 'uint64' },
-      { name: 'amount', internalType: 'uint256', type: 'uint256' },
-    ],
-    name: 'placeBetUSDCFor',
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    inputs: [],
-    name: 'proxiableUUID',
-    outputs: [{ name: '', internalType: 'bytes32', type: 'bytes32' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [
-      { name: 'marketId', internalType: 'uint256', type: 'uint256' },
-      { name: 'amount', internalType: 'uint256', type: 'uint256' },
-    ],
-    name: 'quoteNetExposure',
-    outputs: [
-      { name: 'netExposure', internalType: 'uint256', type: 'uint256' },
-    ],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [],
-    name: 'renounceOwnership',
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    inputs: [
-      { name: 'role', internalType: 'bytes32', type: 'bytes32' },
-      { name: 'callerConfirmation', internalType: 'address', type: 'address' },
-    ],
-    name: 'renounceRole',
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    inputs: [
-      { name: 'marketId', internalType: 'uint256', type: 'uint256' },
-      { name: 'result', internalType: 'uint64', type: 'uint64' },
-    ],
-    name: 'resolveMarket',
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    inputs: [
-      { name: 'marketIds', internalType: 'uint256[]', type: 'uint256[]' },
-      { name: 'results', internalType: 'uint64[]', type: 'uint64[]' },
-    ],
-    name: 'resolveMarketsBatch',
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    inputs: [
-      { name: 'role', internalType: 'bytes32', type: 'bytes32' },
-      { name: 'account', internalType: 'address', type: 'address' },
-    ],
-    name: 'revokeRole',
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    inputs: [{ name: '_pool', internalType: 'address', type: 'address' }],
-    name: 'setLiquidityPool',
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    inputs: [
-      { name: 'marketId', internalType: 'uint256', type: 'uint256' },
-      { name: 'newOdds', internalType: 'uint32', type: 'uint32' },
-    ],
-    name: 'setMarketOdds',
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    inputs: [{ name: 'newMax', internalType: 'uint32', type: 'uint32' }],
-    name: 'setMaxAllowedOdds',
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    inputs: [{ name: '_usdcToken', internalType: 'address', type: 'address' }],
-    name: 'setUSDCToken',
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    inputs: [],
-    name: 'sportType',
-    outputs: [{ name: '', internalType: 'string', type: 'string' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [{ name: 'interfaceId', internalType: 'bytes4', type: 'bytes4' }],
-    name: 'supportsInterface',
-    outputs: [{ name: '', internalType: 'bool', type: 'bool' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [{ name: 'marketId', internalType: 'uint256', type: 'uint256' }],
-    name: 'suspendMarket',
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    inputs: [{ name: 'newOwner', internalType: 'address', type: 'address' }],
-    name: 'transferOwnership',
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    inputs: [],
-    name: 'unpause',
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    inputs: [
-      { name: 'newImplementation', internalType: 'address', type: 'address' },
-      { name: 'data', internalType: 'bytes', type: 'bytes' },
-    ],
-    name: 'upgradeToAndCall',
-    outputs: [],
-    stateMutability: 'payable',
-  },
-  {
-    type: 'function',
-    inputs: [],
-    name: 'usdcToken',
-    outputs: [{ name: '', internalType: 'contract IERC20', type: 'address' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'event',
-    anonymous: false,
-    inputs: [
-      {
-        name: 'marketId',
-        internalType: 'uint256',
-        type: 'uint256',
-        indexed: true,
-      },
-      { name: 'user', internalType: 'address', type: 'address', indexed: true },
-      {
-        name: 'betIndex',
-        internalType: 'uint256',
-        type: 'uint256',
-        indexed: false,
-      },
-      {
-        name: 'amount',
-        internalType: 'uint256',
-        type: 'uint256',
-        indexed: false,
-      },
-      {
-        name: 'selection',
-        internalType: 'uint64',
-        type: 'uint64',
-        indexed: false,
-      },
-      { name: 'odds', internalType: 'uint32', type: 'uint32', indexed: false },
-      {
-        name: 'oddsIndex',
-        internalType: 'uint16',
-        type: 'uint16',
-        indexed: false,
-      },
-    ],
-    name: 'BetPlaced',
-  },
-  {
-    type: 'event',
-    anonymous: false,
-    inputs: [
-      {
-        name: 'version',
-        internalType: 'uint64',
-        type: 'uint64',
-        indexed: false,
-      },
-    ],
-    name: 'Initialized',
-  },
-  {
-    type: 'event',
-    anonymous: false,
-    inputs: [
-      { name: 'pool', internalType: 'address', type: 'address', indexed: true },
-    ],
-    name: 'LiquidityPoolSet',
-  },
-  {
-    type: 'event',
-    anonymous: false,
-    inputs: [
-      {
-        name: 'marketId',
-        internalType: 'uint256',
-        type: 'uint256',
-        indexed: true,
-      },
-      {
-        name: 'reason',
-        internalType: 'string',
-        type: 'string',
-        indexed: false,
-      },
-    ],
-    name: 'MarketCancelled',
-  },
-  {
-    type: 'event',
-    anonymous: false,
-    inputs: [
-      {
-        name: 'marketId',
-        internalType: 'uint256',
-        type: 'uint256',
-        indexed: true,
-      },
-      {
-        name: 'marketType',
-        internalType: 'string',
-        type: 'string',
-        indexed: false,
-      },
-      {
-        name: 'initialOdds',
-        internalType: 'uint32',
-        type: 'uint32',
-        indexed: false,
-      },
-    ],
-    name: 'MarketCreated',
-  },
-  {
-    type: 'event',
-    anonymous: false,
-    inputs: [
-      {
-        name: 'marketId',
-        internalType: 'uint256',
-        type: 'uint256',
-        indexed: true,
-      },
-      {
-        name: 'result',
-        internalType: 'uint64',
-        type: 'uint64',
-        indexed: false,
-      },
-      {
-        name: 'resolvedAt',
-        internalType: 'uint40',
-        type: 'uint40',
-        indexed: false,
-      },
-    ],
-    name: 'MarketResolved',
-  },
-  {
-    type: 'event',
-    anonymous: false,
-    inputs: [
-      {
-        name: 'marketId',
-        internalType: 'uint256',
-        type: 'uint256',
-        indexed: true,
-      },
-      {
-        name: 'oldState',
-        internalType: 'enum BettingMatch.MarketState',
-        type: 'uint8',
-        indexed: false,
-      },
-      {
-        name: 'newState',
-        internalType: 'enum BettingMatch.MarketState',
-        type: 'uint8',
-        indexed: false,
-      },
-    ],
-    name: 'MarketStateChanged',
-  },
-  {
-    type: 'event',
-    anonymous: false,
-    inputs: [
-      { name: 'name', internalType: 'string', type: 'string', indexed: true },
-      {
-        name: 'sportType',
-        internalType: 'string',
-        type: 'string',
-        indexed: false,
-      },
-      {
-        name: 'owner',
-        internalType: 'address',
-        type: 'address',
-        indexed: true,
-      },
-    ],
-    name: 'MatchInitialized',
-  },
-  {
-    type: 'event',
-    anonymous: false,
-    inputs: [
-      {
-        name: 'oldMax',
-        internalType: 'uint32',
-        type: 'uint32',
-        indexed: false,
-      },
-      {
-        name: 'newMax',
-        internalType: 'uint32',
-        type: 'uint32',
-        indexed: false,
-      },
-    ],
-    name: 'MaxAllowedOddsSet',
-  },
-  {
-    type: 'event',
-    anonymous: false,
-    inputs: [
-      {
-        name: 'marketId',
-        internalType: 'uint256',
-        type: 'uint256',
-        indexed: true,
-      },
-      {
-        name: 'oldOdds',
-        internalType: 'uint32',
-        type: 'uint32',
-        indexed: false,
-      },
-      {
-        name: 'newOdds',
-        internalType: 'uint32',
-        type: 'uint32',
-        indexed: false,
-      },
-      {
-        name: 'oddsIndex',
-        internalType: 'uint16',
-        type: 'uint16',
-        indexed: false,
-      },
-    ],
-    name: 'OddsUpdated',
-  },
-  {
-    type: 'event',
-    anonymous: false,
-    inputs: [
-      {
-        name: 'previousOwner',
-        internalType: 'address',
-        type: 'address',
-        indexed: true,
-      },
-      {
-        name: 'newOwner',
-        internalType: 'address',
-        type: 'address',
-        indexed: true,
-      },
-    ],
-    name: 'OwnershipTransferred',
-  },
-  {
-    type: 'event',
-    anonymous: false,
-    inputs: [
-      {
-        name: 'account',
-        internalType: 'address',
-        type: 'address',
-        indexed: false,
-      },
-    ],
-    name: 'Paused',
-  },
-  {
-    type: 'event',
-    anonymous: false,
-    inputs: [
-      {
-        name: 'marketId',
-        internalType: 'uint256',
-        type: 'uint256',
-        indexed: true,
-      },
-      { name: 'user', internalType: 'address', type: 'address', indexed: true },
-      {
-        name: 'betIndex',
-        internalType: 'uint256',
-        type: 'uint256',
-        indexed: false,
-      },
-      {
-        name: 'amount',
-        internalType: 'uint256',
-        type: 'uint256',
-        indexed: false,
-      },
-    ],
-    name: 'Payout',
-  },
-  {
-    type: 'event',
-    anonymous: false,
-    inputs: [
-      {
-        name: 'marketId',
-        internalType: 'uint256',
-        type: 'uint256',
-        indexed: true,
-      },
-      { name: 'user', internalType: 'address', type: 'address', indexed: true },
-      {
-        name: 'betIndex',
-        internalType: 'uint256',
-        type: 'uint256',
-        indexed: false,
-      },
-      {
-        name: 'amount',
-        internalType: 'uint256',
-        type: 'uint256',
-        indexed: false,
-      },
-    ],
-    name: 'Refund',
-  },
-  {
-    type: 'event',
-    anonymous: false,
-    inputs: [
-      { name: 'role', internalType: 'bytes32', type: 'bytes32', indexed: true },
-      {
-        name: 'previousAdminRole',
-        internalType: 'bytes32',
-        type: 'bytes32',
-        indexed: true,
-      },
-      {
-        name: 'newAdminRole',
-        internalType: 'bytes32',
-        type: 'bytes32',
-        indexed: true,
-      },
-    ],
-    name: 'RoleAdminChanged',
-  },
-  {
-    type: 'event',
-    anonymous: false,
-    inputs: [
-      { name: 'role', internalType: 'bytes32', type: 'bytes32', indexed: true },
-      {
-        name: 'account',
-        internalType: 'address',
-        type: 'address',
-        indexed: true,
-      },
-      {
-        name: 'sender',
-        internalType: 'address',
-        type: 'address',
-        indexed: true,
-      },
-    ],
-    name: 'RoleGranted',
-  },
-  {
-    type: 'event',
-    anonymous: false,
-    inputs: [
-      { name: 'role', internalType: 'bytes32', type: 'bytes32', indexed: true },
-      {
-        name: 'account',
-        internalType: 'address',
-        type: 'address',
-        indexed: true,
-      },
-      {
-        name: 'sender',
-        internalType: 'address',
-        type: 'address',
-        indexed: true,
-      },
-    ],
-    name: 'RoleRevoked',
-  },
-  {
-    type: 'event',
-    anonymous: false,
-    inputs: [
-      {
-        name: 'token',
-        internalType: 'address',
-        type: 'address',
-        indexed: true,
-      },
-    ],
-    name: 'USDCTokenSet',
-  },
-  {
-    type: 'event',
-    anonymous: false,
-    inputs: [
-      {
-        name: 'account',
-        internalType: 'address',
-        type: 'address',
-        indexed: false,
-      },
-    ],
-    name: 'Unpaused',
-  },
-  {
-    type: 'event',
-    anonymous: false,
-    inputs: [
-      {
-        name: 'implementation',
-        internalType: 'address',
-        type: 'address',
-        indexed: true,
-      },
-    ],
-    name: 'Upgraded',
-  },
-  { type: 'error', inputs: [], name: 'AccessControlBadConfirmation' },
-  {
-    type: 'error',
-    inputs: [
-      { name: 'account', internalType: 'address', type: 'address' },
-      { name: 'neededRole', internalType: 'bytes32', type: 'bytes32' },
-    ],
-    name: 'AccessControlUnauthorizedAccount',
-  },
-  {
-    type: 'error',
-    inputs: [{ name: 'target', internalType: 'address', type: 'address' }],
-    name: 'AddressEmptyCode',
-  },
-  {
-    type: 'error',
-    inputs: [{ name: 'account', internalType: 'address', type: 'address' }],
-    name: 'AddressInsufficientBalance',
-  },
-  {
-    type: 'error',
-    inputs: [
-      { name: 'marketId', internalType: 'uint256', type: 'uint256' },
-      { name: 'user', internalType: 'address', type: 'address' },
-      { name: 'betIndex', internalType: 'uint256', type: 'uint256' },
-    ],
-    name: 'AlreadyClaimed',
-  },
-  { type: 'error', inputs: [], name: 'ArrayLengthMismatch' },
-  {
-    type: 'error',
-    inputs: [
-      { name: 'marketId', internalType: 'uint256', type: 'uint256' },
-      { name: 'user', internalType: 'address', type: 'address' },
-      { name: 'betIndex', internalType: 'uint256', type: 'uint256' },
-    ],
-    name: 'BetLost',
-  },
-  {
-    type: 'error',
-    inputs: [
-      { name: 'marketId', internalType: 'uint256', type: 'uint256' },
-      { name: 'user', internalType: 'address', type: 'address' },
-      { name: 'betIndex', internalType: 'uint256', type: 'uint256' },
-    ],
-    name: 'BetNotFound',
-  },
-  {
-    type: 'error',
-    inputs: [
-      { name: 'implementation', internalType: 'address', type: 'address' },
-    ],
-    name: 'ERC1967InvalidImplementation',
-  },
-  { type: 'error', inputs: [], name: 'ERC1967NonPayable' },
-  { type: 'error', inputs: [], name: 'EnforcedPause' },
-  { type: 'error', inputs: [], name: 'ExpectedPause' },
-  { type: 'error', inputs: [], name: 'FailedInnerCall' },
-  { type: 'error', inputs: [], name: 'InvalidInitialization' },
-  {
-    type: 'error',
-    inputs: [{ name: 'marketId', internalType: 'uint256', type: 'uint256' }],
-    name: 'InvalidMarketId',
-  },
-  {
-    type: 'error',
-    inputs: [
-      { name: 'marketId', internalType: 'uint256', type: 'uint256' },
-      {
-        name: 'current',
-        internalType: 'enum BettingMatch.MarketState',
-        type: 'uint8',
-      },
-      {
-        name: 'required',
-        internalType: 'enum BettingMatch.MarketState',
-        type: 'uint8',
-      },
-    ],
-    name: 'InvalidMarketState',
-  },
-  {
-    type: 'error',
-    inputs: [
-      { name: 'odds', internalType: 'uint32', type: 'uint32' },
-      { name: 'min', internalType: 'uint32', type: 'uint32' },
-      { name: 'max', internalType: 'uint32', type: 'uint32' },
-    ],
-    name: 'InvalidOddsValue',
-  },
-  { type: 'error', inputs: [], name: 'LiquidityPoolNotConfigured' },
-  {
-    type: 'error',
-    inputs: [{ name: 'marketId', internalType: 'uint256', type: 'uint256' }],
-    name: 'MaxOddsEntriesReached',
-  },
-  { type: 'error', inputs: [], name: 'NotInitializing' },
-  {
-    type: 'error',
-    inputs: [{ name: 'marketId', internalType: 'uint256', type: 'uint256' }],
-    name: 'OddsNotSet',
-  },
-  {
-    type: 'error',
-    inputs: [{ name: 'owner', internalType: 'address', type: 'address' }],
-    name: 'OwnableInvalidOwner',
-  },
-  {
-    type: 'error',
-    inputs: [{ name: 'account', internalType: 'address', type: 'address' }],
-    name: 'OwnableUnauthorizedAccount',
-  },
-  { type: 'error', inputs: [], name: 'ReentrancyGuardReentrantCall' },
-  {
-    type: 'error',
-    inputs: [{ name: 'token', internalType: 'address', type: 'address' }],
-    name: 'SafeERC20FailedOperation',
-  },
-  {
-    type: 'error',
-    inputs: [
-      { name: 'netStake', internalType: 'uint256', type: 'uint256' },
-      { name: 'minimum', internalType: 'uint256', type: 'uint256' },
-    ],
-    name: 'StakeBelowMinimum',
-  },
-  { type: 'error', inputs: [], name: 'USDCNotConfigured' },
-  { type: 'error', inputs: [], name: 'UUPSUnauthorizedCallContext' },
-  {
-    type: 'error',
-    inputs: [{ name: 'slot', internalType: 'bytes32', type: 'bytes32' }],
-    name: 'UUPSUnsupportedProxiableUUID',
-  },
-  { type: 'error', inputs: [], name: 'ZeroBetAmount' },
-  {
-    type: 'error',
-    inputs: [{ name: 'marketId', internalType: 'uint256', type: 'uint256' }],
-    name: 'ZeroNetExposure',
-  },
-] as const
-
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// BettingMatchFactory
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-export const bettingMatchFactoryAbi = [
-  { type: 'constructor', inputs: [], stateMutability: 'nonpayable' },
-  {
-    type: 'function',
-    inputs: [],
-    name: 'BASKETBALL',
-    outputs: [{ name: '', internalType: 'uint8', type: 'uint8' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [],
-    name: 'FOOTBALL',
-    outputs: [{ name: '', internalType: 'uint8', type: 'uint8' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
-    name: 'allMatches',
-    outputs: [{ name: '', internalType: 'address', type: 'address' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [],
-    name: 'basketballImplementation',
-    outputs: [{ name: '', internalType: 'address', type: 'address' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [
-      { name: '_matchName', internalType: 'string', type: 'string' },
-      { name: '_owner', internalType: 'address', type: 'address' },
-      { name: '_oracle', internalType: 'address', type: 'address' },
-    ],
-    name: 'createBasketballMatch',
-    outputs: [{ name: 'proxy', internalType: 'address', type: 'address' }],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    inputs: [
-      { name: '_matchName', internalType: 'string', type: 'string' },
-      { name: '_owner', internalType: 'address', type: 'address' },
-      { name: '_oracle', internalType: 'address', type: 'address' },
-    ],
-    name: 'createFootballMatch',
-    outputs: [{ name: 'proxy', internalType: 'address', type: 'address' }],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    inputs: [],
-    name: 'footballImplementation',
-    outputs: [{ name: '', internalType: 'address', type: 'address' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [],
-    name: 'getAllMatches',
-    outputs: [{ name: '', internalType: 'address[]', type: 'address[]' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [
-      { name: 'matchAddress', internalType: 'address', type: 'address' },
-    ],
-    name: 'getSportType',
-    outputs: [
-      {
-        name: '',
-        internalType: 'enum BettingMatchFactory.SportType',
-        type: 'uint8',
-      },
-    ],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [{ name: 'sport', internalType: 'uint8', type: 'uint8' }],
-    name: 'implementations',
-    outputs: [{ name: '', internalType: 'address', type: 'address' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [{ name: '', internalType: 'address', type: 'address' }],
-    name: 'isMatch',
-    outputs: [{ name: '', internalType: 'bool', type: 'bool' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [],
-    name: 'liquidityPool',
-    outputs: [{ name: '', internalType: 'address', type: 'address' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [{ name: '', internalType: 'address', type: 'address' }],
-    name: 'matchSportType',
-    outputs: [
-      {
-        name: '',
-        internalType: 'enum BettingMatchFactory.SportType',
-        type: 'uint8',
-      },
-    ],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [],
-    name: 'owner',
-    outputs: [{ name: '', internalType: 'address', type: 'address' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [],
-    name: 'renounceOwnership',
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    inputs: [{ name: 'newImpl', internalType: 'address', type: 'address' }],
-    name: 'setBasketballImplementation',
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    inputs: [{ name: 'newImpl', internalType: 'address', type: 'address' }],
-    name: 'setFootballImplementation',
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    inputs: [
-      { name: '_liquidityPool', internalType: 'address', type: 'address' },
-      { name: '_usdcToken', internalType: 'address', type: 'address' },
-      { name: '_swapRouter', internalType: 'address', type: 'address' },
-    ],
-    name: 'setWiring',
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    inputs: [],
-    name: 'swapRouter',
-    outputs: [{ name: '', internalType: 'address', type: 'address' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [{ name: 'newOwner', internalType: 'address', type: 'address' }],
-    name: 'transferOwnership',
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    inputs: [],
-    name: 'usdcToken',
-    outputs: [{ name: '', internalType: 'address', type: 'address' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'event',
-    anonymous: false,
-    inputs: [
-      {
-        name: 'oldImpl',
-        internalType: 'address',
-        type: 'address',
-        indexed: true,
-      },
-      {
-        name: 'newImpl',
-        internalType: 'address',
-        type: 'address',
-        indexed: true,
-      },
-    ],
-    name: 'BasketballImplementationUpdated',
-  },
-  {
-    type: 'event',
-    anonymous: false,
-    inputs: [
-      {
-        name: 'oldImpl',
-        internalType: 'address',
-        type: 'address',
-        indexed: true,
-      },
-      {
-        name: 'newImpl',
-        internalType: 'address',
-        type: 'address',
-        indexed: true,
-      },
-    ],
-    name: 'FootballImplementationUpdated',
-  },
-  {
-    type: 'event',
-    anonymous: false,
-    inputs: [
-      {
-        name: 'proxy',
-        internalType: 'address',
-        type: 'address',
-        indexed: true,
-      },
-      {
-        name: 'sportType',
-        internalType: 'enum BettingMatchFactory.SportType',
-        type: 'uint8',
-        indexed: false,
-      },
-      {
-        name: 'owner',
-        internalType: 'address',
-        type: 'address',
-        indexed: true,
-      },
-    ],
-    name: 'MatchCreated',
-  },
-  {
-    type: 'event',
-    anonymous: false,
-    inputs: [
-      {
-        name: 'previousOwner',
-        internalType: 'address',
-        type: 'address',
-        indexed: true,
-      },
-      {
-        name: 'newOwner',
-        internalType: 'address',
-        type: 'address',
-        indexed: true,
-      },
-    ],
-    name: 'OwnershipTransferred',
-  },
-  {
-    type: 'event',
-    anonymous: false,
-    inputs: [
-      {
-        name: 'liquidityPool',
-        internalType: 'address',
-        type: 'address',
-        indexed: true,
-      },
-      {
-        name: 'usdcToken',
-        internalType: 'address',
-        type: 'address',
-        indexed: true,
-      },
-      {
-        name: 'swapRouter',
-        internalType: 'address',
-        type: 'address',
-        indexed: true,
-      },
-    ],
-    name: 'WiringSet',
-  },
-  { type: 'error', inputs: [], name: 'InvalidAddress' },
-  {
-    type: 'error',
-    inputs: [
-      { name: 'matchAddress', internalType: 'address', type: 'address' },
-    ],
-    name: 'MatchNotFound',
-  },
-  {
-    type: 'error',
-    inputs: [{ name: 'owner', internalType: 'address', type: 'address' }],
-    name: 'OwnableInvalidOwner',
-  },
-  {
-    type: 'error',
-    inputs: [{ name: 'account', internalType: 'address', type: 'address' }],
-    name: 'OwnableUnauthorizedAccount',
-  },
-  { type: 'error', inputs: [], name: 'WiringNotConfigured' },
+  { type: 'error', inputs: [], name: 'ZeroStake' },
 ] as const
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -2622,47 +1398,9 @@ export const chilizSwapRouterAbi = [
     inputs: [],
     name: 'bettingMatchFactory',
     outputs: [
-      {
-        name: '',
-        internalType: 'contract BettingMatchFactory',
-        type: 'address',
-      },
+      { name: '', internalType: 'contract PariMatchFactory', type: 'address' },
     ],
     stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [
-      { name: 'amountOutMin', internalType: 'uint256', type: 'uint256' },
-      { name: 'deadline', internalType: 'uint256', type: 'uint256' },
-      { name: 'receiver', internalType: 'address', type: 'address' },
-    ],
-    name: 'depositLiquidityWithCHZ',
-    outputs: [{ name: 'shares', internalType: 'uint256', type: 'uint256' }],
-    stateMutability: 'payable',
-  },
-  {
-    type: 'function',
-    inputs: [
-      { name: 'token', internalType: 'address', type: 'address' },
-      { name: 'amount', internalType: 'uint256', type: 'uint256' },
-      { name: 'amountOutMin', internalType: 'uint256', type: 'uint256' },
-      { name: 'deadline', internalType: 'uint256', type: 'uint256' },
-      { name: 'receiver', internalType: 'address', type: 'address' },
-    ],
-    name: 'depositLiquidityWithToken',
-    outputs: [{ name: 'shares', internalType: 'uint256', type: 'uint256' }],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    inputs: [
-      { name: 'amount', internalType: 'uint256', type: 'uint256' },
-      { name: 'receiver', internalType: 'address', type: 'address' },
-    ],
-    name: 'depositLiquidityWithUSDC',
-    outputs: [{ name: 'shares', internalType: 'uint256', type: 'uint256' }],
-    stateMutability: 'nonpayable',
   },
   {
     type: 'function',
@@ -2704,19 +1442,6 @@ export const chilizSwapRouterAbi = [
   {
     type: 'function',
     inputs: [],
-    name: 'liquidityPool',
-    outputs: [
-      {
-        name: '',
-        internalType: 'contract ILiquidityPoolDeposit',
-        type: 'address',
-      },
-    ],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [],
     name: 'masterRouter',
     outputs: [
       {
@@ -2739,7 +1464,7 @@ export const chilizSwapRouterAbi = [
     inputs: [
       { name: 'bettingMatch', internalType: 'address', type: 'address' },
       { name: 'marketId', internalType: 'uint256', type: 'uint256' },
-      { name: 'selection', internalType: 'uint64', type: 'uint64' },
+      { name: 'outcome', internalType: 'uint64', type: 'uint64' },
       { name: 'amountOutMin', internalType: 'uint256', type: 'uint256' },
       { name: 'deadline', internalType: 'uint256', type: 'uint256' },
     ],
@@ -2754,7 +1479,7 @@ export const chilizSwapRouterAbi = [
       { name: 'amount', internalType: 'uint256', type: 'uint256' },
       { name: 'bettingMatch', internalType: 'address', type: 'address' },
       { name: 'marketId', internalType: 'uint256', type: 'uint256' },
-      { name: 'selection', internalType: 'uint64', type: 'uint64' },
+      { name: 'outcome', internalType: 'uint64', type: 'uint64' },
       { name: 'amountOutMin', internalType: 'uint256', type: 'uint256' },
       { name: 'deadline', internalType: 'uint256', type: 'uint256' },
     ],
@@ -2767,7 +1492,7 @@ export const chilizSwapRouterAbi = [
     inputs: [
       { name: 'bettingMatch', internalType: 'address', type: 'address' },
       { name: 'marketId', internalType: 'uint256', type: 'uint256' },
-      { name: 'selection', internalType: 'uint64', type: 'uint64' },
+      { name: 'outcome', internalType: 'uint64', type: 'uint64' },
       { name: 'amount', internalType: 'uint256', type: 'uint256' },
     ],
     name: 'placeBetWithUSDC',
@@ -2785,13 +1510,6 @@ export const chilizSwapRouterAbi = [
     type: 'function',
     inputs: [],
     name: 'renounceOwnership',
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    inputs: [{ name: '_pool', internalType: 'address', type: 'address' }],
-    name: 'setLiquidityPool',
     outputs: [],
     stateMutability: 'nonpayable',
   },
@@ -2940,7 +1658,7 @@ export const chilizSwapRouterAbi = [
         indexed: false,
       },
       {
-        name: 'selection',
+        name: 'outcome',
         internalType: 'uint64',
         type: 'uint64',
         indexed: false,
@@ -2984,7 +1702,7 @@ export const chilizSwapRouterAbi = [
         indexed: false,
       },
       {
-        name: 'selection',
+        name: 'outcome',
         internalType: 'uint64',
         type: 'uint64',
         indexed: false,
@@ -3016,7 +1734,7 @@ export const chilizSwapRouterAbi = [
         indexed: false,
       },
       {
-        name: 'selection',
+        name: 'outcome',
         internalType: 'uint64',
         type: 'uint64',
         indexed: false,
@@ -3152,136 +1870,6 @@ export const chilizSwapRouterAbi = [
       },
     ],
     name: 'DonationWithUSDCEvent',
-  },
-  {
-    type: 'event',
-    anonymous: false,
-    inputs: [
-      {
-        name: 'depositor',
-        internalType: 'address',
-        type: 'address',
-        indexed: true,
-      },
-      {
-        name: 'receiver',
-        internalType: 'address',
-        type: 'address',
-        indexed: true,
-      },
-      {
-        name: 'chzSpent',
-        internalType: 'uint256',
-        type: 'uint256',
-        indexed: false,
-      },
-      {
-        name: 'usdcReceived',
-        internalType: 'uint256',
-        type: 'uint256',
-        indexed: false,
-      },
-      {
-        name: 'sharesMinted',
-        internalType: 'uint256',
-        type: 'uint256',
-        indexed: false,
-      },
-    ],
-    name: 'LiquidityDepositedWithCHZ',
-  },
-  {
-    type: 'event',
-    anonymous: false,
-    inputs: [
-      {
-        name: 'depositor',
-        internalType: 'address',
-        type: 'address',
-        indexed: true,
-      },
-      {
-        name: 'receiver',
-        internalType: 'address',
-        type: 'address',
-        indexed: true,
-      },
-      {
-        name: 'token',
-        internalType: 'address',
-        type: 'address',
-        indexed: true,
-      },
-      {
-        name: 'tokenSpent',
-        internalType: 'uint256',
-        type: 'uint256',
-        indexed: false,
-      },
-      {
-        name: 'usdcReceived',
-        internalType: 'uint256',
-        type: 'uint256',
-        indexed: false,
-      },
-      {
-        name: 'sharesMinted',
-        internalType: 'uint256',
-        type: 'uint256',
-        indexed: false,
-      },
-    ],
-    name: 'LiquidityDepositedWithToken',
-  },
-  {
-    type: 'event',
-    anonymous: false,
-    inputs: [
-      {
-        name: 'depositor',
-        internalType: 'address',
-        type: 'address',
-        indexed: true,
-      },
-      {
-        name: 'receiver',
-        internalType: 'address',
-        type: 'address',
-        indexed: true,
-      },
-      {
-        name: 'amount',
-        internalType: 'uint256',
-        type: 'uint256',
-        indexed: false,
-      },
-      {
-        name: 'sharesMinted',
-        internalType: 'uint256',
-        type: 'uint256',
-        indexed: false,
-      },
-    ],
-    name: 'LiquidityDepositedWithUSDC',
-  },
-  {
-    type: 'event',
-    anonymous: false,
-    inputs: [
-      {
-        name: 'oldPool',
-        internalType: 'address',
-        type: 'address',
-        indexed: true,
-      },
-      {
-        name: 'newPool',
-        internalType: 'address',
-        type: 'address',
-        indexed: true,
-      },
-    ],
-    name: 'LiquidityPoolSet',
   },
   {
     type: 'event',
@@ -3507,10 +2095,20 @@ export const chilizSwapRouterAbi = [
     ],
     name: 'TreasurySet',
   },
+  {
+    type: 'error',
+    inputs: [{ name: 'target', internalType: 'address', type: 'address' }],
+    name: 'AddressEmptyCode',
+  },
+  {
+    type: 'error',
+    inputs: [{ name: 'account', internalType: 'address', type: 'address' }],
+    name: 'AddressInsufficientBalance',
+  },
   { type: 'error', inputs: [], name: 'BettingMatchFactoryNotSet' },
   { type: 'error', inputs: [], name: 'DeadlinePassed' },
+  { type: 'error', inputs: [], name: 'FailedInnerCall' },
   { type: 'error', inputs: [], name: 'InvalidFeeBps' },
-  { type: 'error', inputs: [], name: 'LiquidityPoolNotSet' },
   {
     type: 'error',
     inputs: [{ name: 'owner', internalType: 'address', type: 'address' }],
@@ -3520,14 +2118,6 @@ export const chilizSwapRouterAbi = [
     type: 'error',
     inputs: [{ name: 'account', internalType: 'address', type: 'address' }],
     name: 'OwnableUnauthorizedAccount',
-  },
-  {
-    type: 'error',
-    inputs: [
-      { name: 'poolAsset', internalType: 'address', type: 'address' },
-      { name: 'expectedUsdc', internalType: 'address', type: 'address' },
-    ],
-    name: 'PoolAssetMismatch',
   },
   { type: 'error', inputs: [], name: 'ReentrancyGuardReentrantCall' },
   { type: 'error', inputs: [], name: 'RouterNotConfiguredOnFactory' },
@@ -3549,16 +2139,23 @@ export const chilizSwapRouterAbi = [
 ] as const
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// FootballMatch
+// FootballPariMatch
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-export const footballMatchAbi = [
+export const footballPariMatchAbi = [
   { type: 'constructor', inputs: [], stateMutability: 'nonpayable' },
   {
     type: 'function',
     inputs: [],
     name: 'ADMIN_ROLE',
     outputs: [{ name: '', internalType: 'bytes32', type: 'bytes32' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'BPS_DENOM',
+    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
     stateMutability: 'view',
   },
   {
@@ -3592,6 +2189,13 @@ export const footballMatchAbi = [
   {
     type: 'function',
     inputs: [],
+    name: 'MARKET_GOALS_EXACT',
+    outputs: [{ name: '', internalType: 'bytes32', type: 'bytes32' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
     name: 'MARKET_GOALS_TOTAL',
     outputs: [{ name: '', internalType: 'bytes32', type: 'bytes32' }],
     stateMutability: 'view',
@@ -3613,36 +2217,15 @@ export const footballMatchAbi = [
   {
     type: 'function',
     inputs: [],
-    name: 'MAX_ODDS',
-    outputs: [{ name: '', internalType: 'uint32', type: 'uint32' }],
+    name: 'MAX_FEE_BPS',
+    outputs: [{ name: '', internalType: 'uint16', type: 'uint16' }],
     stateMutability: 'view',
   },
   {
     type: 'function',
     inputs: [],
-    name: 'MIN_NET_STAKE',
+    name: 'MIN_STAKE',
     outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [],
-    name: 'MIN_ODDS',
-    outputs: [{ name: '', internalType: 'uint32', type: 'uint32' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [],
-    name: 'ODDS_PRECISION',
-    outputs: [{ name: '', internalType: 'uint32', type: 'uint32' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [],
-    name: 'ODDS_SETTER_ROLE',
-    outputs: [{ name: '', internalType: 'bytes32', type: 'bytes32' }],
     stateMutability: 'view',
   },
   {
@@ -3677,10 +2260,31 @@ export const footballMatchAbi = [
     type: 'function',
     inputs: [
       { name: 'marketType', internalType: 'bytes32', type: 'bytes32' },
-      { name: 'initialOdds', internalType: 'uint32', type: 'uint32' },
+      { name: 'line', internalType: 'int16', type: 'int16' },
+      { name: 'extra', internalType: 'uint8', type: 'uint8' },
+      { name: 'groupId', internalType: 'uint16', type: 'uint16' },
+    ],
+    name: 'addMarketAdvanced',
+    outputs: [{ name: 'marketId', internalType: 'uint256', type: 'uint256' }],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'marketType', internalType: 'bytes32', type: 'bytes32' },
       { name: 'line', internalType: 'int16', type: 'int16' },
     ],
     name: 'addMarketWithLine',
+    outputs: [{ name: 'marketId', internalType: 'uint256', type: 'uint256' }],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'marketTypes', internalType: 'bytes32[]', type: 'bytes32[]' },
+      { name: 'lines', internalType: 'int16[]', type: 'int16[]' },
+    ],
+    name: 'addMarketsBatch',
     outputs: [],
     stateMutability: 'nonpayable',
   },
@@ -3688,10 +2292,11 @@ export const footballMatchAbi = [
     type: 'function',
     inputs: [
       { name: 'marketTypes', internalType: 'bytes32[]', type: 'bytes32[]' },
-      { name: 'initialOdds', internalType: 'uint32[]', type: 'uint32[]' },
       { name: 'lines', internalType: 'int16[]', type: 'int16[]' },
+      { name: 'extras', internalType: 'uint8[]', type: 'uint8[]' },
+      { name: 'groupIds', internalType: 'uint16[]', type: 'uint16[]' },
     ],
-    name: 'addMarketsBatch',
+    name: 'addMarketsBatchAdvanced',
     outputs: [],
     stateMutability: 'nonpayable',
   },
@@ -3707,39 +2312,33 @@ export const footballMatchAbi = [
   },
   {
     type: 'function',
-    inputs: [
-      { name: 'marketId', internalType: 'uint256', type: 'uint256' },
-      { name: 'betIndex', internalType: 'uint256', type: 'uint256' },
-    ],
+    inputs: [{ name: 'marketId', internalType: 'uint256', type: 'uint256' }],
     name: 'claim',
     outputs: [],
     stateMutability: 'nonpayable',
   },
   {
     type: 'function',
+    inputs: [
+      { name: 'marketIds', internalType: 'uint256[]', type: 'uint256[]' },
+    ],
+    name: 'claimBatch',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
     inputs: [{ name: 'marketId', internalType: 'uint256', type: 'uint256' }],
-    name: 'claimAll',
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    inputs: [
-      { name: 'marketId', internalType: 'uint256', type: 'uint256' },
-      { name: 'start', internalType: 'uint256', type: 'uint256' },
-      { name: 'end', internalType: 'uint256', type: 'uint256' },
-    ],
-    name: 'claimRange',
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    inputs: [
-      { name: 'marketId', internalType: 'uint256', type: 'uint256' },
-      { name: 'betIndex', internalType: 'uint256', type: 'uint256' },
-    ],
     name: 'claimRefund',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'marketIds', internalType: 'uint256[]', type: 'uint256[]' },
+    ],
+    name: 'claimRefundBatch',
     outputs: [],
     stateMutability: 'nonpayable',
   },
@@ -3761,6 +2360,30 @@ export const footballMatchAbi = [
   },
   {
     type: 'function',
+    inputs: [
+      { name: 'marketId', internalType: 'uint256', type: 'uint256' },
+      {
+        name: 's',
+        internalType: 'struct FootballPariMatch.FootballScore',
+        type: 'tuple',
+        components: [
+          { name: 'homeGoals', internalType: 'uint8', type: 'uint8' },
+          { name: 'awayGoals', internalType: 'uint8', type: 'uint8' },
+          { name: 'htHomeGoals', internalType: 'uint8', type: 'uint8' },
+          { name: 'htAwayGoals', internalType: 'uint8', type: 'uint8' },
+          { name: 'firstScorerId', internalType: 'uint8', type: 'uint8' },
+        ],
+      },
+    ],
+    name: 'computeOutcome',
+    outputs: [
+      { name: 'outcome', internalType: 'uint64', type: 'uint64' },
+      { name: 'resolvable', internalType: 'bool', type: 'bool' },
+    ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
     inputs: [],
     name: 'emergencyPause',
     outputs: [],
@@ -3768,57 +2391,26 @@ export const footballMatchAbi = [
   },
   {
     type: 'function',
-    inputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
-    name: 'footballMarkets',
-    outputs: [
-      { name: 'marketType', internalType: 'bytes32', type: 'bytes32' },
-      { name: 'line', internalType: 'int16', type: 'int16' },
-      { name: 'maxSelections', internalType: 'uint8', type: 'uint8' },
-    ],
+    inputs: [],
+    name: 'feeBps',
+    outputs: [{ name: '', internalType: 'uint16', type: 'uint16' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'feeRecipient',
+    outputs: [{ name: '', internalType: 'address', type: 'address' }],
     stateMutability: 'view',
   },
   {
     type: 'function',
     inputs: [
       { name: 'marketId', internalType: 'uint256', type: 'uint256' },
-      { name: 'user', internalType: 'address', type: 'address' },
-      { name: 'betIndex', internalType: 'uint256', type: 'uint256' },
+      { name: 'outcome', internalType: 'uint64', type: 'uint64' },
     ],
-    name: 'getBetDetails',
-    outputs: [
-      { name: 'amount', internalType: 'uint256', type: 'uint256' },
-      { name: 'selection', internalType: 'uint64', type: 'uint64' },
-      { name: 'odds', internalType: 'uint32', type: 'uint32' },
-      { name: 'timestamp', internalType: 'uint40', type: 'uint40' },
-      { name: 'claimed', internalType: 'bool', type: 'bool' },
-      { name: 'potentialPayout', internalType: 'uint256', type: 'uint256' },
-    ],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [{ name: 'marketId', internalType: 'uint256', type: 'uint256' }],
-    name: 'getCurrentOdds',
-    outputs: [{ name: '', internalType: 'uint32', type: 'uint32' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [{ name: 'marketId', internalType: 'uint256', type: 'uint256' }],
-    name: 'getFootballMarket',
-    outputs: [
-      { name: 'marketTypeStr', internalType: 'string', type: 'string' },
-      { name: 'line', internalType: 'int16', type: 'int16' },
-      { name: 'maxSelections', internalType: 'uint8', type: 'uint8' },
-      {
-        name: 'state',
-        internalType: 'enum BettingMatch.MarketState',
-        type: 'uint8',
-      },
-      { name: 'currentOdds', internalType: 'uint32', type: 'uint32' },
-      { name: 'result', internalType: 'uint64', type: 'uint64' },
-      { name: 'totalPool', internalType: 'uint256', type: 'uint256' },
-    ],
+    name: 'getImpliedProbabilityBps',
+    outputs: [{ name: 'bps', internalType: 'uint256', type: 'uint256' }],
     stateMutability: 'view',
   },
   {
@@ -3828,18 +2420,18 @@ export const footballMatchAbi = [
     outputs: [
       {
         name: '',
-        internalType: 'struct BettingMatch.MarketCore',
+        internalType: 'struct PariMatchBase.MarketCore',
         type: 'tuple',
         components: [
           {
             name: 'state',
-            internalType: 'enum BettingMatch.MarketState',
+            internalType: 'enum PariMatchBase.MarketState',
             type: 'uint8',
           },
           { name: 'result', internalType: 'uint64', type: 'uint64' },
           { name: 'createdAt', internalType: 'uint40', type: 'uint40' },
           { name: 'resolvedAt', internalType: 'uint40', type: 'uint40' },
-          { name: 'totalPool', internalType: 'uint256', type: 'uint256' },
+          { name: 'resolvedNetPool', internalType: 'uint256', type: 'uint256' },
         ],
       },
     ],
@@ -3853,27 +2445,43 @@ export const footballMatchAbi = [
       { name: 'marketType', internalType: 'bytes32', type: 'bytes32' },
       {
         name: 'state',
-        internalType: 'enum BettingMatch.MarketState',
+        internalType: 'enum PariMatchBase.MarketState',
         type: 'uint8',
       },
-      { name: 'currentOdds', internalType: 'uint32', type: 'uint32' },
       { name: 'result', internalType: 'uint64', type: 'uint64' },
       { name: 'totalPool', internalType: 'uint256', type: 'uint256' },
+      { name: 'outcomeCount', internalType: 'uint256', type: 'uint256' },
     ],
     stateMutability: 'view',
   },
   {
     type: 'function',
     inputs: [{ name: 'marketId', internalType: 'uint256', type: 'uint256' }],
-    name: 'getMarketLiability',
-    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
+    name: 'getMarketSpec',
+    outputs: [
+      {
+        name: '',
+        internalType: 'struct PariMatchBase.MarketSpec',
+        type: 'tuple',
+        components: [
+          { name: 'marketType', internalType: 'bytes32', type: 'bytes32' },
+          { name: 'line', internalType: 'int16', type: 'int16' },
+          { name: 'maxOutcome', internalType: 'uint8', type: 'uint8' },
+          { name: 'extra', internalType: 'uint8', type: 'uint8' },
+          { name: 'groupId', internalType: 'uint16', type: 'uint16' },
+        ],
+      },
+    ],
     stateMutability: 'view',
   },
   {
     type: 'function',
-    inputs: [{ name: 'marketId', internalType: 'uint256', type: 'uint256' }],
-    name: 'getOddsHistory',
-    outputs: [{ name: '', internalType: 'uint32[]', type: 'uint32[]' }],
+    inputs: [
+      { name: 'marketId', internalType: 'uint256', type: 'uint256' },
+      { name: 'outcome', internalType: 'uint64', type: 'uint64' },
+    ],
+    name: 'getOutcomePool',
+    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
     stateMutability: 'view',
   },
   {
@@ -3885,25 +2493,30 @@ export const footballMatchAbi = [
   },
   {
     type: 'function',
+    inputs: [{ name: 'marketId', internalType: 'uint256', type: 'uint256' }],
+    name: 'getTotalPool',
+    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'marketId', internalType: 'uint256', type: 'uint256' },
+      { name: 'user', internalType: 'address', type: 'address' },
+      { name: 'outcome', internalType: 'uint64', type: 'uint64' },
+    ],
+    name: 'getUserStake',
+    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
     inputs: [
       { name: 'marketId', internalType: 'uint256', type: 'uint256' },
       { name: 'user', internalType: 'address', type: 'address' },
     ],
-    name: 'getUserBets',
-    outputs: [
-      {
-        name: '',
-        internalType: 'struct BettingMatch.Bet[]',
-        type: 'tuple[]',
-        components: [
-          { name: 'amount', internalType: 'uint256', type: 'uint256' },
-          { name: 'selection', internalType: 'uint64', type: 'uint64' },
-          { name: 'oddsIndex', internalType: 'uint16', type: 'uint16' },
-          { name: 'timestamp', internalType: 'uint40', type: 'uint40' },
-          { name: 'claimed', internalType: 'bool', type: 'bool' },
-        ],
-      },
-    ],
+    name: 'getUserTotalStake',
+    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
     stateMutability: 'view',
   },
   {
@@ -3915,6 +2528,16 @@ export const footballMatchAbi = [
     name: 'grantRole',
     outputs: [],
     stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'marketId', internalType: 'uint256', type: 'uint256' },
+      { name: 'user', internalType: 'address', type: 'address' },
+    ],
+    name: 'hasClaimed',
+    outputs: [{ name: '', internalType: 'bool', type: 'bool' }],
+    stateMutability: 'view',
   },
   {
     type: 'function',
@@ -3939,10 +2562,15 @@ export const footballMatchAbi = [
   {
     type: 'function',
     inputs: [],
-    name: 'liquidityPool',
-    outputs: [
-      { name: '', internalType: 'contract ILiquidityPool', type: 'address' },
-    ],
+    name: 'leaderboardFeeBps',
+    outputs: [{ name: '', internalType: 'uint16', type: 'uint16' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'leaderboardRecipient',
+    outputs: [{ name: '', internalType: 'address', type: 'address' }],
     stateMutability: 'view',
   },
   {
@@ -3957,13 +2585,6 @@ export const footballMatchAbi = [
     inputs: [],
     name: 'matchName',
     outputs: [{ name: '', internalType: 'string', type: 'string' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [],
-    name: 'maxAllowedOdds',
-    outputs: [{ name: '', internalType: 'uint32', type: 'uint32' }],
     stateMutability: 'view',
   },
   {
@@ -4000,7 +2621,7 @@ export const footballMatchAbi = [
     type: 'function',
     inputs: [
       { name: 'marketId', internalType: 'uint256', type: 'uint256' },
-      { name: 'selection', internalType: 'uint64', type: 'uint64' },
+      { name: 'outcome', internalType: 'uint64', type: 'uint64' },
       { name: 'amount', internalType: 'uint256', type: 'uint256' },
     ],
     name: 'placeBetUSDC',
@@ -4012,7 +2633,7 @@ export const footballMatchAbi = [
     inputs: [
       { name: 'user', internalType: 'address', type: 'address' },
       { name: 'marketId', internalType: 'uint256', type: 'uint256' },
-      { name: 'selection', internalType: 'uint64', type: 'uint64' },
+      { name: 'outcome', internalType: 'uint64', type: 'uint64' },
       { name: 'amount', internalType: 'uint256', type: 'uint256' },
     ],
     name: 'placeBetUSDCFor',
@@ -4024,18 +2645,6 @@ export const footballMatchAbi = [
     inputs: [],
     name: 'proxiableUUID',
     outputs: [{ name: '', internalType: 'bytes32', type: 'bytes32' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [
-      { name: 'marketId', internalType: 'uint256', type: 'uint256' },
-      { name: 'amount', internalType: 'uint256', type: 'uint256' },
-    ],
-    name: 'quoteNetExposure',
-    outputs: [
-      { name: 'netExposure', internalType: 'uint256', type: 'uint256' },
-    ],
     stateMutability: 'view',
   },
   {
@@ -4053,6 +2662,51 @@ export const footballMatchAbi = [
     ],
     name: 'renounceRole',
     outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'marketIds', internalType: 'uint256[]', type: 'uint256[]' },
+      {
+        name: 's',
+        internalType: 'struct FootballPariMatch.FootballScore',
+        type: 'tuple',
+        components: [
+          { name: 'homeGoals', internalType: 'uint8', type: 'uint8' },
+          { name: 'awayGoals', internalType: 'uint8', type: 'uint8' },
+          { name: 'htHomeGoals', internalType: 'uint8', type: 'uint8' },
+          { name: 'htAwayGoals', internalType: 'uint8', type: 'uint8' },
+          { name: 'firstScorerId', internalType: 'uint8', type: 'uint8' },
+        ],
+      },
+    ],
+    name: 'resolveBatchByScore',
+    outputs: [
+      { name: 'marketsResolved', internalType: 'uint256', type: 'uint256' },
+    ],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [
+      {
+        name: 's',
+        internalType: 'struct FootballPariMatch.FootballScore',
+        type: 'tuple',
+        components: [
+          { name: 'homeGoals', internalType: 'uint8', type: 'uint8' },
+          { name: 'awayGoals', internalType: 'uint8', type: 'uint8' },
+          { name: 'htHomeGoals', internalType: 'uint8', type: 'uint8' },
+          { name: 'htAwayGoals', internalType: 'uint8', type: 'uint8' },
+          { name: 'firstScorerId', internalType: 'uint8', type: 'uint8' },
+        ],
+      },
+    ],
+    name: 'resolveByScore',
+    outputs: [
+      { name: 'marketsResolved', internalType: 'uint256', type: 'uint256' },
+    ],
     stateMutability: 'nonpayable',
   },
   {
@@ -4087,31 +2741,35 @@ export const footballMatchAbi = [
   },
   {
     type: 'function',
-    inputs: [{ name: '_pool', internalType: 'address', type: 'address' }],
-    name: 'setLiquidityPool',
+    inputs: [{ name: '_feeBps', internalType: 'uint16', type: 'uint16' }],
+    name: 'setFeeBps',
     outputs: [],
     stateMutability: 'nonpayable',
   },
   {
     type: 'function',
-    inputs: [
-      { name: 'marketId', internalType: 'uint256', type: 'uint256' },
-      { name: 'newOdds', internalType: 'uint32', type: 'uint32' },
-    ],
-    name: 'setMarketOdds',
+    inputs: [{ name: '_recipient', internalType: 'address', type: 'address' }],
+    name: 'setFeeRecipient',
     outputs: [],
     stateMutability: 'nonpayable',
   },
   {
     type: 'function',
-    inputs: [{ name: 'newMax', internalType: 'uint32', type: 'uint32' }],
-    name: 'setMaxAllowedOdds',
+    inputs: [{ name: '_bps', internalType: 'uint16', type: 'uint16' }],
+    name: 'setLeaderboardFeeBps',
     outputs: [],
     stateMutability: 'nonpayable',
   },
   {
     type: 'function',
-    inputs: [{ name: '_usdcToken', internalType: 'address', type: 'address' }],
+    inputs: [{ name: '_recipient', internalType: 'address', type: 'address' }],
+    name: 'setLeaderboardRecipient',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [{ name: '_usdc', internalType: 'address', type: 'address' }],
     name: 'setUSDCToken',
     outputs: [],
     stateMutability: 'nonpayable',
@@ -4173,39 +2831,38 @@ export const footballMatchAbi = [
     anonymous: false,
     inputs: [
       {
-        name: 'marketId',
-        internalType: 'uint256',
-        type: 'uint256',
-        indexed: true,
-      },
-      { name: 'user', internalType: 'address', type: 'address', indexed: true },
-      {
-        name: 'betIndex',
-        internalType: 'uint256',
-        type: 'uint256',
+        name: 'oldBps',
+        internalType: 'uint16',
+        type: 'uint16',
         indexed: false,
       },
       {
-        name: 'amount',
-        internalType: 'uint256',
-        type: 'uint256',
-        indexed: false,
-      },
-      {
-        name: 'selection',
-        internalType: 'uint64',
-        type: 'uint64',
-        indexed: false,
-      },
-      { name: 'odds', internalType: 'uint32', type: 'uint32', indexed: false },
-      {
-        name: 'oddsIndex',
+        name: 'newBps',
         internalType: 'uint16',
         type: 'uint16',
         indexed: false,
       },
     ],
-    name: 'BetPlaced',
+    name: 'FeeBpsSet',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
+        name: 'oldRecipient',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+      {
+        name: 'newRecipient',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+    ],
+    name: 'FeeRecipientSet',
   },
   {
     type: 'event',
@@ -4224,9 +2881,59 @@ export const footballMatchAbi = [
     type: 'event',
     anonymous: false,
     inputs: [
-      { name: 'pool', internalType: 'address', type: 'address', indexed: true },
+      {
+        name: 'oldBps',
+        internalType: 'uint16',
+        type: 'uint16',
+        indexed: false,
+      },
+      {
+        name: 'newBps',
+        internalType: 'uint16',
+        type: 'uint16',
+        indexed: false,
+      },
     ],
-    name: 'LiquidityPoolSet',
+    name: 'LeaderboardFeeBpsSet',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
+        name: 'oldRecipient',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+      {
+        name: 'newRecipient',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+    ],
+    name: 'LeaderboardRecipientSet',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
+        name: 'leaderboard',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+      { name: 'user', internalType: 'address', type: 'address', indexed: true },
+      {
+        name: 'payout',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: false,
+      },
+    ],
+    name: 'LeaderboardRecordFailed',
   },
   {
     type: 'event',
@@ -4259,14 +2966,21 @@ export const footballMatchAbi = [
       },
       {
         name: 'marketType',
-        internalType: 'string',
-        type: 'string',
+        internalType: 'bytes32',
+        type: 'bytes32',
+        indexed: true,
+      },
+      { name: 'line', internalType: 'int16', type: 'int16', indexed: false },
+      {
+        name: 'maxOutcome',
+        internalType: 'uint8',
+        type: 'uint8',
         indexed: false,
       },
       {
-        name: 'initialOdds',
-        internalType: 'uint32',
-        type: 'uint32',
+        name: 'groupId',
+        internalType: 'uint16',
+        type: 'uint16',
         indexed: false,
       },
     ],
@@ -4289,9 +3003,16 @@ export const footballMatchAbi = [
         indexed: false,
       },
       {
-        name: 'resolvedAt',
-        internalType: 'uint40',
-        type: 'uint40',
+        name: 'totalPool',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: false,
+      },
+      { name: 'fee', internalType: 'uint256', type: 'uint256', indexed: false },
+      {
+        name: 'resolvedNetPool',
+        internalType: 'uint256',
+        type: 'uint256',
         indexed: false,
       },
     ],
@@ -4309,13 +3030,13 @@ export const footballMatchAbi = [
       },
       {
         name: 'oldState',
-        internalType: 'enum BettingMatch.MarketState',
+        internalType: 'enum PariMatchBase.MarketState',
         type: 'uint8',
         indexed: false,
       },
       {
         name: 'newState',
-        internalType: 'enum BettingMatch.MarketState',
+        internalType: 'enum PariMatchBase.MarketState',
         type: 'uint8',
         indexed: false,
       },
@@ -4347,50 +3068,43 @@ export const footballMatchAbi = [
     anonymous: false,
     inputs: [
       {
-        name: 'oldMax',
-        internalType: 'uint32',
-        type: 'uint32',
+        name: 'homeGoals',
+        internalType: 'uint8',
+        type: 'uint8',
         indexed: false,
       },
       {
-        name: 'newMax',
-        internalType: 'uint32',
-        type: 'uint32',
+        name: 'awayGoals',
+        internalType: 'uint8',
+        type: 'uint8',
         indexed: false,
       },
-    ],
-    name: 'MaxAllowedOddsSet',
-  },
-  {
-    type: 'event',
-    anonymous: false,
-    inputs: [
       {
-        name: 'marketId',
+        name: 'htHomeGoals',
+        internalType: 'uint8',
+        type: 'uint8',
+        indexed: false,
+      },
+      {
+        name: 'htAwayGoals',
+        internalType: 'uint8',
+        type: 'uint8',
+        indexed: false,
+      },
+      {
+        name: 'firstScorerId',
+        internalType: 'uint8',
+        type: 'uint8',
+        indexed: false,
+      },
+      {
+        name: 'marketsResolved',
         internalType: 'uint256',
         type: 'uint256',
-        indexed: true,
-      },
-      {
-        name: 'oldOdds',
-        internalType: 'uint32',
-        type: 'uint32',
-        indexed: false,
-      },
-      {
-        name: 'newOdds',
-        internalType: 'uint32',
-        type: 'uint32',
-        indexed: false,
-      },
-      {
-        name: 'oddsIndex',
-        internalType: 'uint16',
-        type: 'uint16',
         indexed: false,
       },
     ],
-    name: 'OddsUpdated',
+    name: 'MatchScoreResolved',
   },
   {
     type: 'event',
@@ -4436,19 +3150,19 @@ export const footballMatchAbi = [
       },
       { name: 'user', internalType: 'address', type: 'address', indexed: true },
       {
-        name: 'betIndex',
+        name: 'stake',
         internalType: 'uint256',
         type: 'uint256',
         indexed: false,
       },
       {
-        name: 'amount',
+        name: 'payout',
         internalType: 'uint256',
         type: 'uint256',
         indexed: false,
       },
     ],
-    name: 'Payout',
+    name: 'PositionClaimed',
   },
   {
     type: 'event',
@@ -4462,11 +3176,103 @@ export const footballMatchAbi = [
       },
       { name: 'user', internalType: 'address', type: 'address', indexed: true },
       {
-        name: 'betIndex',
+        name: 'outcome',
+        internalType: 'uint64',
+        type: 'uint64',
+        indexed: false,
+      },
+      {
+        name: 'stake',
         internalType: 'uint256',
         type: 'uint256',
         indexed: false,
       },
+      {
+        name: 'newOutcomePool',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: false,
+      },
+      {
+        name: 'newTotalPool',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: false,
+      },
+    ],
+    name: 'PositionTaken',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      { name: 'role', internalType: 'bytes32', type: 'bytes32', indexed: true },
+      {
+        name: 'previousAdminRole',
+        internalType: 'bytes32',
+        type: 'bytes32',
+        indexed: true,
+      },
+      {
+        name: 'newAdminRole',
+        internalType: 'bytes32',
+        type: 'bytes32',
+        indexed: true,
+      },
+    ],
+    name: 'RoleAdminChanged',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      { name: 'role', internalType: 'bytes32', type: 'bytes32', indexed: true },
+      {
+        name: 'account',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+      {
+        name: 'sender',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+    ],
+    name: 'RoleGranted',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      { name: 'role', internalType: 'bytes32', type: 'bytes32', indexed: true },
+      {
+        name: 'account',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+      {
+        name: 'sender',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+    ],
+    name: 'RoleRevoked',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
+        name: 'marketId',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: true,
+      },
+      { name: 'user', internalType: 'address', type: 'address', indexed: true },
       {
         name: 'amount',
         internalType: 'uint256',
@@ -4474,7 +3280,619 @@ export const footballMatchAbi = [
         indexed: false,
       },
     ],
-    name: 'Refund',
+    name: 'StakeRefunded',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
+        name: 'token',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+    ],
+    name: 'USDCTokenSet',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
+        name: 'account',
+        internalType: 'address',
+        type: 'address',
+        indexed: false,
+      },
+    ],
+    name: 'Unpaused',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
+        name: 'implementation',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+    ],
+    name: 'Upgraded',
+  },
+  { type: 'error', inputs: [], name: 'AccessControlBadConfirmation' },
+  {
+    type: 'error',
+    inputs: [
+      { name: 'account', internalType: 'address', type: 'address' },
+      { name: 'neededRole', internalType: 'bytes32', type: 'bytes32' },
+    ],
+    name: 'AccessControlUnauthorizedAccount',
+  },
+  {
+    type: 'error',
+    inputs: [{ name: 'target', internalType: 'address', type: 'address' }],
+    name: 'AddressEmptyCode',
+  },
+  {
+    type: 'error',
+    inputs: [{ name: 'account', internalType: 'address', type: 'address' }],
+    name: 'AddressInsufficientBalance',
+  },
+  {
+    type: 'error',
+    inputs: [
+      { name: 'marketId', internalType: 'uint256', type: 'uint256' },
+      { name: 'user', internalType: 'address', type: 'address' },
+    ],
+    name: 'AlreadyClaimed',
+  },
+  { type: 'error', inputs: [], name: 'ArrayLengthMismatch' },
+  {
+    type: 'error',
+    inputs: [
+      { name: 'implementation', internalType: 'address', type: 'address' },
+    ],
+    name: 'ERC1967InvalidImplementation',
+  },
+  { type: 'error', inputs: [], name: 'ERC1967NonPayable' },
+  { type: 'error', inputs: [], name: 'EnforcedPause' },
+  { type: 'error', inputs: [], name: 'ExpectedPause' },
+  { type: 'error', inputs: [], name: 'FailedInnerCall' },
+  {
+    type: 'error',
+    inputs: [
+      { name: 'provided', internalType: 'uint16', type: 'uint16' },
+      { name: 'max', internalType: 'uint16', type: 'uint16' },
+    ],
+    name: 'FeeBpsExceedsMax',
+  },
+  { type: 'error', inputs: [], name: 'FeeRecipientNotConfigured' },
+  { type: 'error', inputs: [], name: 'InvalidInitialization' },
+  {
+    type: 'error',
+    inputs: [
+      { name: 'marketType', internalType: 'bytes32', type: 'bytes32' },
+      { name: 'line', internalType: 'int16', type: 'int16' },
+    ],
+    name: 'InvalidLine',
+  },
+  {
+    type: 'error',
+    inputs: [{ name: 'marketId', internalType: 'uint256', type: 'uint256' }],
+    name: 'InvalidMarketId',
+  },
+  {
+    type: 'error',
+    inputs: [
+      { name: 'marketId', internalType: 'uint256', type: 'uint256' },
+      {
+        name: 'current',
+        internalType: 'enum PariMatchBase.MarketState',
+        type: 'uint8',
+      },
+      {
+        name: 'required',
+        internalType: 'enum PariMatchBase.MarketState',
+        type: 'uint8',
+      },
+    ],
+    name: 'InvalidMarketState',
+  },
+  {
+    type: 'error',
+    inputs: [{ name: 'marketType', internalType: 'bytes32', type: 'bytes32' }],
+    name: 'InvalidMarketType',
+  },
+  {
+    type: 'error',
+    inputs: [
+      { name: 'marketId', internalType: 'uint256', type: 'uint256' },
+      { name: 'outcome', internalType: 'uint64', type: 'uint64' },
+    ],
+    name: 'InvalidOutcome',
+  },
+  {
+    type: 'error',
+    inputs: [
+      { name: 'marketId', internalType: 'uint256', type: 'uint256' },
+      { name: 'outcome', internalType: 'uint64', type: 'uint64' },
+      { name: 'maxAllowed', internalType: 'uint8', type: 'uint8' },
+    ],
+    name: 'InvalidOutcomeValue',
+  },
+  {
+    type: 'error',
+    inputs: [
+      { name: 'leaderboardBps', internalType: 'uint16', type: 'uint16' },
+      { name: 'totalBps', internalType: 'uint16', type: 'uint16' },
+    ],
+    name: 'LeaderboardFeeExceedsTotal',
+  },
+  { type: 'error', inputs: [], name: 'LeaderboardRecipientNotConfigured' },
+  { type: 'error', inputs: [], name: 'NotInitializing' },
+  {
+    type: 'error',
+    inputs: [
+      { name: 'marketId', internalType: 'uint256', type: 'uint256' },
+      { name: 'user', internalType: 'address', type: 'address' },
+    ],
+    name: 'NothingToClaim',
+  },
+  {
+    type: 'error',
+    inputs: [
+      { name: 'marketId', internalType: 'uint256', type: 'uint256' },
+      { name: 'user', internalType: 'address', type: 'address' },
+    ],
+    name: 'NothingToRefund',
+  },
+  {
+    type: 'error',
+    inputs: [{ name: 'owner', internalType: 'address', type: 'address' }],
+    name: 'OwnableInvalidOwner',
+  },
+  {
+    type: 'error',
+    inputs: [{ name: 'account', internalType: 'address', type: 'address' }],
+    name: 'OwnableUnauthorizedAccount',
+  },
+  { type: 'error', inputs: [], name: 'ReentrancyGuardReentrantCall' },
+  {
+    type: 'error',
+    inputs: [{ name: 'token', internalType: 'address', type: 'address' }],
+    name: 'SafeERC20FailedOperation',
+  },
+  {
+    type: 'error',
+    inputs: [
+      { name: 'stake', internalType: 'uint256', type: 'uint256' },
+      { name: 'minimum', internalType: 'uint256', type: 'uint256' },
+    ],
+    name: 'StakeBelowMinimum',
+  },
+  { type: 'error', inputs: [], name: 'USDCNotConfigured' },
+  { type: 'error', inputs: [], name: 'UUPSUnauthorizedCallContext' },
+  {
+    type: 'error',
+    inputs: [{ name: 'slot', internalType: 'bytes32', type: 'bytes32' }],
+    name: 'UUPSUnsupportedProxiableUUID',
+  },
+  { type: 'error', inputs: [], name: 'ZeroStake' },
+] as const
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// LeaderboardRewards
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+export const leaderboardRewardsAbi = [
+  { type: 'constructor', inputs: [], stateMutability: 'nonpayable' },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'ADMIN_ROLE',
+    outputs: [{ name: '', internalType: 'bytes32', type: 'bytes32' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'DEFAULT_ADMIN_ROLE',
+    outputs: [{ name: '', internalType: 'bytes32', type: 'bytes32' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'MAX_CLAIM_DURATION',
+    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'ORACLE_ROLE',
+    outputs: [{ name: '', internalType: 'bytes32', type: 'bytes32' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'PAUSER_ROLE',
+    outputs: [{ name: '', internalType: 'bytes32', type: 'bytes32' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'UPGRADE_INTERFACE_VERSION',
+    outputs: [{ name: '', internalType: 'string', type: 'string' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'epochId', internalType: 'uint256', type: 'uint256' },
+      { name: 'prizeAmount', internalType: 'uint256', type: 'uint256' },
+      { name: 'proof', internalType: 'bytes32[]', type: 'bytes32[]' },
+    ],
+    name: 'claim',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'merkleRoot', internalType: 'bytes32', type: 'bytes32' },
+      { name: 'claimDuration', internalType: 'uint256', type: 'uint256' },
+    ],
+    name: 'closeEpoch',
+    outputs: [{ name: 'closedId', internalType: 'uint256', type: 'uint256' }],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'emergencyPause',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [{ name: 'epochId', internalType: 'uint256', type: 'uint256' }],
+    name: 'epoch',
+    outputs: [
+      {
+        name: '',
+        internalType: 'struct LeaderboardRewards.Epoch',
+        type: 'tuple',
+        components: [
+          { name: 'startTime', internalType: 'uint64', type: 'uint64' },
+          { name: 'closedAt', internalType: 'uint64', type: 'uint64' },
+          { name: 'claimExpiry', internalType: 'uint64', type: 'uint64' },
+          { name: 'closed', internalType: 'bool', type: 'bool' },
+          { name: 'prizePool', internalType: 'uint256', type: 'uint256' },
+          { name: 'totalClaimed', internalType: 'uint256', type: 'uint256' },
+          { name: 'merkleRoot', internalType: 'bytes32', type: 'bytes32' },
+        ],
+      },
+    ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'epochIndex',
+    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [{ name: 'role', internalType: 'bytes32', type: 'bytes32' }],
+    name: 'getRoleAdmin',
+    outputs: [{ name: '', internalType: 'bytes32', type: 'bytes32' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'role', internalType: 'bytes32', type: 'bytes32' },
+      { name: 'account', internalType: 'address', type: 'address' },
+    ],
+    name: 'grantRole',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'epochId', internalType: 'uint256', type: 'uint256' },
+      { name: 'user', internalType: 'address', type: 'address' },
+    ],
+    name: 'hasClaimed',
+    outputs: [{ name: '', internalType: 'bool', type: 'bool' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'role', internalType: 'bytes32', type: 'bytes32' },
+      { name: 'account', internalType: 'address', type: 'address' },
+    ],
+    name: 'hasRole',
+    outputs: [{ name: '', internalType: 'bool', type: 'bool' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: '_usdc', internalType: 'address', type: 'address' },
+      { name: '_admin', internalType: 'address', type: 'address' },
+      { name: '_oracle', internalType: 'address', type: 'address' },
+    ],
+    name: 'initialize',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'lockedInClosedEpochs',
+    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'matchFactory',
+    outputs: [
+      {
+        name: '',
+        internalType: 'contract IPariMatchFactoryView',
+        type: 'address',
+      },
+    ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'openPrizePool',
+    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'paused',
+    outputs: [{ name: '', internalType: 'bool', type: 'bool' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'proxiableUUID',
+    outputs: [{ name: '', internalType: 'bytes32', type: 'bytes32' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'user', internalType: 'address', type: 'address' },
+      { name: 'payout', internalType: 'uint256', type: 'uint256' },
+    ],
+    name: 'recordWin',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'role', internalType: 'bytes32', type: 'bytes32' },
+      { name: 'callerConfirmation', internalType: 'address', type: 'address' },
+    ],
+    name: 'renounceRole',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'role', internalType: 'bytes32', type: 'bytes32' },
+      { name: 'account', internalType: 'address', type: 'address' },
+    ],
+    name: 'revokeRole',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [{ name: 'epochId', internalType: 'uint256', type: 'uint256' }],
+    name: 'rolloverEpoch',
+    outputs: [{ name: 'rolledOver', internalType: 'uint256', type: 'uint256' }],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [{ name: 'user', internalType: 'address', type: 'address' }],
+    name: 'score',
+    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [{ name: '_factory', internalType: 'address', type: 'address' }],
+    name: 'setMatchFactory',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [{ name: '_usdc', internalType: 'address', type: 'address' }],
+    name: 'setUSDCToken',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [{ name: 'interfaceId', internalType: 'bytes4', type: 'bytes4' }],
+    name: 'supportsInterface',
+    outputs: [{ name: '', internalType: 'bool', type: 'bool' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'unpause',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'newImplementation', internalType: 'address', type: 'address' },
+      { name: 'data', internalType: 'bytes', type: 'bytes' },
+    ],
+    name: 'upgradeToAndCall',
+    outputs: [],
+    stateMutability: 'payable',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'usdcToken',
+    outputs: [{ name: '', internalType: 'contract IERC20', type: 'address' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
+        name: 'epochId',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: true,
+      },
+      {
+        name: 'merkleRoot',
+        internalType: 'bytes32',
+        type: 'bytes32',
+        indexed: false,
+      },
+      {
+        name: 'prizePool',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: false,
+      },
+      {
+        name: 'claimExpiry',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: false,
+      },
+    ],
+    name: 'EpochClosed',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
+        name: 'epochId',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: true,
+      },
+      {
+        name: 'rolledOver',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: false,
+      },
+    ],
+    name: 'EpochRolledOver',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
+        name: 'version',
+        internalType: 'uint64',
+        type: 'uint64',
+        indexed: false,
+      },
+    ],
+    name: 'Initialized',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      { name: 'usdc', internalType: 'address', type: 'address', indexed: true },
+      {
+        name: 'admin',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+    ],
+    name: 'Initialized',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
+        name: 'oldFactory',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+      {
+        name: 'newFactory',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+    ],
+    name: 'MatchFactorySet',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
+        name: 'account',
+        internalType: 'address',
+        type: 'address',
+        indexed: false,
+      },
+    ],
+    name: 'Paused',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
+        name: 'epochId',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: true,
+      },
+      { name: 'user', internalType: 'address', type: 'address', indexed: true },
+      {
+        name: 'amount',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: false,
+      },
+    ],
+    name: 'PrizeClaimed',
   },
   {
     type: 'event',
@@ -4575,6 +3993,32 @@ export const footballMatchAbi = [
     ],
     name: 'Upgraded',
   },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
+        name: 'match_',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+      { name: 'user', internalType: 'address', type: 'address', indexed: true },
+      {
+        name: 'delta',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: false,
+      },
+      {
+        name: 'newScore',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: false,
+      },
+    ],
+    name: 'WinRecorded',
+  },
   { type: 'error', inputs: [], name: 'AccessControlBadConfirmation' },
   {
     type: 'error',
@@ -4597,30 +4041,10 @@ export const footballMatchAbi = [
   {
     type: 'error',
     inputs: [
-      { name: 'marketId', internalType: 'uint256', type: 'uint256' },
+      { name: 'epochId', internalType: 'uint256', type: 'uint256' },
       { name: 'user', internalType: 'address', type: 'address' },
-      { name: 'betIndex', internalType: 'uint256', type: 'uint256' },
     ],
     name: 'AlreadyClaimed',
-  },
-  { type: 'error', inputs: [], name: 'ArrayLengthMismatch' },
-  {
-    type: 'error',
-    inputs: [
-      { name: 'marketId', internalType: 'uint256', type: 'uint256' },
-      { name: 'user', internalType: 'address', type: 'address' },
-      { name: 'betIndex', internalType: 'uint256', type: 'uint256' },
-    ],
-    name: 'BetLost',
-  },
-  {
-    type: 'error',
-    inputs: [
-      { name: 'marketId', internalType: 'uint256', type: 'uint256' },
-      { name: 'user', internalType: 'address', type: 'address' },
-      { name: 'betIndex', internalType: 'uint256', type: 'uint256' },
-    ],
-    name: 'BetNotFound',
   },
   {
     type: 'error',
@@ -4631,116 +4055,99 @@ export const footballMatchAbi = [
   },
   { type: 'error', inputs: [], name: 'ERC1967NonPayable' },
   { type: 'error', inputs: [], name: 'EnforcedPause' },
+  {
+    type: 'error',
+    inputs: [{ name: 'epochId', internalType: 'uint256', type: 'uint256' }],
+    name: 'EpochAlreadyClosed',
+  },
+  {
+    type: 'error',
+    inputs: [
+      { name: 'epochId', internalType: 'uint256', type: 'uint256' },
+      { name: 'claimExpiry', internalType: 'uint64', type: 'uint64' },
+      { name: 'nowTs', internalType: 'uint256', type: 'uint256' },
+    ],
+    name: 'EpochClaimWindowExpired',
+  },
+  {
+    type: 'error',
+    inputs: [
+      { name: 'epochId', internalType: 'uint256', type: 'uint256' },
+      { name: 'claimExpiry', internalType: 'uint64', type: 'uint64' },
+      { name: 'nowTs', internalType: 'uint256', type: 'uint256' },
+    ],
+    name: 'EpochClaimWindowNotExpired',
+  },
+  {
+    type: 'error',
+    inputs: [{ name: 'epochId', internalType: 'uint256', type: 'uint256' }],
+    name: 'EpochNotClosed',
+  },
   { type: 'error', inputs: [], name: 'ExpectedPause' },
   { type: 'error', inputs: [], name: 'FailedInnerCall' },
+  {
+    type: 'error',
+    inputs: [
+      { name: 'needed', internalType: 'uint256', type: 'uint256' },
+      { name: 'available', internalType: 'uint256', type: 'uint256' },
+    ],
+    name: 'InsufficientContractBalance',
+  },
+  {
+    type: 'error',
+    inputs: [
+      { name: 'provided', internalType: 'uint256', type: 'uint256' },
+      { name: 'max', internalType: 'uint256', type: 'uint256' },
+    ],
+    name: 'InvalidClaimDuration',
+  },
   { type: 'error', inputs: [], name: 'InvalidInitialization' },
+  { type: 'error', inputs: [], name: 'InvalidMerkleProof' },
+  { type: 'error', inputs: [], name: 'MatchFactoryNotSet' },
   {
     type: 'error',
-    inputs: [{ name: 'marketId', internalType: 'uint256', type: 'uint256' }],
-    name: 'InvalidMarketId',
-  },
-  {
-    type: 'error',
-    inputs: [
-      { name: 'marketId', internalType: 'uint256', type: 'uint256' },
-      {
-        name: 'current',
-        internalType: 'enum BettingMatch.MarketState',
-        type: 'uint8',
-      },
-      {
-        name: 'required',
-        internalType: 'enum BettingMatch.MarketState',
-        type: 'uint8',
-      },
-    ],
-    name: 'InvalidMarketState',
-  },
-  {
-    type: 'error',
-    inputs: [{ name: 'marketType', internalType: 'bytes32', type: 'bytes32' }],
-    name: 'InvalidMarketType',
-  },
-  {
-    type: 'error',
-    inputs: [
-      { name: 'odds', internalType: 'uint32', type: 'uint32' },
-      { name: 'min', internalType: 'uint32', type: 'uint32' },
-      { name: 'max', internalType: 'uint32', type: 'uint32' },
-    ],
-    name: 'InvalidOddsValue',
-  },
-  {
-    type: 'error',
-    inputs: [
-      { name: 'marketId', internalType: 'uint256', type: 'uint256' },
-      { name: 'selection', internalType: 'uint64', type: 'uint64' },
-      { name: 'maxAllowed', internalType: 'uint8', type: 'uint8' },
-    ],
-    name: 'InvalidSelection',
-  },
-  { type: 'error', inputs: [], name: 'LiquidityPoolNotConfigured' },
-  {
-    type: 'error',
-    inputs: [{ name: 'marketId', internalType: 'uint256', type: 'uint256' }],
-    name: 'MaxOddsEntriesReached',
+    inputs: [{ name: 'epochId', internalType: 'uint256', type: 'uint256' }],
+    name: 'MerkleRootNotSet',
   },
   { type: 'error', inputs: [], name: 'NotInitializing' },
-  {
-    type: 'error',
-    inputs: [{ name: 'marketId', internalType: 'uint256', type: 'uint256' }],
-    name: 'OddsNotSet',
-  },
-  {
-    type: 'error',
-    inputs: [{ name: 'owner', internalType: 'address', type: 'address' }],
-    name: 'OwnableInvalidOwner',
-  },
-  {
-    type: 'error',
-    inputs: [{ name: 'account', internalType: 'address', type: 'address' }],
-    name: 'OwnableUnauthorizedAccount',
-  },
+  { type: 'error', inputs: [], name: 'PrizeAmountZero' },
   { type: 'error', inputs: [], name: 'ReentrancyGuardReentrantCall' },
   {
     type: 'error',
     inputs: [{ name: 'token', internalType: 'address', type: 'address' }],
     name: 'SafeERC20FailedOperation',
   },
-  {
-    type: 'error',
-    inputs: [
-      { name: 'netStake', internalType: 'uint256', type: 'uint256' },
-      { name: 'minimum', internalType: 'uint256', type: 'uint256' },
-    ],
-    name: 'StakeBelowMinimum',
-  },
-  { type: 'error', inputs: [], name: 'USDCNotConfigured' },
   { type: 'error', inputs: [], name: 'UUPSUnauthorizedCallContext' },
   {
     type: 'error',
     inputs: [{ name: 'slot', internalType: 'bytes32', type: 'bytes32' }],
     name: 'UUPSUnsupportedProxiableUUID',
   },
-  { type: 'error', inputs: [], name: 'ZeroBetAmount' },
   {
     type: 'error',
-    inputs: [{ name: 'marketId', internalType: 'uint256', type: 'uint256' }],
-    name: 'ZeroNetExposure',
+    inputs: [{ name: 'caller', internalType: 'address', type: 'address' }],
+    name: 'UnauthorizedMatch',
   },
+  { type: 'error', inputs: [], name: 'ZeroAddress' },
 ] as const
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// LiquidityPool
+// PariMatchBase
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-export const liquidityPoolAbi = [
-  { type: 'constructor', inputs: [], stateMutability: 'nonpayable' },
+export const pariMatchBaseAbi = [
   {
     type: 'function',
     inputs: [],
-    name: 'BPS_DENOMINATOR',
-    outputs: [{ name: '', internalType: 'uint16', type: 'uint16' }],
+    name: 'ADMIN_ROLE',
+    outputs: [{ name: '', internalType: 'bytes32', type: 'bytes32' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'BPS_DENOM',
+    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
     stateMutability: 'view',
   },
   {
@@ -4753,29 +4160,15 @@ export const liquidityPoolAbi = [
   {
     type: 'function',
     inputs: [],
-    name: 'LP_WITHDRAWAL_FEE_BPS_MAX',
+    name: 'MAX_FEE_BPS',
     outputs: [{ name: '', internalType: 'uint16', type: 'uint16' }],
     stateMutability: 'view',
   },
   {
     type: 'function',
     inputs: [],
-    name: 'MATCH_AUTHORIZER_ROLE',
-    outputs: [{ name: '', internalType: 'bytes32', type: 'bytes32' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [],
-    name: 'MATCH_ROLE',
-    outputs: [{ name: '', internalType: 'bytes32', type: 'bytes32' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [],
-    name: 'MAX_BPS_SETTABLE',
-    outputs: [{ name: '', internalType: 'uint16', type: 'uint16' }],
+    name: 'MIN_STAKE',
+    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
     stateMutability: 'view',
   },
   {
@@ -4788,15 +4181,15 @@ export const liquidityPoolAbi = [
   {
     type: 'function',
     inputs: [],
-    name: 'ROUTER_ROLE',
+    name: 'RESOLVER_ROLE',
     outputs: [{ name: '', internalType: 'bytes32', type: 'bytes32' }],
     stateMutability: 'view',
   },
   {
     type: 'function',
     inputs: [],
-    name: 'TREASURY_SHARE_BPS_MAX',
-    outputs: [{ name: '', internalType: 'uint16', type: 'uint16' }],
+    name: 'SWAP_ROUTER_ROLE',
+    outputs: [{ name: '', internalType: 'bytes32', type: 'bytes32' }],
     stateMutability: 'view',
   },
   {
@@ -4808,117 +4201,205 @@ export const liquidityPoolAbi = [
   },
   {
     type: 'function',
-    inputs: [],
-    name: 'acceptTreasury',
+    inputs: [
+      { name: 'marketType', internalType: 'bytes32', type: 'bytes32' },
+      { name: 'line', internalType: 'int16', type: 'int16' },
+      { name: 'extra', internalType: 'uint8', type: 'uint8' },
+      { name: 'groupId', internalType: 'uint16', type: 'uint16' },
+    ],
+    name: 'addMarketAdvanced',
+    outputs: [{ name: 'marketId', internalType: 'uint256', type: 'uint256' }],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'marketType', internalType: 'bytes32', type: 'bytes32' },
+      { name: 'line', internalType: 'int16', type: 'int16' },
+    ],
+    name: 'addMarketWithLine',
+    outputs: [{ name: 'marketId', internalType: 'uint256', type: 'uint256' }],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'marketTypes', internalType: 'bytes32[]', type: 'bytes32[]' },
+      { name: 'lines', internalType: 'int16[]', type: 'int16[]' },
+    ],
+    name: 'addMarketsBatch',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'marketTypes', internalType: 'bytes32[]', type: 'bytes32[]' },
+      { name: 'lines', internalType: 'int16[]', type: 'int16[]' },
+      { name: 'extras', internalType: 'uint8[]', type: 'uint8[]' },
+      { name: 'groupIds', internalType: 'uint16[]', type: 'uint16[]' },
+    ],
+    name: 'addMarketsBatchAdvanced',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'marketId', internalType: 'uint256', type: 'uint256' },
+      { name: 'reason', internalType: 'string', type: 'string' },
+    ],
+    name: 'cancelMarket',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [{ name: 'marketId', internalType: 'uint256', type: 'uint256' }],
+    name: 'claim',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'marketIds', internalType: 'uint256[]', type: 'uint256[]' },
+    ],
+    name: 'claimBatch',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [{ name: 'marketId', internalType: 'uint256', type: 'uint256' }],
+    name: 'claimRefund',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'marketIds', internalType: 'uint256[]', type: 'uint256[]' },
+    ],
+    name: 'claimRefundBatch',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [{ name: 'marketId', internalType: 'uint256', type: 'uint256' }],
+    name: 'closeMarket',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'marketIds', internalType: 'uint256[]', type: 'uint256[]' },
+    ],
+    name: 'closeMarketsBatch',
     outputs: [],
     stateMutability: 'nonpayable',
   },
   {
     type: 'function',
     inputs: [],
-    name: 'accruedTreasury',
-    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [
-      { name: 'owner', internalType: 'address', type: 'address' },
-      { name: 'spender', internalType: 'address', type: 'address' },
-    ],
-    name: 'allowance',
-    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [
-      { name: 'spender', internalType: 'address', type: 'address' },
-      { name: 'value', internalType: 'uint256', type: 'uint256' },
-    ],
-    name: 'approve',
-    outputs: [{ name: '', internalType: 'bool', type: 'bool' }],
+    name: 'emergencyPause',
+    outputs: [],
     stateMutability: 'nonpayable',
   },
   {
     type: 'function',
     inputs: [],
-    name: 'asset',
+    name: 'feeBps',
+    outputs: [{ name: '', internalType: 'uint16', type: 'uint16' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'feeRecipient',
     outputs: [{ name: '', internalType: 'address', type: 'address' }],
     stateMutability: 'view',
   },
   {
     type: 'function',
     inputs: [
-      { name: 'bettingMatch', internalType: 'address', type: 'address' },
+      { name: 'marketId', internalType: 'uint256', type: 'uint256' },
+      { name: 'outcome', internalType: 'uint64', type: 'uint64' },
     ],
-    name: 'authorizeMatch',
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    inputs: [{ name: 'account', internalType: 'address', type: 'address' }],
-    name: 'balanceOf',
-    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
+    name: 'getImpliedProbabilityBps',
+    outputs: [{ name: 'bps', internalType: 'uint256', type: 'uint256' }],
     stateMutability: 'view',
   },
   {
     type: 'function',
-    inputs: [],
-    name: 'cancelTreasuryProposal',
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    inputs: [{ name: 'shares', internalType: 'uint256', type: 'uint256' }],
-    name: 'convertToAssets',
-    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
+    inputs: [{ name: 'marketId', internalType: 'uint256', type: 'uint256' }],
+    name: 'getMarketCore',
+    outputs: [
+      {
+        name: '',
+        internalType: 'struct PariMatchBase.MarketCore',
+        type: 'tuple',
+        components: [
+          {
+            name: 'state',
+            internalType: 'enum PariMatchBase.MarketState',
+            type: 'uint8',
+          },
+          { name: 'result', internalType: 'uint64', type: 'uint64' },
+          { name: 'createdAt', internalType: 'uint40', type: 'uint40' },
+          { name: 'resolvedAt', internalType: 'uint40', type: 'uint40' },
+          { name: 'resolvedNetPool', internalType: 'uint256', type: 'uint256' },
+        ],
+      },
+    ],
     stateMutability: 'view',
   },
   {
     type: 'function',
-    inputs: [{ name: 'assets', internalType: 'uint256', type: 'uint256' }],
-    name: 'convertToShares',
-    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
+    inputs: [{ name: 'marketId', internalType: 'uint256', type: 'uint256' }],
+    name: 'getMarketInfo',
+    outputs: [
+      { name: 'marketType', internalType: 'bytes32', type: 'bytes32' },
+      {
+        name: 'state',
+        internalType: 'enum PariMatchBase.MarketState',
+        type: 'uint8',
+      },
+      { name: 'result', internalType: 'uint64', type: 'uint64' },
+      { name: 'totalPool', internalType: 'uint256', type: 'uint256' },
+      { name: 'outcomeCount', internalType: 'uint256', type: 'uint256' },
+    ],
     stateMutability: 'view',
   },
   {
     type: 'function',
-    inputs: [{ name: 'holder', internalType: 'address', type: 'address' }],
-    name: 'costBasis',
-    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [],
-    name: 'decimals',
-    outputs: [{ name: '', internalType: 'uint8', type: 'uint8' }],
+    inputs: [{ name: 'marketId', internalType: 'uint256', type: 'uint256' }],
+    name: 'getMarketSpec',
+    outputs: [
+      {
+        name: '',
+        internalType: 'struct PariMatchBase.MarketSpec',
+        type: 'tuple',
+        components: [
+          { name: 'marketType', internalType: 'bytes32', type: 'bytes32' },
+          { name: 'line', internalType: 'int16', type: 'int16' },
+          { name: 'maxOutcome', internalType: 'uint8', type: 'uint8' },
+          { name: 'extra', internalType: 'uint8', type: 'uint8' },
+          { name: 'groupId', internalType: 'uint16', type: 'uint16' },
+        ],
+      },
+    ],
     stateMutability: 'view',
   },
   {
     type: 'function',
     inputs: [
-      { name: 'assets', internalType: 'uint256', type: 'uint256' },
-      { name: 'receiver', internalType: 'address', type: 'address' },
+      { name: 'marketId', internalType: 'uint256', type: 'uint256' },
+      { name: 'outcome', internalType: 'uint64', type: 'uint64' },
     ],
-    name: 'deposit',
-    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    inputs: [],
-    name: 'depositCooldownSeconds',
-    outputs: [{ name: '', internalType: 'uint48', type: 'uint48' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [],
-    name: 'freeBalance',
+    name: 'getOutcomePool',
     outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
     stateMutability: 'view',
   },
@@ -4927,6 +4408,34 @@ export const liquidityPoolAbi = [
     inputs: [{ name: 'role', internalType: 'bytes32', type: 'bytes32' }],
     name: 'getRoleAdmin',
     outputs: [{ name: '', internalType: 'bytes32', type: 'bytes32' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [{ name: 'marketId', internalType: 'uint256', type: 'uint256' }],
+    name: 'getTotalPool',
+    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'marketId', internalType: 'uint256', type: 'uint256' },
+      { name: 'user', internalType: 'address', type: 'address' },
+      { name: 'outcome', internalType: 'uint64', type: 'uint64' },
+    ],
+    name: 'getUserStake',
+    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'marketId', internalType: 'uint256', type: 'uint256' },
+      { name: 'user', internalType: 'address', type: 'address' },
+    ],
+    name: 'getUserTotalStake',
+    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
     stateMutability: 'view',
   },
   {
@@ -4942,6 +4451,16 @@ export const liquidityPoolAbi = [
   {
     type: 'function',
     inputs: [
+      { name: 'marketId', internalType: 'uint256', type: 'uint256' },
+      { name: 'user', internalType: 'address', type: 'address' },
+    ],
+    name: 'hasClaimed',
+    outputs: [{ name: '', internalType: 'bool', type: 'bool' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [
       { name: 'role', internalType: 'bytes32', type: 'bytes32' },
       { name: 'account', internalType: 'address', type: 'address' },
     ],
@@ -4951,124 +4470,54 @@ export const liquidityPoolAbi = [
   },
   {
     type: 'function',
-    inputs: [
-      { name: 'usdc_', internalType: 'contract IERC20', type: 'address' },
-      { name: 'admin_', internalType: 'address', type: 'address' },
-      { name: 'treasury_', internalType: 'address', type: 'address' },
-      { name: 'protocolFeeBps_', internalType: 'uint16', type: 'uint16' },
-      { name: 'maxMarketBps_', internalType: 'uint16', type: 'uint16' },
-      { name: 'maxMatchBps_', internalType: 'uint16', type: 'uint16' },
-      { name: 'cooldown_', internalType: 'uint48', type: 'uint48' },
-    ],
-    name: 'initialize',
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    inputs: [{ name: 'holder', internalType: 'address', type: 'address' }],
-    name: 'lastDepositAt',
-    outputs: [{ name: '', internalType: 'uint48', type: 'uint48' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
     inputs: [],
-    name: 'lpWithdrawalFeeBps',
-    outputs: [{ name: '', internalType: 'uint16', type: 'uint16' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [
-      { name: 'bettingMatch', internalType: 'address', type: 'address' },
-      { name: 'marketId', internalType: 'uint256', type: 'uint256' },
-    ],
-    name: 'marketLiability',
-    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [
-      { name: 'bettingMatch', internalType: 'address', type: 'address' },
-    ],
-    name: 'matchLiability',
-    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [],
-    name: 'maxBetAmount',
-    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [{ name: '', internalType: 'address', type: 'address' }],
-    name: 'maxDeposit',
-    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [],
-    name: 'maxLiabilityPerMarketBps',
+    name: 'leaderboardFeeBps',
     outputs: [{ name: '', internalType: 'uint16', type: 'uint16' }],
     stateMutability: 'view',
   },
   {
     type: 'function',
     inputs: [],
-    name: 'maxLiabilityPerMatchBps',
-    outputs: [{ name: '', internalType: 'uint16', type: 'uint16' }],
+    name: 'leaderboardRecipient',
+    outputs: [{ name: '', internalType: 'address', type: 'address' }],
     stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [{ name: '', internalType: 'address', type: 'address' }],
-    name: 'maxMint',
-    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [{ name: 'owner', internalType: 'address', type: 'address' }],
-    name: 'maxRedeem',
-    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [{ name: 'owner', internalType: 'address', type: 'address' }],
-    name: 'maxWithdraw',
-    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [
-      { name: 'shares', internalType: 'uint256', type: 'uint256' },
-      { name: 'receiver', internalType: 'address', type: 'address' },
-    ],
-    name: 'mint',
-    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
-    stateMutability: 'nonpayable',
   },
   {
     type: 'function',
     inputs: [],
-    name: 'name',
+    name: 'marketCount',
+    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'matchName',
     outputs: [{ name: '', internalType: 'string', type: 'string' }],
     stateMutability: 'view',
   },
   {
     type: 'function',
-    inputs: [],
-    name: 'pause',
+    inputs: [{ name: 'marketId', internalType: 'uint256', type: 'uint256' }],
+    name: 'openMarket',
     outputs: [],
     stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'marketIds', internalType: 'uint256[]', type: 'uint256[]' },
+    ],
+    name: 'openMarketsBatch',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'owner',
+    outputs: [{ name: '', internalType: 'address', type: 'address' }],
+    stateMutability: 'view',
   },
   {
     type: 'function',
@@ -5080,77 +4529,25 @@ export const liquidityPoolAbi = [
   {
     type: 'function',
     inputs: [
-      { name: 'bettingMatch', internalType: 'address', type: 'address' },
       { name: 'marketId', internalType: 'uint256', type: 'uint256' },
-      { name: 'to', internalType: 'address', type: 'address' },
-      { name: 'stake', internalType: 'uint256', type: 'uint256' },
-      { name: 'releasedNetExposure', internalType: 'uint256', type: 'uint256' },
+      { name: 'outcome', internalType: 'uint64', type: 'uint64' },
+      { name: 'amount', internalType: 'uint256', type: 'uint256' },
     ],
-    name: 'payRefund',
+    name: 'placeBetUSDC',
     outputs: [],
     stateMutability: 'nonpayable',
   },
   {
     type: 'function',
     inputs: [
-      { name: 'bettingMatch', internalType: 'address', type: 'address' },
+      { name: 'user', internalType: 'address', type: 'address' },
       { name: 'marketId', internalType: 'uint256', type: 'uint256' },
-      { name: 'to', internalType: 'address', type: 'address' },
-      { name: 'payout', internalType: 'uint256', type: 'uint256' },
-      { name: 'releasedNetExposure', internalType: 'uint256', type: 'uint256' },
+      { name: 'outcome', internalType: 'uint64', type: 'uint64' },
+      { name: 'amount', internalType: 'uint256', type: 'uint256' },
     ],
-    name: 'payWinner',
+    name: 'placeBetUSDCFor',
     outputs: [],
     stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    inputs: [],
-    name: 'pendingTreasury',
-    outputs: [{ name: '', internalType: 'address', type: 'address' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [{ name: 'assets', internalType: 'uint256', type: 'uint256' }],
-    name: 'previewDeposit',
-    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [{ name: 'shares', internalType: 'uint256', type: 'uint256' }],
-    name: 'previewMint',
-    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [{ name: 'shares', internalType: 'uint256', type: 'uint256' }],
-    name: 'previewRedeem',
-    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [{ name: 'assets', internalType: 'uint256', type: 'uint256' }],
-    name: 'previewWithdraw',
-    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [{ name: 'newTreasury', internalType: 'address', type: 'address' }],
-    name: 'proposeTreasury',
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    inputs: [],
-    name: 'protocolFeeBps',
-    outputs: [{ name: '', internalType: 'uint16', type: 'uint16' }],
-    stateMutability: 'view',
   },
   {
     type: 'function',
@@ -5161,26 +4558,9 @@ export const liquidityPoolAbi = [
   },
   {
     type: 'function',
-    inputs: [
-      { name: 'bettingMatch', internalType: 'address', type: 'address' },
-      { name: 'marketId', internalType: 'uint256', type: 'uint256' },
-      { name: 'bettor', internalType: 'address', type: 'address' },
-      { name: 'netStake', internalType: 'uint256', type: 'uint256' },
-      { name: 'netExposure', internalType: 'uint256', type: 'uint256' },
-    ],
-    name: 'recordBet',
+    inputs: [],
+    name: 'renounceOwnership',
     outputs: [],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    inputs: [
-      { name: 'shares', internalType: 'uint256', type: 'uint256' },
-      { name: 'receiver', internalType: 'address', type: 'address' },
-      { name: 'owner', internalType: 'address', type: 'address' },
-    ],
-    name: 'redeem',
-    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
     stateMutability: 'nonpayable',
   },
   {
@@ -5196,9 +4576,20 @@ export const liquidityPoolAbi = [
   {
     type: 'function',
     inputs: [
-      { name: 'bettingMatch', internalType: 'address', type: 'address' },
+      { name: 'marketId', internalType: 'uint256', type: 'uint256' },
+      { name: 'result', internalType: 'uint64', type: 'uint64' },
     ],
-    name: 'revokeMatch',
+    name: 'resolveMarket',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'marketIds', internalType: 'uint256[]', type: 'uint256[]' },
+      { name: 'results', internalType: 'uint64[]', type: 'uint64[]' },
+    ],
+    name: 'resolveMarketsBatch',
     outputs: [],
     stateMutability: 'nonpayable',
   },
@@ -5214,68 +4605,45 @@ export const liquidityPoolAbi = [
   },
   {
     type: 'function',
-    inputs: [{ name: 'newSeconds', internalType: 'uint48', type: 'uint48' }],
-    name: 'setDepositCooldownSeconds',
+    inputs: [{ name: '_feeBps', internalType: 'uint16', type: 'uint16' }],
+    name: 'setFeeBps',
     outputs: [],
     stateMutability: 'nonpayable',
   },
   {
     type: 'function',
-    inputs: [{ name: 'newBps', internalType: 'uint16', type: 'uint16' }],
-    name: 'setLpWithdrawalFeeBps',
+    inputs: [{ name: '_recipient', internalType: 'address', type: 'address' }],
+    name: 'setFeeRecipient',
     outputs: [],
     stateMutability: 'nonpayable',
   },
   {
     type: 'function',
-    inputs: [{ name: 'newMax', internalType: 'uint256', type: 'uint256' }],
-    name: 'setMaxBetAmount',
+    inputs: [{ name: '_bps', internalType: 'uint16', type: 'uint16' }],
+    name: 'setLeaderboardFeeBps',
     outputs: [],
     stateMutability: 'nonpayable',
   },
   {
     type: 'function',
-    inputs: [{ name: 'newBps', internalType: 'uint16', type: 'uint16' }],
-    name: 'setMaxLiabilityPerMarketBps',
+    inputs: [{ name: '_recipient', internalType: 'address', type: 'address' }],
+    name: 'setLeaderboardRecipient',
     outputs: [],
     stateMutability: 'nonpayable',
   },
   {
     type: 'function',
-    inputs: [{ name: 'newBps', internalType: 'uint16', type: 'uint16' }],
-    name: 'setMaxLiabilityPerMatchBps',
+    inputs: [{ name: '_usdc', internalType: 'address', type: 'address' }],
+    name: 'setUSDCToken',
     outputs: [],
     stateMutability: 'nonpayable',
   },
   {
     type: 'function',
-    inputs: [{ name: 'newBps', internalType: 'uint16', type: 'uint16' }],
-    name: 'setProtocolFeeBps',
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    inputs: [{ name: 'newBps', internalType: 'uint16', type: 'uint16' }],
-    name: 'setTreasuryShareBps',
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    inputs: [
-      { name: 'bettingMatch', internalType: 'address', type: 'address' },
-      { name: 'marketId', internalType: 'uint256', type: 'uint256' },
-      {
-        name: 'losingLiabilityToRelease',
-        internalType: 'uint256',
-        type: 'uint256',
-      },
-      { name: 'losingNetStake', internalType: 'uint256', type: 'uint256' },
-    ],
-    name: 'settleMarket',
-    outputs: [],
-    stateMutability: 'nonpayable',
+    inputs: [],
+    name: 'sportType',
+    outputs: [{ name: '', internalType: 'string', type: 'string' }],
+    stateMutability: 'view',
   },
   {
     type: 'function',
@@ -5286,73 +4654,17 @@ export const liquidityPoolAbi = [
   },
   {
     type: 'function',
-    inputs: [],
-    name: 'symbol',
-    outputs: [{ name: '', internalType: 'string', type: 'string' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [],
-    name: 'totalAssets',
-    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [],
-    name: 'totalLiabilities',
-    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [],
-    name: 'totalSupply',
-    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [
-      { name: 'to', internalType: 'address', type: 'address' },
-      { name: 'value', internalType: 'uint256', type: 'uint256' },
-    ],
-    name: 'transfer',
-    outputs: [{ name: '', internalType: 'bool', type: 'bool' }],
+    inputs: [{ name: 'marketId', internalType: 'uint256', type: 'uint256' }],
+    name: 'suspendMarket',
+    outputs: [],
     stateMutability: 'nonpayable',
   },
   {
     type: 'function',
-    inputs: [
-      { name: 'from', internalType: 'address', type: 'address' },
-      { name: 'to', internalType: 'address', type: 'address' },
-      { name: 'value', internalType: 'uint256', type: 'uint256' },
-    ],
-    name: 'transferFrom',
-    outputs: [{ name: '', internalType: 'bool', type: 'bool' }],
+    inputs: [{ name: 'newOwner', internalType: 'address', type: 'address' }],
+    name: 'transferOwnership',
+    outputs: [],
     stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    inputs: [],
-    name: 'treasury',
-    outputs: [{ name: '', internalType: 'address', type: 'address' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [],
-    name: 'treasuryShareBps',
-    outputs: [{ name: '', internalType: 'uint16', type: 'uint16' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [],
-    name: 'treasuryWithdrawable',
-    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
-    stateMutability: 'view',
   },
   {
     type: 'function',
@@ -5374,139 +4686,47 @@ export const liquidityPoolAbi = [
   {
     type: 'function',
     inputs: [],
-    name: 'utilization',
-    outputs: [{ name: '', internalType: 'uint16', type: 'uint16' }],
+    name: 'usdcToken',
+    outputs: [{ name: '', internalType: 'contract IERC20', type: 'address' }],
     stateMutability: 'view',
   },
   {
-    type: 'function',
+    type: 'event',
+    anonymous: false,
     inputs: [
-      { name: 'assets', internalType: 'uint256', type: 'uint256' },
-      { name: 'receiver', internalType: 'address', type: 'address' },
-      { name: 'owner', internalType: 'address', type: 'address' },
+      {
+        name: 'oldBps',
+        internalType: 'uint16',
+        type: 'uint16',
+        indexed: false,
+      },
+      {
+        name: 'newBps',
+        internalType: 'uint16',
+        type: 'uint16',
+        indexed: false,
+      },
     ],
-    name: 'withdraw',
-    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    inputs: [{ name: 'amount', internalType: 'uint256', type: 'uint256' }],
-    name: 'withdrawTreasury',
-    outputs: [],
-    stateMutability: 'nonpayable',
+    name: 'FeeBpsSet',
   },
   {
     type: 'event',
     anonymous: false,
     inputs: [
       {
-        name: 'owner',
+        name: 'oldRecipient',
         internalType: 'address',
         type: 'address',
         indexed: true,
       },
       {
-        name: 'spender',
+        name: 'newRecipient',
         internalType: 'address',
         type: 'address',
         indexed: true,
-      },
-      {
-        name: 'value',
-        internalType: 'uint256',
-        type: 'uint256',
-        indexed: false,
       },
     ],
-    name: 'Approval',
-  },
-  {
-    type: 'event',
-    anonymous: false,
-    inputs: [
-      {
-        name: 'bettingMatch',
-        internalType: 'address',
-        type: 'address',
-        indexed: true,
-      },
-      {
-        name: 'marketId',
-        internalType: 'uint256',
-        type: 'uint256',
-        indexed: true,
-      },
-      {
-        name: 'bettor',
-        internalType: 'address',
-        type: 'address',
-        indexed: true,
-      },
-      {
-        name: 'netStake',
-        internalType: 'uint256',
-        type: 'uint256',
-        indexed: false,
-      },
-      {
-        name: 'netExposure',
-        internalType: 'uint256',
-        type: 'uint256',
-        indexed: false,
-      },
-    ],
-    name: 'BetRecorded',
-  },
-  {
-    type: 'event',
-    anonymous: false,
-    inputs: [
-      {
-        name: 'sender',
-        internalType: 'address',
-        type: 'address',
-        indexed: true,
-      },
-      {
-        name: 'owner',
-        internalType: 'address',
-        type: 'address',
-        indexed: true,
-      },
-      {
-        name: 'assets',
-        internalType: 'uint256',
-        type: 'uint256',
-        indexed: false,
-      },
-      {
-        name: 'shares',
-        internalType: 'uint256',
-        type: 'uint256',
-        indexed: false,
-      },
-    ],
-    name: 'Deposit',
-  },
-  {
-    type: 'event',
-    anonymous: false,
-    inputs: [
-      {
-        name: 'oldSeconds',
-        internalType: 'uint48',
-        type: 'uint48',
-        indexed: false,
-      },
-      {
-        name: 'newSeconds',
-        internalType: 'uint48',
-        type: 'uint48',
-        indexed: false,
-      },
-    ],
-    name: 'DepositCooldownSet',
+    name: 'FeeRecipientSet',
   },
   {
     type: 'event',
@@ -5526,26 +4746,6 @@ export const liquidityPoolAbi = [
     anonymous: false,
     inputs: [
       {
-        name: 'owner',
-        internalType: 'address',
-        type: 'address',
-        indexed: true,
-      },
-      {
-        name: 'gain',
-        internalType: 'uint256',
-        type: 'uint256',
-        indexed: false,
-      },
-      { name: 'fee', internalType: 'uint256', type: 'uint256', indexed: false },
-    ],
-    name: 'LpWithdrawalFeeAccrued',
-  },
-  {
-    type: 'event',
-    anonymous: false,
-    inputs: [
-      {
         name: 'oldBps',
         internalType: 'uint16',
         type: 'uint16',
@@ -5558,18 +4758,51 @@ export const liquidityPoolAbi = [
         indexed: false,
       },
     ],
-    name: 'LpWithdrawalFeeBpsSet',
+    name: 'LeaderboardFeeBpsSet',
   },
   {
     type: 'event',
     anonymous: false,
     inputs: [
       {
-        name: 'bettingMatch',
+        name: 'oldRecipient',
         internalType: 'address',
         type: 'address',
         indexed: true,
       },
+      {
+        name: 'newRecipient',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+    ],
+    name: 'LeaderboardRecipientSet',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
+        name: 'leaderboard',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+      { name: 'user', internalType: 'address', type: 'address', indexed: true },
+      {
+        name: 'payout',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: false,
+      },
+    ],
+    name: 'LeaderboardRecordFailed',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
       {
         name: 'marketId',
         internalType: 'uint256',
@@ -5577,96 +4810,141 @@ export const liquidityPoolAbi = [
         indexed: true,
       },
       {
-        name: 'releasedLiability',
-        internalType: 'uint256',
-        type: 'uint256',
+        name: 'reason',
+        internalType: 'string',
+        type: 'string',
         indexed: false,
       },
     ],
-    name: 'MarketSettled',
+    name: 'MarketCancelled',
   },
   {
     type: 'event',
     anonymous: false,
     inputs: [
       {
-        name: 'bettingMatch',
+        name: 'marketId',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: true,
+      },
+      {
+        name: 'marketType',
+        internalType: 'bytes32',
+        type: 'bytes32',
+        indexed: true,
+      },
+      { name: 'line', internalType: 'int16', type: 'int16', indexed: false },
+      {
+        name: 'maxOutcome',
+        internalType: 'uint8',
+        type: 'uint8',
+        indexed: false,
+      },
+      {
+        name: 'groupId',
+        internalType: 'uint16',
+        type: 'uint16',
+        indexed: false,
+      },
+    ],
+    name: 'MarketCreated',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
+        name: 'marketId',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: true,
+      },
+      {
+        name: 'result',
+        internalType: 'uint64',
+        type: 'uint64',
+        indexed: false,
+      },
+      {
+        name: 'totalPool',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: false,
+      },
+      { name: 'fee', internalType: 'uint256', type: 'uint256', indexed: false },
+      {
+        name: 'resolvedNetPool',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: false,
+      },
+    ],
+    name: 'MarketResolved',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
+        name: 'marketId',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: true,
+      },
+      {
+        name: 'oldState',
+        internalType: 'enum PariMatchBase.MarketState',
+        type: 'uint8',
+        indexed: false,
+      },
+      {
+        name: 'newState',
+        internalType: 'enum PariMatchBase.MarketState',
+        type: 'uint8',
+        indexed: false,
+      },
+    ],
+    name: 'MarketStateChanged',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      { name: 'name', internalType: 'string', type: 'string', indexed: true },
+      {
+        name: 'sportType',
+        internalType: 'string',
+        type: 'string',
+        indexed: false,
+      },
+      {
+        name: 'owner',
         internalType: 'address',
         type: 'address',
         indexed: true,
       },
     ],
-    name: 'MatchAuthorized',
+    name: 'MatchInitialized',
   },
   {
     type: 'event',
     anonymous: false,
     inputs: [
       {
-        name: 'bettingMatch',
+        name: 'previousOwner',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+      {
+        name: 'newOwner',
         internalType: 'address',
         type: 'address',
         indexed: true,
       },
     ],
-    name: 'MatchRevoked',
-  },
-  {
-    type: 'event',
-    anonymous: false,
-    inputs: [
-      {
-        name: 'oldMax',
-        internalType: 'uint256',
-        type: 'uint256',
-        indexed: false,
-      },
-      {
-        name: 'newMax',
-        internalType: 'uint256',
-        type: 'uint256',
-        indexed: false,
-      },
-    ],
-    name: 'MaxBetAmountSet',
-  },
-  {
-    type: 'event',
-    anonymous: false,
-    inputs: [
-      {
-        name: 'oldBps',
-        internalType: 'uint16',
-        type: 'uint16',
-        indexed: false,
-      },
-      {
-        name: 'newBps',
-        internalType: 'uint16',
-        type: 'uint16',
-        indexed: false,
-      },
-    ],
-    name: 'MaxLiabilityPerMarketSet',
-  },
-  {
-    type: 'event',
-    anonymous: false,
-    inputs: [
-      {
-        name: 'oldBps',
-        internalType: 'uint16',
-        type: 'uint16',
-        indexed: false,
-      },
-      {
-        name: 'newBps',
-        internalType: 'uint16',
-        type: 'uint16',
-        indexed: false,
-      },
-    ],
-    name: 'MaxLiabilityPerMatchSet',
+    name: 'OwnershipTransferred',
   },
   {
     type: 'event',
@@ -5686,37 +4964,12 @@ export const liquidityPoolAbi = [
     anonymous: false,
     inputs: [
       {
-        name: 'oldBps',
-        internalType: 'uint16',
-        type: 'uint16',
-        indexed: false,
-      },
-      {
-        name: 'newBps',
-        internalType: 'uint16',
-        type: 'uint16',
-        indexed: false,
-      },
-    ],
-    name: 'ProtocolFeeSet',
-  },
-  {
-    type: 'event',
-    anonymous: false,
-    inputs: [
-      {
-        name: 'bettingMatch',
-        internalType: 'address',
-        type: 'address',
-        indexed: true,
-      },
-      {
         name: 'marketId',
         internalType: 'uint256',
         type: 'uint256',
         indexed: true,
       },
-      { name: 'to', internalType: 'address', type: 'address', indexed: true },
+      { name: 'user', internalType: 'address', type: 'address', indexed: true },
       {
         name: 'stake',
         internalType: 'uint256',
@@ -5724,13 +4977,51 @@ export const liquidityPoolAbi = [
         indexed: false,
       },
       {
-        name: 'releasedLiability',
+        name: 'payout',
         internalType: 'uint256',
         type: 'uint256',
         indexed: false,
       },
     ],
-    name: 'RefundPaid',
+    name: 'PositionClaimed',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
+        name: 'marketId',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: true,
+      },
+      { name: 'user', internalType: 'address', type: 'address', indexed: true },
+      {
+        name: 'outcome',
+        internalType: 'uint64',
+        type: 'uint64',
+        indexed: false,
+      },
+      {
+        name: 'stake',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: false,
+      },
+      {
+        name: 'newOutcomePool',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: false,
+      },
+      {
+        name: 'newTotalPool',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: false,
+      },
+    ],
+    name: 'PositionTaken',
   },
   {
     type: 'event',
@@ -5796,123 +5087,13 @@ export const liquidityPoolAbi = [
     type: 'event',
     anonymous: false,
     inputs: [
-      { name: 'from', internalType: 'address', type: 'address', indexed: true },
-      { name: 'to', internalType: 'address', type: 'address', indexed: true },
-      {
-        name: 'value',
-        internalType: 'uint256',
-        type: 'uint256',
-        indexed: false,
-      },
-    ],
-    name: 'Transfer',
-  },
-  {
-    type: 'event',
-    anonymous: false,
-    inputs: [
-      {
-        name: 'oldTreasury',
-        internalType: 'address',
-        type: 'address',
-        indexed: true,
-      },
-      {
-        name: 'newTreasury',
-        internalType: 'address',
-        type: 'address',
-        indexed: true,
-      },
-    ],
-    name: 'TreasuryAccepted',
-  },
-  {
-    type: 'event',
-    anonymous: false,
-    inputs: [
-      {
-        name: 'bettingMatch',
-        internalType: 'address',
-        type: 'address',
-        indexed: true,
-      },
       {
         name: 'marketId',
         internalType: 'uint256',
         type: 'uint256',
         indexed: true,
       },
-      {
-        name: 'losingNetStake',
-        internalType: 'uint256',
-        type: 'uint256',
-        indexed: false,
-      },
-      {
-        name: 'treasuryShare',
-        internalType: 'uint256',
-        type: 'uint256',
-        indexed: false,
-      },
-    ],
-    name: 'TreasuryAccrued',
-  },
-  {
-    type: 'event',
-    anonymous: false,
-    inputs: [
-      {
-        name: 'pending',
-        internalType: 'address',
-        type: 'address',
-        indexed: true,
-      },
-    ],
-    name: 'TreasuryProposalCancelled',
-  },
-  {
-    type: 'event',
-    anonymous: false,
-    inputs: [
-      {
-        name: 'proposer',
-        internalType: 'address',
-        type: 'address',
-        indexed: true,
-      },
-      {
-        name: 'pending',
-        internalType: 'address',
-        type: 'address',
-        indexed: true,
-      },
-    ],
-    name: 'TreasuryProposed',
-  },
-  {
-    type: 'event',
-    anonymous: false,
-    inputs: [
-      {
-        name: 'oldBps',
-        internalType: 'uint16',
-        type: 'uint16',
-        indexed: false,
-      },
-      {
-        name: 'newBps',
-        internalType: 'uint16',
-        type: 'uint16',
-        indexed: false,
-      },
-    ],
-    name: 'TreasuryShareBpsSet',
-  },
-  {
-    type: 'event',
-    anonymous: false,
-    inputs: [
-      { name: 'to', internalType: 'address', type: 'address', indexed: true },
+      { name: 'user', internalType: 'address', type: 'address', indexed: true },
       {
         name: 'amount',
         internalType: 'uint256',
@@ -5920,7 +5101,20 @@ export const liquidityPoolAbi = [
         indexed: false,
       },
     ],
-    name: 'TreasuryWithdrawn',
+    name: 'StakeRefunded',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
+        name: 'token',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+    ],
+    name: 'USDCTokenSet',
   },
   {
     type: 'event',
@@ -5948,69 +5142,6 @@ export const liquidityPoolAbi = [
     ],
     name: 'Upgraded',
   },
-  {
-    type: 'event',
-    anonymous: false,
-    inputs: [
-      {
-        name: 'bettingMatch',
-        internalType: 'address',
-        type: 'address',
-        indexed: true,
-      },
-      {
-        name: 'marketId',
-        internalType: 'uint256',
-        type: 'uint256',
-        indexed: true,
-      },
-      { name: 'to', internalType: 'address', type: 'address', indexed: true },
-      {
-        name: 'payout',
-        internalType: 'uint256',
-        type: 'uint256',
-        indexed: false,
-      },
-    ],
-    name: 'WinnerPaid',
-  },
-  {
-    type: 'event',
-    anonymous: false,
-    inputs: [
-      {
-        name: 'sender',
-        internalType: 'address',
-        type: 'address',
-        indexed: true,
-      },
-      {
-        name: 'receiver',
-        internalType: 'address',
-        type: 'address',
-        indexed: true,
-      },
-      {
-        name: 'owner',
-        internalType: 'address',
-        type: 'address',
-        indexed: true,
-      },
-      {
-        name: 'assets',
-        internalType: 'uint256',
-        type: 'uint256',
-        indexed: false,
-      },
-      {
-        name: 'shares',
-        internalType: 'uint256',
-        type: 'uint256',
-        indexed: false,
-      },
-    ],
-    name: 'Withdraw',
-  },
   { type: 'error', inputs: [], name: 'AccessControlBadConfirmation' },
   {
     type: 'error',
@@ -6027,28 +5158,18 @@ export const liquidityPoolAbi = [
   },
   {
     type: 'error',
-    inputs: [
-      { name: 'requested', internalType: 'uint256', type: 'uint256' },
-      { name: 'cap', internalType: 'uint256', type: 'uint256' },
-    ],
-    name: 'BetAmountAboveCap',
+    inputs: [{ name: 'account', internalType: 'address', type: 'address' }],
+    name: 'AddressInsufficientBalance',
   },
   {
     type: 'error',
     inputs: [
-      { name: 'provided', internalType: 'uint16', type: 'uint16' },
-      { name: 'max', internalType: 'uint16', type: 'uint16' },
+      { name: 'marketId', internalType: 'uint256', type: 'uint256' },
+      { name: 'user', internalType: 'address', type: 'address' },
     ],
-    name: 'BpsOutOfRange',
+    name: 'AlreadyClaimed',
   },
-  {
-    type: 'error',
-    inputs: [
-      { name: 'holder', internalType: 'address', type: 'address' },
-      { name: 'unlocksAt', internalType: 'uint48', type: 'uint48' },
-    ],
-    name: 'CooldownActive',
-  },
+  { type: 'error', inputs: [], name: 'ArrayLengthMismatch' },
   {
     type: 'error',
     inputs: [
@@ -6057,146 +5178,106 @@ export const liquidityPoolAbi = [
     name: 'ERC1967InvalidImplementation',
   },
   { type: 'error', inputs: [], name: 'ERC1967NonPayable' },
-  {
-    type: 'error',
-    inputs: [
-      { name: 'spender', internalType: 'address', type: 'address' },
-      { name: 'allowance', internalType: 'uint256', type: 'uint256' },
-      { name: 'needed', internalType: 'uint256', type: 'uint256' },
-    ],
-    name: 'ERC20InsufficientAllowance',
-  },
-  {
-    type: 'error',
-    inputs: [
-      { name: 'sender', internalType: 'address', type: 'address' },
-      { name: 'balance', internalType: 'uint256', type: 'uint256' },
-      { name: 'needed', internalType: 'uint256', type: 'uint256' },
-    ],
-    name: 'ERC20InsufficientBalance',
-  },
-  {
-    type: 'error',
-    inputs: [{ name: 'approver', internalType: 'address', type: 'address' }],
-    name: 'ERC20InvalidApprover',
-  },
-  {
-    type: 'error',
-    inputs: [{ name: 'receiver', internalType: 'address', type: 'address' }],
-    name: 'ERC20InvalidReceiver',
-  },
-  {
-    type: 'error',
-    inputs: [{ name: 'sender', internalType: 'address', type: 'address' }],
-    name: 'ERC20InvalidSender',
-  },
-  {
-    type: 'error',
-    inputs: [{ name: 'spender', internalType: 'address', type: 'address' }],
-    name: 'ERC20InvalidSpender',
-  },
-  {
-    type: 'error',
-    inputs: [
-      { name: 'receiver', internalType: 'address', type: 'address' },
-      { name: 'assets', internalType: 'uint256', type: 'uint256' },
-      { name: 'max', internalType: 'uint256', type: 'uint256' },
-    ],
-    name: 'ERC4626ExceededMaxDeposit',
-  },
-  {
-    type: 'error',
-    inputs: [
-      { name: 'receiver', internalType: 'address', type: 'address' },
-      { name: 'shares', internalType: 'uint256', type: 'uint256' },
-      { name: 'max', internalType: 'uint256', type: 'uint256' },
-    ],
-    name: 'ERC4626ExceededMaxMint',
-  },
-  {
-    type: 'error',
-    inputs: [
-      { name: 'owner', internalType: 'address', type: 'address' },
-      { name: 'shares', internalType: 'uint256', type: 'uint256' },
-      { name: 'max', internalType: 'uint256', type: 'uint256' },
-    ],
-    name: 'ERC4626ExceededMaxRedeem',
-  },
-  {
-    type: 'error',
-    inputs: [
-      { name: 'owner', internalType: 'address', type: 'address' },
-      { name: 'assets', internalType: 'uint256', type: 'uint256' },
-      { name: 'max', internalType: 'uint256', type: 'uint256' },
-    ],
-    name: 'ERC4626ExceededMaxWithdraw',
-  },
   { type: 'error', inputs: [], name: 'EnforcedPause' },
   { type: 'error', inputs: [], name: 'ExpectedPause' },
-  { type: 'error', inputs: [], name: 'FailedCall' },
+  { type: 'error', inputs: [], name: 'FailedInnerCall' },
   {
     type: 'error',
     inputs: [
-      { name: 'requested', internalType: 'uint256', type: 'uint256' },
-      { name: 'free', internalType: 'uint256', type: 'uint256' },
+      { name: 'provided', internalType: 'uint16', type: 'uint16' },
+      { name: 'max', internalType: 'uint16', type: 'uint16' },
     ],
-    name: 'InsufficientFreeBalance',
+    name: 'FeeBpsExceedsMax',
   },
-  {
-    type: 'error',
-    inputs: [
-      { name: 'requested', internalType: 'uint256', type: 'uint256' },
-      { name: 'available', internalType: 'uint256', type: 'uint256' },
-    ],
-    name: 'InsufficientTreasuryBalance',
-  },
+  { type: 'error', inputs: [], name: 'FeeRecipientNotConfigured' },
   { type: 'error', inputs: [], name: 'InvalidInitialization' },
-  { type: 'error', inputs: [], name: 'LiabilityUnderflow' },
   {
     type: 'error',
     inputs: [
-      { name: 'requested', internalType: 'uint256', type: 'uint256' },
-      { name: 'cap', internalType: 'uint256', type: 'uint256' },
+      { name: 'marketType', internalType: 'bytes32', type: 'bytes32' },
+      { name: 'line', internalType: 'int16', type: 'int16' },
     ],
-    name: 'MarketLiabilityCapExceeded',
+    name: 'InvalidLine',
+  },
+  {
+    type: 'error',
+    inputs: [{ name: 'marketId', internalType: 'uint256', type: 'uint256' }],
+    name: 'InvalidMarketId',
   },
   {
     type: 'error',
     inputs: [
-      { name: 'requested', internalType: 'uint256', type: 'uint256' },
-      { name: 'cap', internalType: 'uint256', type: 'uint256' },
+      { name: 'marketId', internalType: 'uint256', type: 'uint256' },
+      {
+        name: 'current',
+        internalType: 'enum PariMatchBase.MarketState',
+        type: 'uint8',
+      },
+      {
+        name: 'required',
+        internalType: 'enum PariMatchBase.MarketState',
+        type: 'uint8',
+      },
     ],
-    name: 'MatchLiabilityCapExceeded',
+    name: 'InvalidMarketState',
+  },
+  {
+    type: 'error',
+    inputs: [{ name: 'marketType', internalType: 'bytes32', type: 'bytes32' }],
+    name: 'InvalidMarketType',
   },
   {
     type: 'error',
     inputs: [
-      { name: 'bettingMatch', internalType: 'address', type: 'address' },
+      { name: 'marketId', internalType: 'uint256', type: 'uint256' },
+      { name: 'outcome', internalType: 'uint64', type: 'uint64' },
     ],
-    name: 'MatchNotAuthorized',
+    name: 'InvalidOutcome',
   },
-  { type: 'error', inputs: [], name: 'NoPendingTreasury' },
+  {
+    type: 'error',
+    inputs: [
+      { name: 'marketId', internalType: 'uint256', type: 'uint256' },
+      { name: 'outcome', internalType: 'uint64', type: 'uint64' },
+      { name: 'maxAllowed', internalType: 'uint8', type: 'uint8' },
+    ],
+    name: 'InvalidOutcomeValue',
+  },
+  {
+    type: 'error',
+    inputs: [
+      { name: 'leaderboardBps', internalType: 'uint16', type: 'uint16' },
+      { name: 'totalBps', internalType: 'uint16', type: 'uint16' },
+    ],
+    name: 'LeaderboardFeeExceedsTotal',
+  },
+  { type: 'error', inputs: [], name: 'LeaderboardRecipientNotConfigured' },
   { type: 'error', inputs: [], name: 'NotInitializing' },
   {
     type: 'error',
-    inputs: [{ name: 'caller', internalType: 'address', type: 'address' }],
-    name: 'NotMatchAuthorizer',
+    inputs: [
+      { name: 'marketId', internalType: 'uint256', type: 'uint256' },
+      { name: 'user', internalType: 'address', type: 'address' },
+    ],
+    name: 'NothingToClaim',
   },
   {
     type: 'error',
     inputs: [
-      { name: 'caller', internalType: 'address', type: 'address' },
-      { name: 'pending', internalType: 'address', type: 'address' },
+      { name: 'marketId', internalType: 'uint256', type: 'uint256' },
+      { name: 'user', internalType: 'address', type: 'address' },
     ],
-    name: 'NotPendingTreasury',
+    name: 'NothingToRefund',
   },
   {
     type: 'error',
-    inputs: [
-      { name: 'caller', internalType: 'address', type: 'address' },
-      { name: 'treasury', internalType: 'address', type: 'address' },
-    ],
-    name: 'NotTreasury',
+    inputs: [{ name: 'owner', internalType: 'address', type: 'address' }],
+    name: 'OwnableInvalidOwner',
+  },
+  {
+    type: 'error',
+    inputs: [{ name: 'account', internalType: 'address', type: 'address' }],
+    name: 'OwnableUnauthorizedAccount',
   },
   { type: 'error', inputs: [], name: 'ReentrancyGuardReentrantCall' },
   {
@@ -6204,14 +5285,372 @@ export const liquidityPoolAbi = [
     inputs: [{ name: 'token', internalType: 'address', type: 'address' }],
     name: 'SafeERC20FailedOperation',
   },
+  {
+    type: 'error',
+    inputs: [
+      { name: 'stake', internalType: 'uint256', type: 'uint256' },
+      { name: 'minimum', internalType: 'uint256', type: 'uint256' },
+    ],
+    name: 'StakeBelowMinimum',
+  },
+  { type: 'error', inputs: [], name: 'USDCNotConfigured' },
   { type: 'error', inputs: [], name: 'UUPSUnauthorizedCallContext' },
   {
     type: 'error',
     inputs: [{ name: 'slot', internalType: 'bytes32', type: 'bytes32' }],
     name: 'UUPSUnsupportedProxiableUUID',
   },
-  { type: 'error', inputs: [], name: 'ZeroAddress' },
-  { type: 'error', inputs: [], name: 'ZeroAmount' },
+  { type: 'error', inputs: [], name: 'ZeroStake' },
+] as const
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// PariMatchFactory
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+export const pariMatchFactoryAbi = [
+  { type: 'constructor', inputs: [], stateMutability: 'nonpayable' },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'BASKETBALL',
+    outputs: [{ name: '', internalType: 'uint8', type: 'uint8' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'FOOTBALL',
+    outputs: [{ name: '', internalType: 'uint8', type: 'uint8' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
+    name: 'allMatches',
+    outputs: [{ name: '', internalType: 'address', type: 'address' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'basketballImplementation',
+    outputs: [{ name: '', internalType: 'address', type: 'address' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: '_matchName', internalType: 'string', type: 'string' },
+      { name: '_owner', internalType: 'address', type: 'address' },
+      { name: '_oracle', internalType: 'address', type: 'address' },
+    ],
+    name: 'createBasketballMatch',
+    outputs: [{ name: 'proxy', internalType: 'address', type: 'address' }],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: '_matchName', internalType: 'string', type: 'string' },
+      { name: '_owner', internalType: 'address', type: 'address' },
+      { name: '_oracle', internalType: 'address', type: 'address' },
+    ],
+    name: 'createFootballMatch',
+    outputs: [{ name: 'proxy', internalType: 'address', type: 'address' }],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'feeRecipient',
+    outputs: [{ name: '', internalType: 'address', type: 'address' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'footballImplementation',
+    outputs: [{ name: '', internalType: 'address', type: 'address' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'getAllMatches',
+    outputs: [{ name: '', internalType: 'address[]', type: 'address[]' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'matchAddress', internalType: 'address', type: 'address' },
+    ],
+    name: 'getSportType',
+    outputs: [
+      {
+        name: '',
+        internalType: 'enum PariMatchFactory.SportType',
+        type: 'uint8',
+      },
+    ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [{ name: 'sport', internalType: 'uint8', type: 'uint8' }],
+    name: 'implementations',
+    outputs: [{ name: '', internalType: 'address', type: 'address' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [{ name: '', internalType: 'address', type: 'address' }],
+    name: 'isMatch',
+    outputs: [{ name: '', internalType: 'bool', type: 'bool' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'leaderboardFeeBps',
+    outputs: [{ name: '', internalType: 'uint16', type: 'uint16' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'leaderboardRewards',
+    outputs: [{ name: '', internalType: 'address', type: 'address' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [{ name: '', internalType: 'address', type: 'address' }],
+    name: 'matchSportType',
+    outputs: [
+      {
+        name: '',
+        internalType: 'enum PariMatchFactory.SportType',
+        type: 'uint8',
+      },
+    ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'owner',
+    outputs: [{ name: '', internalType: 'address', type: 'address' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'renounceOwnership',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [{ name: 'newImpl', internalType: 'address', type: 'address' }],
+    name: 'setBasketballImplementation',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [{ name: 'newImpl', internalType: 'address', type: 'address' }],
+    name: 'setFootballImplementation',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: '_leaderboard', internalType: 'address', type: 'address' },
+      { name: '_bps', internalType: 'uint16', type: 'uint16' },
+    ],
+    name: 'setLeaderboardWiring',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: '_usdcToken', internalType: 'address', type: 'address' },
+      { name: '_feeRecipient', internalType: 'address', type: 'address' },
+      { name: '_swapRouter', internalType: 'address', type: 'address' },
+    ],
+    name: 'setWiring',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'swapRouter',
+    outputs: [{ name: '', internalType: 'address', type: 'address' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [{ name: 'newOwner', internalType: 'address', type: 'address' }],
+    name: 'transferOwnership',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'usdcToken',
+    outputs: [{ name: '', internalType: 'address', type: 'address' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
+        name: 'oldImpl',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+      {
+        name: 'newImpl',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+    ],
+    name: 'BasketballImplementationUpdated',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
+        name: 'oldImpl',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+      {
+        name: 'newImpl',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+    ],
+    name: 'FootballImplementationUpdated',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
+        name: 'leaderboard',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+      {
+        name: 'leaderboardFeeBps',
+        internalType: 'uint16',
+        type: 'uint16',
+        indexed: false,
+      },
+    ],
+    name: 'LeaderboardWiringSet',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
+        name: 'proxy',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+      {
+        name: 'sportType',
+        internalType: 'enum PariMatchFactory.SportType',
+        type: 'uint8',
+        indexed: false,
+      },
+      {
+        name: 'owner',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+    ],
+    name: 'MatchCreated',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
+        name: 'previousOwner',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+      {
+        name: 'newOwner',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+    ],
+    name: 'OwnershipTransferred',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
+        name: 'usdcToken',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+      {
+        name: 'feeRecipient',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+      {
+        name: 'swapRouter',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+    ],
+    name: 'WiringSet',
+  },
+  { type: 'error', inputs: [], name: 'InvalidAddress' },
+  {
+    type: 'error',
+    inputs: [
+      { name: 'matchAddress', internalType: 'address', type: 'address' },
+    ],
+    name: 'MatchNotFound',
+  },
+  {
+    type: 'error',
+    inputs: [{ name: 'owner', internalType: 'address', type: 'address' }],
+    name: 'OwnableInvalidOwner',
+  },
+  {
+    type: 'error',
+    inputs: [{ name: 'account', internalType: 'address', type: 'address' }],
+    name: 'OwnableUnauthorizedAccount',
+  },
+  { type: 'error', inputs: [], name: 'WiringNotConfigured' },
 ] as const
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -6670,6 +6109,11 @@ export const streamWalletAbi = [
     inputs: [{ name: 'target', internalType: 'address', type: 'address' }],
     name: 'AddressEmptyCode',
   },
+  {
+    type: 'error',
+    inputs: [{ name: 'account', internalType: 'address', type: 'address' }],
+    name: 'AddressInsufficientBalance',
+  },
   { type: 'error', inputs: [], name: 'DeadlinePassed' },
   {
     type: 'error',
@@ -6679,7 +6123,7 @@ export const streamWalletAbi = [
     name: 'ERC1967InvalidImplementation',
   },
   { type: 'error', inputs: [], name: 'ERC1967NonPayable' },
-  { type: 'error', inputs: [], name: 'FailedCall' },
+  { type: 'error', inputs: [], name: 'FailedInnerCall' },
   { type: 'error', inputs: [], name: 'InsufficientBalance' },
   { type: 'error', inputs: [], name: 'InvalidAddress' },
   { type: 'error', inputs: [], name: 'InvalidAmount' },
@@ -7155,6 +6599,17 @@ export const streamWalletFactoryAbi = [
     ],
     name: 'WalletUpgraded',
   },
+  {
+    type: 'error',
+    inputs: [{ name: 'target', internalType: 'address', type: 'address' }],
+    name: 'AddressEmptyCode',
+  },
+  {
+    type: 'error',
+    inputs: [{ name: 'account', internalType: 'address', type: 'address' }],
+    name: 'AddressInsufficientBalance',
+  },
+  { type: 'error', inputs: [], name: 'FailedInnerCall' },
   { type: 'error', inputs: [], name: 'InvalidAddress' },
   { type: 'error', inputs: [], name: 'InvalidAmount' },
   { type: 'error', inputs: [], name: 'InvalidDuration' },
@@ -7184,2388 +6639,1242 @@ export const streamWalletFactoryAbi = [
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 /**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link basketballMatchAbi}__
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link basketballPariMatchAbi}__
  */
-export const useBasketballMatchReadundefined =
-  /*#__PURE__*/ createUseReadContract({ abi: basketballMatchAbi })
+export const useBasketballPariMatchReadundefined =
+  /*#__PURE__*/ createUseReadContract({ abi: basketballPariMatchAbi })
 
 /**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link basketballMatchAbi}__ and `functionName` set to `"ADMIN_ROLE"`
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link basketballPariMatchAbi}__ and `functionName` set to `"ADMIN_ROLE"`
  */
-export const useBasketballMatchReadAdminRole =
+export const useBasketballPariMatchReadAdminRole =
   /*#__PURE__*/ createUseReadContract({
-    abi: basketballMatchAbi,
+    abi: basketballPariMatchAbi,
     functionName: 'ADMIN_ROLE',
   })
 
 /**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link basketballMatchAbi}__ and `functionName` set to `"DEFAULT_ADMIN_ROLE"`
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link basketballPariMatchAbi}__ and `functionName` set to `"BPS_DENOM"`
  */
-export const useBasketballMatchReadDefaultAdminRole =
+export const useBasketballPariMatchReadBpsDenom =
   /*#__PURE__*/ createUseReadContract({
-    abi: basketballMatchAbi,
+    abi: basketballPariMatchAbi,
+    functionName: 'BPS_DENOM',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link basketballPariMatchAbi}__ and `functionName` set to `"DEFAULT_ADMIN_ROLE"`
+ */
+export const useBasketballPariMatchReadDefaultAdminRole =
+  /*#__PURE__*/ createUseReadContract({
+    abi: basketballPariMatchAbi,
     functionName: 'DEFAULT_ADMIN_ROLE',
   })
 
 /**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link basketballMatchAbi}__ and `functionName` set to `"MARKET_FIRST_TO_SCORE"`
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link basketballPariMatchAbi}__ and `functionName` set to `"MARKET_FIRST_TO_SCORE"`
  */
-export const useBasketballMatchReadMarketFirstToScore =
+export const useBasketballPariMatchReadMarketFirstToScore =
   /*#__PURE__*/ createUseReadContract({
-    abi: basketballMatchAbi,
+    abi: basketballPariMatchAbi,
     functionName: 'MARKET_FIRST_TO_SCORE',
   })
 
 /**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link basketballMatchAbi}__ and `functionName` set to `"MARKET_HIGHEST_QUARTER"`
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link basketballPariMatchAbi}__ and `functionName` set to `"MARKET_HIGHEST_QUARTER"`
  */
-export const useBasketballMatchReadMarketHighestQuarter =
+export const useBasketballPariMatchReadMarketHighestQuarter =
   /*#__PURE__*/ createUseReadContract({
-    abi: basketballMatchAbi,
+    abi: basketballPariMatchAbi,
     functionName: 'MARKET_HIGHEST_QUARTER',
   })
 
 /**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link basketballMatchAbi}__ and `functionName` set to `"MARKET_QUARTER_WINNER"`
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link basketballPariMatchAbi}__ and `functionName` set to `"MARKET_POINTS_EXACT"`
  */
-export const useBasketballMatchReadMarketQuarterWinner =
+export const useBasketballPariMatchReadMarketPointsExact =
   /*#__PURE__*/ createUseReadContract({
-    abi: basketballMatchAbi,
+    abi: basketballPariMatchAbi,
+    functionName: 'MARKET_POINTS_EXACT',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link basketballPariMatchAbi}__ and `functionName` set to `"MARKET_QUARTER_WINNER"`
+ */
+export const useBasketballPariMatchReadMarketQuarterWinner =
+  /*#__PURE__*/ createUseReadContract({
+    abi: basketballPariMatchAbi,
     functionName: 'MARKET_QUARTER_WINNER',
   })
 
 /**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link basketballMatchAbi}__ and `functionName` set to `"MARKET_SPREAD"`
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link basketballPariMatchAbi}__ and `functionName` set to `"MARKET_SPREAD"`
  */
-export const useBasketballMatchReadMarketSpread =
+export const useBasketballPariMatchReadMarketSpread =
   /*#__PURE__*/ createUseReadContract({
-    abi: basketballMatchAbi,
+    abi: basketballPariMatchAbi,
     functionName: 'MARKET_SPREAD',
   })
 
 /**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link basketballMatchAbi}__ and `functionName` set to `"MARKET_TOTAL_POINTS"`
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link basketballPariMatchAbi}__ and `functionName` set to `"MARKET_TOTAL_POINTS"`
  */
-export const useBasketballMatchReadMarketTotalPoints =
+export const useBasketballPariMatchReadMarketTotalPoints =
   /*#__PURE__*/ createUseReadContract({
-    abi: basketballMatchAbi,
+    abi: basketballPariMatchAbi,
     functionName: 'MARKET_TOTAL_POINTS',
   })
 
 /**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link basketballMatchAbi}__ and `functionName` set to `"MARKET_WINNER"`
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link basketballPariMatchAbi}__ and `functionName` set to `"MARKET_WINNER"`
  */
-export const useBasketballMatchReadMarketWinner =
+export const useBasketballPariMatchReadMarketWinner =
   /*#__PURE__*/ createUseReadContract({
-    abi: basketballMatchAbi,
+    abi: basketballPariMatchAbi,
     functionName: 'MARKET_WINNER',
   })
 
 /**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link basketballMatchAbi}__ and `functionName` set to `"MAX_ODDS"`
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link basketballPariMatchAbi}__ and `functionName` set to `"MAX_FEE_BPS"`
  */
-export const useBasketballMatchReadMaxOdds =
+export const useBasketballPariMatchReadMaxFeeBps =
   /*#__PURE__*/ createUseReadContract({
-    abi: basketballMatchAbi,
-    functionName: 'MAX_ODDS',
+    abi: basketballPariMatchAbi,
+    functionName: 'MAX_FEE_BPS',
   })
 
 /**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link basketballMatchAbi}__ and `functionName` set to `"MIN_NET_STAKE"`
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link basketballPariMatchAbi}__ and `functionName` set to `"MIN_STAKE"`
  */
-export const useBasketballMatchReadMinNetStake =
+export const useBasketballPariMatchReadMinStake =
   /*#__PURE__*/ createUseReadContract({
-    abi: basketballMatchAbi,
-    functionName: 'MIN_NET_STAKE',
+    abi: basketballPariMatchAbi,
+    functionName: 'MIN_STAKE',
   })
 
 /**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link basketballMatchAbi}__ and `functionName` set to `"MIN_ODDS"`
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link basketballPariMatchAbi}__ and `functionName` set to `"PAUSER_ROLE"`
  */
-export const useBasketballMatchReadMinOdds =
+export const useBasketballPariMatchReadPauserRole =
   /*#__PURE__*/ createUseReadContract({
-    abi: basketballMatchAbi,
-    functionName: 'MIN_ODDS',
-  })
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link basketballMatchAbi}__ and `functionName` set to `"ODDS_PRECISION"`
- */
-export const useBasketballMatchReadOddsPrecision =
-  /*#__PURE__*/ createUseReadContract({
-    abi: basketballMatchAbi,
-    functionName: 'ODDS_PRECISION',
-  })
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link basketballMatchAbi}__ and `functionName` set to `"ODDS_SETTER_ROLE"`
- */
-export const useBasketballMatchReadOddsSetterRole =
-  /*#__PURE__*/ createUseReadContract({
-    abi: basketballMatchAbi,
-    functionName: 'ODDS_SETTER_ROLE',
-  })
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link basketballMatchAbi}__ and `functionName` set to `"PAUSER_ROLE"`
- */
-export const useBasketballMatchReadPauserRole =
-  /*#__PURE__*/ createUseReadContract({
-    abi: basketballMatchAbi,
+    abi: basketballPariMatchAbi,
     functionName: 'PAUSER_ROLE',
   })
 
 /**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link basketballMatchAbi}__ and `functionName` set to `"RESOLVER_ROLE"`
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link basketballPariMatchAbi}__ and `functionName` set to `"RESOLVER_ROLE"`
  */
-export const useBasketballMatchReadResolverRole =
+export const useBasketballPariMatchReadResolverRole =
   /*#__PURE__*/ createUseReadContract({
-    abi: basketballMatchAbi,
+    abi: basketballPariMatchAbi,
     functionName: 'RESOLVER_ROLE',
   })
 
 /**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link basketballMatchAbi}__ and `functionName` set to `"SWAP_ROUTER_ROLE"`
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link basketballPariMatchAbi}__ and `functionName` set to `"SWAP_ROUTER_ROLE"`
  */
-export const useBasketballMatchReadSwapRouterRole =
+export const useBasketballPariMatchReadSwapRouterRole =
   /*#__PURE__*/ createUseReadContract({
-    abi: basketballMatchAbi,
+    abi: basketballPariMatchAbi,
     functionName: 'SWAP_ROUTER_ROLE',
   })
 
 /**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link basketballMatchAbi}__ and `functionName` set to `"UPGRADE_INTERFACE_VERSION"`
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link basketballPariMatchAbi}__ and `functionName` set to `"UPGRADE_INTERFACE_VERSION"`
  */
-export const useBasketballMatchReadUpgradeInterfaceVersion =
+export const useBasketballPariMatchReadUpgradeInterfaceVersion =
   /*#__PURE__*/ createUseReadContract({
-    abi: basketballMatchAbi,
+    abi: basketballPariMatchAbi,
     functionName: 'UPGRADE_INTERFACE_VERSION',
   })
 
 /**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link basketballMatchAbi}__ and `functionName` set to `"basketballMarkets"`
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link basketballPariMatchAbi}__ and `functionName` set to `"computeOutcome"`
  */
-export const useBasketballMatchReadBasketballMarkets =
+export const useBasketballPariMatchReadComputeOutcome =
   /*#__PURE__*/ createUseReadContract({
-    abi: basketballMatchAbi,
-    functionName: 'basketballMarkets',
+    abi: basketballPariMatchAbi,
+    functionName: 'computeOutcome',
   })
 
 /**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link basketballMatchAbi}__ and `functionName` set to `"getBasketballMarket"`
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link basketballPariMatchAbi}__ and `functionName` set to `"feeBps"`
  */
-export const useBasketballMatchReadGetBasketballMarket =
+export const useBasketballPariMatchReadFeeBps =
   /*#__PURE__*/ createUseReadContract({
-    abi: basketballMatchAbi,
-    functionName: 'getBasketballMarket',
+    abi: basketballPariMatchAbi,
+    functionName: 'feeBps',
   })
 
 /**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link basketballMatchAbi}__ and `functionName` set to `"getBetDetails"`
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link basketballPariMatchAbi}__ and `functionName` set to `"feeRecipient"`
  */
-export const useBasketballMatchReadGetBetDetails =
+export const useBasketballPariMatchReadFeeRecipient =
   /*#__PURE__*/ createUseReadContract({
-    abi: basketballMatchAbi,
-    functionName: 'getBetDetails',
+    abi: basketballPariMatchAbi,
+    functionName: 'feeRecipient',
   })
 
 /**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link basketballMatchAbi}__ and `functionName` set to `"getCurrentOdds"`
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link basketballPariMatchAbi}__ and `functionName` set to `"getImpliedProbabilityBps"`
  */
-export const useBasketballMatchReadGetCurrentOdds =
+export const useBasketballPariMatchReadGetImpliedProbabilityBps =
   /*#__PURE__*/ createUseReadContract({
-    abi: basketballMatchAbi,
-    functionName: 'getCurrentOdds',
+    abi: basketballPariMatchAbi,
+    functionName: 'getImpliedProbabilityBps',
   })
 
 /**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link basketballMatchAbi}__ and `functionName` set to `"getMarketCore"`
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link basketballPariMatchAbi}__ and `functionName` set to `"getMarketCore"`
  */
-export const useBasketballMatchReadGetMarketCore =
+export const useBasketballPariMatchReadGetMarketCore =
   /*#__PURE__*/ createUseReadContract({
-    abi: basketballMatchAbi,
+    abi: basketballPariMatchAbi,
     functionName: 'getMarketCore',
   })
 
 /**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link basketballMatchAbi}__ and `functionName` set to `"getMarketInfo"`
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link basketballPariMatchAbi}__ and `functionName` set to `"getMarketInfo"`
  */
-export const useBasketballMatchReadGetMarketInfo =
+export const useBasketballPariMatchReadGetMarketInfo =
   /*#__PURE__*/ createUseReadContract({
-    abi: basketballMatchAbi,
+    abi: basketballPariMatchAbi,
     functionName: 'getMarketInfo',
   })
 
 /**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link basketballMatchAbi}__ and `functionName` set to `"getMarketLiability"`
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link basketballPariMatchAbi}__ and `functionName` set to `"getMarketSpec"`
  */
-export const useBasketballMatchReadGetMarketLiability =
+export const useBasketballPariMatchReadGetMarketSpec =
   /*#__PURE__*/ createUseReadContract({
-    abi: basketballMatchAbi,
-    functionName: 'getMarketLiability',
+    abi: basketballPariMatchAbi,
+    functionName: 'getMarketSpec',
   })
 
 /**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link basketballMatchAbi}__ and `functionName` set to `"getOddsHistory"`
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link basketballPariMatchAbi}__ and `functionName` set to `"getOutcomePool"`
  */
-export const useBasketballMatchReadGetOddsHistory =
+export const useBasketballPariMatchReadGetOutcomePool =
   /*#__PURE__*/ createUseReadContract({
-    abi: basketballMatchAbi,
-    functionName: 'getOddsHistory',
+    abi: basketballPariMatchAbi,
+    functionName: 'getOutcomePool',
   })
 
 /**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link basketballMatchAbi}__ and `functionName` set to `"getRoleAdmin"`
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link basketballPariMatchAbi}__ and `functionName` set to `"getRoleAdmin"`
  */
-export const useBasketballMatchReadGetRoleAdmin =
+export const useBasketballPariMatchReadGetRoleAdmin =
   /*#__PURE__*/ createUseReadContract({
-    abi: basketballMatchAbi,
+    abi: basketballPariMatchAbi,
     functionName: 'getRoleAdmin',
   })
 
 /**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link basketballMatchAbi}__ and `functionName` set to `"getUserBets"`
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link basketballPariMatchAbi}__ and `functionName` set to `"getTotalPool"`
  */
-export const useBasketballMatchReadGetUserBets =
+export const useBasketballPariMatchReadGetTotalPool =
   /*#__PURE__*/ createUseReadContract({
-    abi: basketballMatchAbi,
-    functionName: 'getUserBets',
+    abi: basketballPariMatchAbi,
+    functionName: 'getTotalPool',
   })
 
 /**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link basketballMatchAbi}__ and `functionName` set to `"hasRole"`
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link basketballPariMatchAbi}__ and `functionName` set to `"getUserStake"`
  */
-export const useBasketballMatchReadHasRole =
+export const useBasketballPariMatchReadGetUserStake =
   /*#__PURE__*/ createUseReadContract({
-    abi: basketballMatchAbi,
+    abi: basketballPariMatchAbi,
+    functionName: 'getUserStake',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link basketballPariMatchAbi}__ and `functionName` set to `"getUserTotalStake"`
+ */
+export const useBasketballPariMatchReadGetUserTotalStake =
+  /*#__PURE__*/ createUseReadContract({
+    abi: basketballPariMatchAbi,
+    functionName: 'getUserTotalStake',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link basketballPariMatchAbi}__ and `functionName` set to `"hasClaimed"`
+ */
+export const useBasketballPariMatchReadHasClaimed =
+  /*#__PURE__*/ createUseReadContract({
+    abi: basketballPariMatchAbi,
+    functionName: 'hasClaimed',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link basketballPariMatchAbi}__ and `functionName` set to `"hasRole"`
+ */
+export const useBasketballPariMatchReadHasRole =
+  /*#__PURE__*/ createUseReadContract({
+    abi: basketballPariMatchAbi,
     functionName: 'hasRole',
   })
 
 /**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link basketballMatchAbi}__ and `functionName` set to `"liquidityPool"`
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link basketballPariMatchAbi}__ and `functionName` set to `"leaderboardFeeBps"`
  */
-export const useBasketballMatchReadLiquidityPool =
+export const useBasketballPariMatchReadLeaderboardFeeBps =
   /*#__PURE__*/ createUseReadContract({
-    abi: basketballMatchAbi,
-    functionName: 'liquidityPool',
+    abi: basketballPariMatchAbi,
+    functionName: 'leaderboardFeeBps',
   })
 
 /**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link basketballMatchAbi}__ and `functionName` set to `"marketCount"`
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link basketballPariMatchAbi}__ and `functionName` set to `"leaderboardRecipient"`
  */
-export const useBasketballMatchReadMarketCount =
+export const useBasketballPariMatchReadLeaderboardRecipient =
   /*#__PURE__*/ createUseReadContract({
-    abi: basketballMatchAbi,
+    abi: basketballPariMatchAbi,
+    functionName: 'leaderboardRecipient',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link basketballPariMatchAbi}__ and `functionName` set to `"marketCount"`
+ */
+export const useBasketballPariMatchReadMarketCount =
+  /*#__PURE__*/ createUseReadContract({
+    abi: basketballPariMatchAbi,
     functionName: 'marketCount',
   })
 
 /**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link basketballMatchAbi}__ and `functionName` set to `"matchName"`
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link basketballPariMatchAbi}__ and `functionName` set to `"matchName"`
  */
-export const useBasketballMatchReadMatchName =
+export const useBasketballPariMatchReadMatchName =
   /*#__PURE__*/ createUseReadContract({
-    abi: basketballMatchAbi,
+    abi: basketballPariMatchAbi,
     functionName: 'matchName',
   })
 
 /**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link basketballMatchAbi}__ and `functionName` set to `"maxAllowedOdds"`
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link basketballPariMatchAbi}__ and `functionName` set to `"owner"`
  */
-export const useBasketballMatchReadMaxAllowedOdds =
+export const useBasketballPariMatchReadOwner =
   /*#__PURE__*/ createUseReadContract({
-    abi: basketballMatchAbi,
-    functionName: 'maxAllowedOdds',
-  })
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link basketballMatchAbi}__ and `functionName` set to `"owner"`
- */
-export const useBasketballMatchReadOwner = /*#__PURE__*/ createUseReadContract({
-  abi: basketballMatchAbi,
-  functionName: 'owner',
-})
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link basketballMatchAbi}__ and `functionName` set to `"paused"`
- */
-export const useBasketballMatchReadPaused = /*#__PURE__*/ createUseReadContract(
-  { abi: basketballMatchAbi, functionName: 'paused' },
-)
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link basketballMatchAbi}__ and `functionName` set to `"proxiableUUID"`
- */
-export const useBasketballMatchReadProxiableUuid =
-  /*#__PURE__*/ createUseReadContract({
-    abi: basketballMatchAbi,
-    functionName: 'proxiableUUID',
-  })
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link basketballMatchAbi}__ and `functionName` set to `"quoteNetExposure"`
- */
-export const useBasketballMatchReadQuoteNetExposure =
-  /*#__PURE__*/ createUseReadContract({
-    abi: basketballMatchAbi,
-    functionName: 'quoteNetExposure',
-  })
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link basketballMatchAbi}__ and `functionName` set to `"sportType"`
- */
-export const useBasketballMatchReadSportType =
-  /*#__PURE__*/ createUseReadContract({
-    abi: basketballMatchAbi,
-    functionName: 'sportType',
-  })
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link basketballMatchAbi}__ and `functionName` set to `"supportsInterface"`
- */
-export const useBasketballMatchReadSupportsInterface =
-  /*#__PURE__*/ createUseReadContract({
-    abi: basketballMatchAbi,
-    functionName: 'supportsInterface',
-  })
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link basketballMatchAbi}__ and `functionName` set to `"usdcToken"`
- */
-export const useBasketballMatchReadUsdcToken =
-  /*#__PURE__*/ createUseReadContract({
-    abi: basketballMatchAbi,
-    functionName: 'usdcToken',
-  })
-
-/**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link basketballMatchAbi}__
- */
-export const useBasketballMatchWriteundefined =
-  /*#__PURE__*/ createUseWriteContract({ abi: basketballMatchAbi })
-
-/**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link basketballMatchAbi}__ and `functionName` set to `"addMarketWithLine"`
- */
-export const useBasketballMatchWriteAddMarketWithLine =
-  /*#__PURE__*/ createUseWriteContract({
-    abi: basketballMatchAbi,
-    functionName: 'addMarketWithLine',
-  })
-
-/**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link basketballMatchAbi}__ and `functionName` set to `"addMarketWithQuarter"`
- */
-export const useBasketballMatchWriteAddMarketWithQuarter =
-  /*#__PURE__*/ createUseWriteContract({
-    abi: basketballMatchAbi,
-    functionName: 'addMarketWithQuarter',
-  })
-
-/**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link basketballMatchAbi}__ and `functionName` set to `"addMarketsBatch"`
- */
-export const useBasketballMatchWriteAddMarketsBatch =
-  /*#__PURE__*/ createUseWriteContract({
-    abi: basketballMatchAbi,
-    functionName: 'addMarketsBatch',
-  })
-
-/**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link basketballMatchAbi}__ and `functionName` set to `"addMarketsBatchWithQuarter"`
- */
-export const useBasketballMatchWriteAddMarketsBatchWithQuarter =
-  /*#__PURE__*/ createUseWriteContract({
-    abi: basketballMatchAbi,
-    functionName: 'addMarketsBatchWithQuarter',
-  })
-
-/**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link basketballMatchAbi}__ and `functionName` set to `"cancelMarket"`
- */
-export const useBasketballMatchWriteCancelMarket =
-  /*#__PURE__*/ createUseWriteContract({
-    abi: basketballMatchAbi,
-    functionName: 'cancelMarket',
-  })
-
-/**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link basketballMatchAbi}__ and `functionName` set to `"claim"`
- */
-export const useBasketballMatchWriteClaim =
-  /*#__PURE__*/ createUseWriteContract({
-    abi: basketballMatchAbi,
-    functionName: 'claim',
-  })
-
-/**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link basketballMatchAbi}__ and `functionName` set to `"claimAll"`
- */
-export const useBasketballMatchWriteClaimAll =
-  /*#__PURE__*/ createUseWriteContract({
-    abi: basketballMatchAbi,
-    functionName: 'claimAll',
-  })
-
-/**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link basketballMatchAbi}__ and `functionName` set to `"claimRange"`
- */
-export const useBasketballMatchWriteClaimRange =
-  /*#__PURE__*/ createUseWriteContract({
-    abi: basketballMatchAbi,
-    functionName: 'claimRange',
-  })
-
-/**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link basketballMatchAbi}__ and `functionName` set to `"claimRefund"`
- */
-export const useBasketballMatchWriteClaimRefund =
-  /*#__PURE__*/ createUseWriteContract({
-    abi: basketballMatchAbi,
-    functionName: 'claimRefund',
-  })
-
-/**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link basketballMatchAbi}__ and `functionName` set to `"closeMarket"`
- */
-export const useBasketballMatchWriteCloseMarket =
-  /*#__PURE__*/ createUseWriteContract({
-    abi: basketballMatchAbi,
-    functionName: 'closeMarket',
-  })
-
-/**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link basketballMatchAbi}__ and `functionName` set to `"closeMarketsBatch"`
- */
-export const useBasketballMatchWriteCloseMarketsBatch =
-  /*#__PURE__*/ createUseWriteContract({
-    abi: basketballMatchAbi,
-    functionName: 'closeMarketsBatch',
-  })
-
-/**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link basketballMatchAbi}__ and `functionName` set to `"emergencyPause"`
- */
-export const useBasketballMatchWriteEmergencyPause =
-  /*#__PURE__*/ createUseWriteContract({
-    abi: basketballMatchAbi,
-    functionName: 'emergencyPause',
-  })
-
-/**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link basketballMatchAbi}__ and `functionName` set to `"grantRole"`
- */
-export const useBasketballMatchWriteGrantRole =
-  /*#__PURE__*/ createUseWriteContract({
-    abi: basketballMatchAbi,
-    functionName: 'grantRole',
-  })
-
-/**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link basketballMatchAbi}__ and `functionName` set to `"initialize"`
- */
-export const useBasketballMatchWriteInitialize =
-  /*#__PURE__*/ createUseWriteContract({
-    abi: basketballMatchAbi,
-    functionName: 'initialize',
-  })
-
-/**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link basketballMatchAbi}__ and `functionName` set to `"openMarket"`
- */
-export const useBasketballMatchWriteOpenMarket =
-  /*#__PURE__*/ createUseWriteContract({
-    abi: basketballMatchAbi,
-    functionName: 'openMarket',
-  })
-
-/**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link basketballMatchAbi}__ and `functionName` set to `"openMarketsBatch"`
- */
-export const useBasketballMatchWriteOpenMarketsBatch =
-  /*#__PURE__*/ createUseWriteContract({
-    abi: basketballMatchAbi,
-    functionName: 'openMarketsBatch',
-  })
-
-/**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link basketballMatchAbi}__ and `functionName` set to `"placeBetUSDC"`
- */
-export const useBasketballMatchWritePlaceBetUsdc =
-  /*#__PURE__*/ createUseWriteContract({
-    abi: basketballMatchAbi,
-    functionName: 'placeBetUSDC',
-  })
-
-/**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link basketballMatchAbi}__ and `functionName` set to `"placeBetUSDCFor"`
- */
-export const useBasketballMatchWritePlaceBetUsdcFor =
-  /*#__PURE__*/ createUseWriteContract({
-    abi: basketballMatchAbi,
-    functionName: 'placeBetUSDCFor',
-  })
-
-/**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link basketballMatchAbi}__ and `functionName` set to `"renounceOwnership"`
- */
-export const useBasketballMatchWriteRenounceOwnership =
-  /*#__PURE__*/ createUseWriteContract({
-    abi: basketballMatchAbi,
-    functionName: 'renounceOwnership',
-  })
-
-/**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link basketballMatchAbi}__ and `functionName` set to `"renounceRole"`
- */
-export const useBasketballMatchWriteRenounceRole =
-  /*#__PURE__*/ createUseWriteContract({
-    abi: basketballMatchAbi,
-    functionName: 'renounceRole',
-  })
-
-/**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link basketballMatchAbi}__ and `functionName` set to `"resolveMarket"`
- */
-export const useBasketballMatchWriteResolveMarket =
-  /*#__PURE__*/ createUseWriteContract({
-    abi: basketballMatchAbi,
-    functionName: 'resolveMarket',
-  })
-
-/**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link basketballMatchAbi}__ and `functionName` set to `"resolveMarketsBatch"`
- */
-export const useBasketballMatchWriteResolveMarketsBatch =
-  /*#__PURE__*/ createUseWriteContract({
-    abi: basketballMatchAbi,
-    functionName: 'resolveMarketsBatch',
-  })
-
-/**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link basketballMatchAbi}__ and `functionName` set to `"revokeRole"`
- */
-export const useBasketballMatchWriteRevokeRole =
-  /*#__PURE__*/ createUseWriteContract({
-    abi: basketballMatchAbi,
-    functionName: 'revokeRole',
-  })
-
-/**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link basketballMatchAbi}__ and `functionName` set to `"setLiquidityPool"`
- */
-export const useBasketballMatchWriteSetLiquidityPool =
-  /*#__PURE__*/ createUseWriteContract({
-    abi: basketballMatchAbi,
-    functionName: 'setLiquidityPool',
-  })
-
-/**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link basketballMatchAbi}__ and `functionName` set to `"setMarketOdds"`
- */
-export const useBasketballMatchWriteSetMarketOdds =
-  /*#__PURE__*/ createUseWriteContract({
-    abi: basketballMatchAbi,
-    functionName: 'setMarketOdds',
-  })
-
-/**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link basketballMatchAbi}__ and `functionName` set to `"setMaxAllowedOdds"`
- */
-export const useBasketballMatchWriteSetMaxAllowedOdds =
-  /*#__PURE__*/ createUseWriteContract({
-    abi: basketballMatchAbi,
-    functionName: 'setMaxAllowedOdds',
-  })
-
-/**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link basketballMatchAbi}__ and `functionName` set to `"setUSDCToken"`
- */
-export const useBasketballMatchWriteSetUsdcToken =
-  /*#__PURE__*/ createUseWriteContract({
-    abi: basketballMatchAbi,
-    functionName: 'setUSDCToken',
-  })
-
-/**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link basketballMatchAbi}__ and `functionName` set to `"suspendMarket"`
- */
-export const useBasketballMatchWriteSuspendMarket =
-  /*#__PURE__*/ createUseWriteContract({
-    abi: basketballMatchAbi,
-    functionName: 'suspendMarket',
-  })
-
-/**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link basketballMatchAbi}__ and `functionName` set to `"transferOwnership"`
- */
-export const useBasketballMatchWriteTransferOwnership =
-  /*#__PURE__*/ createUseWriteContract({
-    abi: basketballMatchAbi,
-    functionName: 'transferOwnership',
-  })
-
-/**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link basketballMatchAbi}__ and `functionName` set to `"unpause"`
- */
-export const useBasketballMatchWriteUnpause =
-  /*#__PURE__*/ createUseWriteContract({
-    abi: basketballMatchAbi,
-    functionName: 'unpause',
-  })
-
-/**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link basketballMatchAbi}__ and `functionName` set to `"upgradeToAndCall"`
- */
-export const useBasketballMatchWriteUpgradeToAndCall =
-  /*#__PURE__*/ createUseWriteContract({
-    abi: basketballMatchAbi,
-    functionName: 'upgradeToAndCall',
-  })
-
-/**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link basketballMatchAbi}__
- */
-export const useBasketballMatchSimulateundefined =
-  /*#__PURE__*/ createUseSimulateContract({ abi: basketballMatchAbi })
-
-/**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link basketballMatchAbi}__ and `functionName` set to `"addMarketWithLine"`
- */
-export const useBasketballMatchSimulateAddMarketWithLine =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: basketballMatchAbi,
-    functionName: 'addMarketWithLine',
-  })
-
-/**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link basketballMatchAbi}__ and `functionName` set to `"addMarketWithQuarter"`
- */
-export const useBasketballMatchSimulateAddMarketWithQuarter =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: basketballMatchAbi,
-    functionName: 'addMarketWithQuarter',
-  })
-
-/**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link basketballMatchAbi}__ and `functionName` set to `"addMarketsBatch"`
- */
-export const useBasketballMatchSimulateAddMarketsBatch =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: basketballMatchAbi,
-    functionName: 'addMarketsBatch',
-  })
-
-/**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link basketballMatchAbi}__ and `functionName` set to `"addMarketsBatchWithQuarter"`
- */
-export const useBasketballMatchSimulateAddMarketsBatchWithQuarter =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: basketballMatchAbi,
-    functionName: 'addMarketsBatchWithQuarter',
-  })
-
-/**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link basketballMatchAbi}__ and `functionName` set to `"cancelMarket"`
- */
-export const useBasketballMatchSimulateCancelMarket =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: basketballMatchAbi,
-    functionName: 'cancelMarket',
-  })
-
-/**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link basketballMatchAbi}__ and `functionName` set to `"claim"`
- */
-export const useBasketballMatchSimulateClaim =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: basketballMatchAbi,
-    functionName: 'claim',
-  })
-
-/**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link basketballMatchAbi}__ and `functionName` set to `"claimAll"`
- */
-export const useBasketballMatchSimulateClaimAll =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: basketballMatchAbi,
-    functionName: 'claimAll',
-  })
-
-/**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link basketballMatchAbi}__ and `functionName` set to `"claimRange"`
- */
-export const useBasketballMatchSimulateClaimRange =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: basketballMatchAbi,
-    functionName: 'claimRange',
-  })
-
-/**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link basketballMatchAbi}__ and `functionName` set to `"claimRefund"`
- */
-export const useBasketballMatchSimulateClaimRefund =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: basketballMatchAbi,
-    functionName: 'claimRefund',
-  })
-
-/**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link basketballMatchAbi}__ and `functionName` set to `"closeMarket"`
- */
-export const useBasketballMatchSimulateCloseMarket =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: basketballMatchAbi,
-    functionName: 'closeMarket',
-  })
-
-/**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link basketballMatchAbi}__ and `functionName` set to `"closeMarketsBatch"`
- */
-export const useBasketballMatchSimulateCloseMarketsBatch =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: basketballMatchAbi,
-    functionName: 'closeMarketsBatch',
-  })
-
-/**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link basketballMatchAbi}__ and `functionName` set to `"emergencyPause"`
- */
-export const useBasketballMatchSimulateEmergencyPause =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: basketballMatchAbi,
-    functionName: 'emergencyPause',
-  })
-
-/**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link basketballMatchAbi}__ and `functionName` set to `"grantRole"`
- */
-export const useBasketballMatchSimulateGrantRole =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: basketballMatchAbi,
-    functionName: 'grantRole',
-  })
-
-/**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link basketballMatchAbi}__ and `functionName` set to `"initialize"`
- */
-export const useBasketballMatchSimulateInitialize =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: basketballMatchAbi,
-    functionName: 'initialize',
-  })
-
-/**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link basketballMatchAbi}__ and `functionName` set to `"openMarket"`
- */
-export const useBasketballMatchSimulateOpenMarket =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: basketballMatchAbi,
-    functionName: 'openMarket',
-  })
-
-/**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link basketballMatchAbi}__ and `functionName` set to `"openMarketsBatch"`
- */
-export const useBasketballMatchSimulateOpenMarketsBatch =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: basketballMatchAbi,
-    functionName: 'openMarketsBatch',
-  })
-
-/**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link basketballMatchAbi}__ and `functionName` set to `"placeBetUSDC"`
- */
-export const useBasketballMatchSimulatePlaceBetUsdc =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: basketballMatchAbi,
-    functionName: 'placeBetUSDC',
-  })
-
-/**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link basketballMatchAbi}__ and `functionName` set to `"placeBetUSDCFor"`
- */
-export const useBasketballMatchSimulatePlaceBetUsdcFor =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: basketballMatchAbi,
-    functionName: 'placeBetUSDCFor',
-  })
-
-/**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link basketballMatchAbi}__ and `functionName` set to `"renounceOwnership"`
- */
-export const useBasketballMatchSimulateRenounceOwnership =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: basketballMatchAbi,
-    functionName: 'renounceOwnership',
-  })
-
-/**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link basketballMatchAbi}__ and `functionName` set to `"renounceRole"`
- */
-export const useBasketballMatchSimulateRenounceRole =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: basketballMatchAbi,
-    functionName: 'renounceRole',
-  })
-
-/**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link basketballMatchAbi}__ and `functionName` set to `"resolveMarket"`
- */
-export const useBasketballMatchSimulateResolveMarket =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: basketballMatchAbi,
-    functionName: 'resolveMarket',
-  })
-
-/**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link basketballMatchAbi}__ and `functionName` set to `"resolveMarketsBatch"`
- */
-export const useBasketballMatchSimulateResolveMarketsBatch =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: basketballMatchAbi,
-    functionName: 'resolveMarketsBatch',
-  })
-
-/**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link basketballMatchAbi}__ and `functionName` set to `"revokeRole"`
- */
-export const useBasketballMatchSimulateRevokeRole =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: basketballMatchAbi,
-    functionName: 'revokeRole',
-  })
-
-/**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link basketballMatchAbi}__ and `functionName` set to `"setLiquidityPool"`
- */
-export const useBasketballMatchSimulateSetLiquidityPool =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: basketballMatchAbi,
-    functionName: 'setLiquidityPool',
-  })
-
-/**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link basketballMatchAbi}__ and `functionName` set to `"setMarketOdds"`
- */
-export const useBasketballMatchSimulateSetMarketOdds =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: basketballMatchAbi,
-    functionName: 'setMarketOdds',
-  })
-
-/**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link basketballMatchAbi}__ and `functionName` set to `"setMaxAllowedOdds"`
- */
-export const useBasketballMatchSimulateSetMaxAllowedOdds =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: basketballMatchAbi,
-    functionName: 'setMaxAllowedOdds',
-  })
-
-/**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link basketballMatchAbi}__ and `functionName` set to `"setUSDCToken"`
- */
-export const useBasketballMatchSimulateSetUsdcToken =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: basketballMatchAbi,
-    functionName: 'setUSDCToken',
-  })
-
-/**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link basketballMatchAbi}__ and `functionName` set to `"suspendMarket"`
- */
-export const useBasketballMatchSimulateSuspendMarket =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: basketballMatchAbi,
-    functionName: 'suspendMarket',
-  })
-
-/**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link basketballMatchAbi}__ and `functionName` set to `"transferOwnership"`
- */
-export const useBasketballMatchSimulateTransferOwnership =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: basketballMatchAbi,
-    functionName: 'transferOwnership',
-  })
-
-/**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link basketballMatchAbi}__ and `functionName` set to `"unpause"`
- */
-export const useBasketballMatchSimulateUnpause =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: basketballMatchAbi,
-    functionName: 'unpause',
-  })
-
-/**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link basketballMatchAbi}__ and `functionName` set to `"upgradeToAndCall"`
- */
-export const useBasketballMatchSimulateUpgradeToAndCall =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: basketballMatchAbi,
-    functionName: 'upgradeToAndCall',
-  })
-
-/**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link basketballMatchAbi}__
- */
-export const useBasketballMatchWatchundefined =
-  /*#__PURE__*/ createUseWatchContractEvent({ abi: basketballMatchAbi })
-
-/**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link basketballMatchAbi}__ and `eventName` set to `"BetPlaced"`
- */
-export const useBasketballMatchWatchBetPlaced =
-  /*#__PURE__*/ createUseWatchContractEvent({
-    abi: basketballMatchAbi,
-    eventName: 'BetPlaced',
-  })
-
-/**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link basketballMatchAbi}__ and `eventName` set to `"Initialized"`
- */
-export const useBasketballMatchWatchInitialized =
-  /*#__PURE__*/ createUseWatchContractEvent({
-    abi: basketballMatchAbi,
-    eventName: 'Initialized',
-  })
-
-/**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link basketballMatchAbi}__ and `eventName` set to `"LiquidityPoolSet"`
- */
-export const useBasketballMatchWatchLiquidityPoolSet =
-  /*#__PURE__*/ createUseWatchContractEvent({
-    abi: basketballMatchAbi,
-    eventName: 'LiquidityPoolSet',
-  })
-
-/**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link basketballMatchAbi}__ and `eventName` set to `"MarketCancelled"`
- */
-export const useBasketballMatchWatchMarketCancelled =
-  /*#__PURE__*/ createUseWatchContractEvent({
-    abi: basketballMatchAbi,
-    eventName: 'MarketCancelled',
-  })
-
-/**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link basketballMatchAbi}__ and `eventName` set to `"MarketCreated"`
- */
-export const useBasketballMatchWatchMarketCreated =
-  /*#__PURE__*/ createUseWatchContractEvent({
-    abi: basketballMatchAbi,
-    eventName: 'MarketCreated',
-  })
-
-/**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link basketballMatchAbi}__ and `eventName` set to `"MarketResolved"`
- */
-export const useBasketballMatchWatchMarketResolved =
-  /*#__PURE__*/ createUseWatchContractEvent({
-    abi: basketballMatchAbi,
-    eventName: 'MarketResolved',
-  })
-
-/**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link basketballMatchAbi}__ and `eventName` set to `"MarketStateChanged"`
- */
-export const useBasketballMatchWatchMarketStateChanged =
-  /*#__PURE__*/ createUseWatchContractEvent({
-    abi: basketballMatchAbi,
-    eventName: 'MarketStateChanged',
-  })
-
-/**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link basketballMatchAbi}__ and `eventName` set to `"MatchInitialized"`
- */
-export const useBasketballMatchWatchMatchInitialized =
-  /*#__PURE__*/ createUseWatchContractEvent({
-    abi: basketballMatchAbi,
-    eventName: 'MatchInitialized',
-  })
-
-/**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link basketballMatchAbi}__ and `eventName` set to `"MaxAllowedOddsSet"`
- */
-export const useBasketballMatchWatchMaxAllowedOddsSet =
-  /*#__PURE__*/ createUseWatchContractEvent({
-    abi: basketballMatchAbi,
-    eventName: 'MaxAllowedOddsSet',
-  })
-
-/**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link basketballMatchAbi}__ and `eventName` set to `"OddsUpdated"`
- */
-export const useBasketballMatchWatchOddsUpdated =
-  /*#__PURE__*/ createUseWatchContractEvent({
-    abi: basketballMatchAbi,
-    eventName: 'OddsUpdated',
-  })
-
-/**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link basketballMatchAbi}__ and `eventName` set to `"OwnershipTransferred"`
- */
-export const useBasketballMatchWatchOwnershipTransferred =
-  /*#__PURE__*/ createUseWatchContractEvent({
-    abi: basketballMatchAbi,
-    eventName: 'OwnershipTransferred',
-  })
-
-/**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link basketballMatchAbi}__ and `eventName` set to `"Paused"`
- */
-export const useBasketballMatchWatchPaused =
-  /*#__PURE__*/ createUseWatchContractEvent({
-    abi: basketballMatchAbi,
-    eventName: 'Paused',
-  })
-
-/**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link basketballMatchAbi}__ and `eventName` set to `"Payout"`
- */
-export const useBasketballMatchWatchPayout =
-  /*#__PURE__*/ createUseWatchContractEvent({
-    abi: basketballMatchAbi,
-    eventName: 'Payout',
-  })
-
-/**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link basketballMatchAbi}__ and `eventName` set to `"Refund"`
- */
-export const useBasketballMatchWatchRefund =
-  /*#__PURE__*/ createUseWatchContractEvent({
-    abi: basketballMatchAbi,
-    eventName: 'Refund',
-  })
-
-/**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link basketballMatchAbi}__ and `eventName` set to `"RoleAdminChanged"`
- */
-export const useBasketballMatchWatchRoleAdminChanged =
-  /*#__PURE__*/ createUseWatchContractEvent({
-    abi: basketballMatchAbi,
-    eventName: 'RoleAdminChanged',
-  })
-
-/**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link basketballMatchAbi}__ and `eventName` set to `"RoleGranted"`
- */
-export const useBasketballMatchWatchRoleGranted =
-  /*#__PURE__*/ createUseWatchContractEvent({
-    abi: basketballMatchAbi,
-    eventName: 'RoleGranted',
-  })
-
-/**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link basketballMatchAbi}__ and `eventName` set to `"RoleRevoked"`
- */
-export const useBasketballMatchWatchRoleRevoked =
-  /*#__PURE__*/ createUseWatchContractEvent({
-    abi: basketballMatchAbi,
-    eventName: 'RoleRevoked',
-  })
-
-/**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link basketballMatchAbi}__ and `eventName` set to `"USDCTokenSet"`
- */
-export const useBasketballMatchWatchUsdcTokenSet =
-  /*#__PURE__*/ createUseWatchContractEvent({
-    abi: basketballMatchAbi,
-    eventName: 'USDCTokenSet',
-  })
-
-/**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link basketballMatchAbi}__ and `eventName` set to `"Unpaused"`
- */
-export const useBasketballMatchWatchUnpaused =
-  /*#__PURE__*/ createUseWatchContractEvent({
-    abi: basketballMatchAbi,
-    eventName: 'Unpaused',
-  })
-
-/**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link basketballMatchAbi}__ and `eventName` set to `"Upgraded"`
- */
-export const useBasketballMatchWatchUpgraded =
-  /*#__PURE__*/ createUseWatchContractEvent({
-    abi: basketballMatchAbi,
-    eventName: 'Upgraded',
-  })
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link bettingMatchAbi}__
- */
-export const useBettingMatchReadundefined = /*#__PURE__*/ createUseReadContract(
-  { abi: bettingMatchAbi },
-)
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link bettingMatchAbi}__ and `functionName` set to `"ADMIN_ROLE"`
- */
-export const useBettingMatchReadAdminRole = /*#__PURE__*/ createUseReadContract(
-  { abi: bettingMatchAbi, functionName: 'ADMIN_ROLE' },
-)
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link bettingMatchAbi}__ and `functionName` set to `"DEFAULT_ADMIN_ROLE"`
- */
-export const useBettingMatchReadDefaultAdminRole =
-  /*#__PURE__*/ createUseReadContract({
-    abi: bettingMatchAbi,
-    functionName: 'DEFAULT_ADMIN_ROLE',
-  })
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link bettingMatchAbi}__ and `functionName` set to `"MAX_ODDS"`
- */
-export const useBettingMatchReadMaxOdds = /*#__PURE__*/ createUseReadContract({
-  abi: bettingMatchAbi,
-  functionName: 'MAX_ODDS',
-})
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link bettingMatchAbi}__ and `functionName` set to `"MIN_NET_STAKE"`
- */
-export const useBettingMatchReadMinNetStake =
-  /*#__PURE__*/ createUseReadContract({
-    abi: bettingMatchAbi,
-    functionName: 'MIN_NET_STAKE',
-  })
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link bettingMatchAbi}__ and `functionName` set to `"MIN_ODDS"`
- */
-export const useBettingMatchReadMinOdds = /*#__PURE__*/ createUseReadContract({
-  abi: bettingMatchAbi,
-  functionName: 'MIN_ODDS',
-})
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link bettingMatchAbi}__ and `functionName` set to `"ODDS_PRECISION"`
- */
-export const useBettingMatchReadOddsPrecision =
-  /*#__PURE__*/ createUseReadContract({
-    abi: bettingMatchAbi,
-    functionName: 'ODDS_PRECISION',
-  })
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link bettingMatchAbi}__ and `functionName` set to `"ODDS_SETTER_ROLE"`
- */
-export const useBettingMatchReadOddsSetterRole =
-  /*#__PURE__*/ createUseReadContract({
-    abi: bettingMatchAbi,
-    functionName: 'ODDS_SETTER_ROLE',
-  })
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link bettingMatchAbi}__ and `functionName` set to `"PAUSER_ROLE"`
- */
-export const useBettingMatchReadPauserRole =
-  /*#__PURE__*/ createUseReadContract({
-    abi: bettingMatchAbi,
-    functionName: 'PAUSER_ROLE',
-  })
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link bettingMatchAbi}__ and `functionName` set to `"RESOLVER_ROLE"`
- */
-export const useBettingMatchReadResolverRole =
-  /*#__PURE__*/ createUseReadContract({
-    abi: bettingMatchAbi,
-    functionName: 'RESOLVER_ROLE',
-  })
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link bettingMatchAbi}__ and `functionName` set to `"SWAP_ROUTER_ROLE"`
- */
-export const useBettingMatchReadSwapRouterRole =
-  /*#__PURE__*/ createUseReadContract({
-    abi: bettingMatchAbi,
-    functionName: 'SWAP_ROUTER_ROLE',
-  })
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link bettingMatchAbi}__ and `functionName` set to `"UPGRADE_INTERFACE_VERSION"`
- */
-export const useBettingMatchReadUpgradeInterfaceVersion =
-  /*#__PURE__*/ createUseReadContract({
-    abi: bettingMatchAbi,
-    functionName: 'UPGRADE_INTERFACE_VERSION',
-  })
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link bettingMatchAbi}__ and `functionName` set to `"getBetDetails"`
- */
-export const useBettingMatchReadGetBetDetails =
-  /*#__PURE__*/ createUseReadContract({
-    abi: bettingMatchAbi,
-    functionName: 'getBetDetails',
-  })
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link bettingMatchAbi}__ and `functionName` set to `"getCurrentOdds"`
- */
-export const useBettingMatchReadGetCurrentOdds =
-  /*#__PURE__*/ createUseReadContract({
-    abi: bettingMatchAbi,
-    functionName: 'getCurrentOdds',
-  })
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link bettingMatchAbi}__ and `functionName` set to `"getMarketCore"`
- */
-export const useBettingMatchReadGetMarketCore =
-  /*#__PURE__*/ createUseReadContract({
-    abi: bettingMatchAbi,
-    functionName: 'getMarketCore',
-  })
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link bettingMatchAbi}__ and `functionName` set to `"getMarketInfo"`
- */
-export const useBettingMatchReadGetMarketInfo =
-  /*#__PURE__*/ createUseReadContract({
-    abi: bettingMatchAbi,
-    functionName: 'getMarketInfo',
-  })
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link bettingMatchAbi}__ and `functionName` set to `"getMarketLiability"`
- */
-export const useBettingMatchReadGetMarketLiability =
-  /*#__PURE__*/ createUseReadContract({
-    abi: bettingMatchAbi,
-    functionName: 'getMarketLiability',
-  })
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link bettingMatchAbi}__ and `functionName` set to `"getOddsHistory"`
- */
-export const useBettingMatchReadGetOddsHistory =
-  /*#__PURE__*/ createUseReadContract({
-    abi: bettingMatchAbi,
-    functionName: 'getOddsHistory',
-  })
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link bettingMatchAbi}__ and `functionName` set to `"getRoleAdmin"`
- */
-export const useBettingMatchReadGetRoleAdmin =
-  /*#__PURE__*/ createUseReadContract({
-    abi: bettingMatchAbi,
-    functionName: 'getRoleAdmin',
-  })
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link bettingMatchAbi}__ and `functionName` set to `"getUserBets"`
- */
-export const useBettingMatchReadGetUserBets =
-  /*#__PURE__*/ createUseReadContract({
-    abi: bettingMatchAbi,
-    functionName: 'getUserBets',
-  })
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link bettingMatchAbi}__ and `functionName` set to `"hasRole"`
- */
-export const useBettingMatchReadHasRole = /*#__PURE__*/ createUseReadContract({
-  abi: bettingMatchAbi,
-  functionName: 'hasRole',
-})
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link bettingMatchAbi}__ and `functionName` set to `"liquidityPool"`
- */
-export const useBettingMatchReadLiquidityPool =
-  /*#__PURE__*/ createUseReadContract({
-    abi: bettingMatchAbi,
-    functionName: 'liquidityPool',
-  })
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link bettingMatchAbi}__ and `functionName` set to `"marketCount"`
- */
-export const useBettingMatchReadMarketCount =
-  /*#__PURE__*/ createUseReadContract({
-    abi: bettingMatchAbi,
-    functionName: 'marketCount',
-  })
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link bettingMatchAbi}__ and `functionName` set to `"matchName"`
- */
-export const useBettingMatchReadMatchName = /*#__PURE__*/ createUseReadContract(
-  { abi: bettingMatchAbi, functionName: 'matchName' },
-)
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link bettingMatchAbi}__ and `functionName` set to `"maxAllowedOdds"`
- */
-export const useBettingMatchReadMaxAllowedOdds =
-  /*#__PURE__*/ createUseReadContract({
-    abi: bettingMatchAbi,
-    functionName: 'maxAllowedOdds',
-  })
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link bettingMatchAbi}__ and `functionName` set to `"owner"`
- */
-export const useBettingMatchReadOwner = /*#__PURE__*/ createUseReadContract({
-  abi: bettingMatchAbi,
-  functionName: 'owner',
-})
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link bettingMatchAbi}__ and `functionName` set to `"paused"`
- */
-export const useBettingMatchReadPaused = /*#__PURE__*/ createUseReadContract({
-  abi: bettingMatchAbi,
-  functionName: 'paused',
-})
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link bettingMatchAbi}__ and `functionName` set to `"proxiableUUID"`
- */
-export const useBettingMatchReadProxiableUuid =
-  /*#__PURE__*/ createUseReadContract({
-    abi: bettingMatchAbi,
-    functionName: 'proxiableUUID',
-  })
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link bettingMatchAbi}__ and `functionName` set to `"quoteNetExposure"`
- */
-export const useBettingMatchReadQuoteNetExposure =
-  /*#__PURE__*/ createUseReadContract({
-    abi: bettingMatchAbi,
-    functionName: 'quoteNetExposure',
-  })
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link bettingMatchAbi}__ and `functionName` set to `"sportType"`
- */
-export const useBettingMatchReadSportType = /*#__PURE__*/ createUseReadContract(
-  { abi: bettingMatchAbi, functionName: 'sportType' },
-)
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link bettingMatchAbi}__ and `functionName` set to `"supportsInterface"`
- */
-export const useBettingMatchReadSupportsInterface =
-  /*#__PURE__*/ createUseReadContract({
-    abi: bettingMatchAbi,
-    functionName: 'supportsInterface',
-  })
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link bettingMatchAbi}__ and `functionName` set to `"usdcToken"`
- */
-export const useBettingMatchReadUsdcToken = /*#__PURE__*/ createUseReadContract(
-  { abi: bettingMatchAbi, functionName: 'usdcToken' },
-)
-
-/**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link bettingMatchAbi}__
- */
-export const useBettingMatchWriteundefined =
-  /*#__PURE__*/ createUseWriteContract({ abi: bettingMatchAbi })
-
-/**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link bettingMatchAbi}__ and `functionName` set to `"addMarketWithLine"`
- */
-export const useBettingMatchWriteAddMarketWithLine =
-  /*#__PURE__*/ createUseWriteContract({
-    abi: bettingMatchAbi,
-    functionName: 'addMarketWithLine',
-  })
-
-/**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link bettingMatchAbi}__ and `functionName` set to `"cancelMarket"`
- */
-export const useBettingMatchWriteCancelMarket =
-  /*#__PURE__*/ createUseWriteContract({
-    abi: bettingMatchAbi,
-    functionName: 'cancelMarket',
-  })
-
-/**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link bettingMatchAbi}__ and `functionName` set to `"claim"`
- */
-export const useBettingMatchWriteClaim = /*#__PURE__*/ createUseWriteContract({
-  abi: bettingMatchAbi,
-  functionName: 'claim',
-})
-
-/**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link bettingMatchAbi}__ and `functionName` set to `"claimAll"`
- */
-export const useBettingMatchWriteClaimAll =
-  /*#__PURE__*/ createUseWriteContract({
-    abi: bettingMatchAbi,
-    functionName: 'claimAll',
-  })
-
-/**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link bettingMatchAbi}__ and `functionName` set to `"claimRange"`
- */
-export const useBettingMatchWriteClaimRange =
-  /*#__PURE__*/ createUseWriteContract({
-    abi: bettingMatchAbi,
-    functionName: 'claimRange',
-  })
-
-/**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link bettingMatchAbi}__ and `functionName` set to `"claimRefund"`
- */
-export const useBettingMatchWriteClaimRefund =
-  /*#__PURE__*/ createUseWriteContract({
-    abi: bettingMatchAbi,
-    functionName: 'claimRefund',
-  })
-
-/**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link bettingMatchAbi}__ and `functionName` set to `"closeMarket"`
- */
-export const useBettingMatchWriteCloseMarket =
-  /*#__PURE__*/ createUseWriteContract({
-    abi: bettingMatchAbi,
-    functionName: 'closeMarket',
-  })
-
-/**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link bettingMatchAbi}__ and `functionName` set to `"closeMarketsBatch"`
- */
-export const useBettingMatchWriteCloseMarketsBatch =
-  /*#__PURE__*/ createUseWriteContract({
-    abi: bettingMatchAbi,
-    functionName: 'closeMarketsBatch',
-  })
-
-/**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link bettingMatchAbi}__ and `functionName` set to `"emergencyPause"`
- */
-export const useBettingMatchWriteEmergencyPause =
-  /*#__PURE__*/ createUseWriteContract({
-    abi: bettingMatchAbi,
-    functionName: 'emergencyPause',
-  })
-
-/**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link bettingMatchAbi}__ and `functionName` set to `"grantRole"`
- */
-export const useBettingMatchWriteGrantRole =
-  /*#__PURE__*/ createUseWriteContract({
-    abi: bettingMatchAbi,
-    functionName: 'grantRole',
-  })
-
-/**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link bettingMatchAbi}__ and `functionName` set to `"openMarket"`
- */
-export const useBettingMatchWriteOpenMarket =
-  /*#__PURE__*/ createUseWriteContract({
-    abi: bettingMatchAbi,
-    functionName: 'openMarket',
-  })
-
-/**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link bettingMatchAbi}__ and `functionName` set to `"openMarketsBatch"`
- */
-export const useBettingMatchWriteOpenMarketsBatch =
-  /*#__PURE__*/ createUseWriteContract({
-    abi: bettingMatchAbi,
-    functionName: 'openMarketsBatch',
-  })
-
-/**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link bettingMatchAbi}__ and `functionName` set to `"placeBetUSDC"`
- */
-export const useBettingMatchWritePlaceBetUsdc =
-  /*#__PURE__*/ createUseWriteContract({
-    abi: bettingMatchAbi,
-    functionName: 'placeBetUSDC',
-  })
-
-/**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link bettingMatchAbi}__ and `functionName` set to `"placeBetUSDCFor"`
- */
-export const useBettingMatchWritePlaceBetUsdcFor =
-  /*#__PURE__*/ createUseWriteContract({
-    abi: bettingMatchAbi,
-    functionName: 'placeBetUSDCFor',
-  })
-
-/**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link bettingMatchAbi}__ and `functionName` set to `"renounceOwnership"`
- */
-export const useBettingMatchWriteRenounceOwnership =
-  /*#__PURE__*/ createUseWriteContract({
-    abi: bettingMatchAbi,
-    functionName: 'renounceOwnership',
-  })
-
-/**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link bettingMatchAbi}__ and `functionName` set to `"renounceRole"`
- */
-export const useBettingMatchWriteRenounceRole =
-  /*#__PURE__*/ createUseWriteContract({
-    abi: bettingMatchAbi,
-    functionName: 'renounceRole',
-  })
-
-/**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link bettingMatchAbi}__ and `functionName` set to `"resolveMarket"`
- */
-export const useBettingMatchWriteResolveMarket =
-  /*#__PURE__*/ createUseWriteContract({
-    abi: bettingMatchAbi,
-    functionName: 'resolveMarket',
-  })
-
-/**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link bettingMatchAbi}__ and `functionName` set to `"resolveMarketsBatch"`
- */
-export const useBettingMatchWriteResolveMarketsBatch =
-  /*#__PURE__*/ createUseWriteContract({
-    abi: bettingMatchAbi,
-    functionName: 'resolveMarketsBatch',
-  })
-
-/**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link bettingMatchAbi}__ and `functionName` set to `"revokeRole"`
- */
-export const useBettingMatchWriteRevokeRole =
-  /*#__PURE__*/ createUseWriteContract({
-    abi: bettingMatchAbi,
-    functionName: 'revokeRole',
-  })
-
-/**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link bettingMatchAbi}__ and `functionName` set to `"setLiquidityPool"`
- */
-export const useBettingMatchWriteSetLiquidityPool =
-  /*#__PURE__*/ createUseWriteContract({
-    abi: bettingMatchAbi,
-    functionName: 'setLiquidityPool',
-  })
-
-/**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link bettingMatchAbi}__ and `functionName` set to `"setMarketOdds"`
- */
-export const useBettingMatchWriteSetMarketOdds =
-  /*#__PURE__*/ createUseWriteContract({
-    abi: bettingMatchAbi,
-    functionName: 'setMarketOdds',
-  })
-
-/**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link bettingMatchAbi}__ and `functionName` set to `"setMaxAllowedOdds"`
- */
-export const useBettingMatchWriteSetMaxAllowedOdds =
-  /*#__PURE__*/ createUseWriteContract({
-    abi: bettingMatchAbi,
-    functionName: 'setMaxAllowedOdds',
-  })
-
-/**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link bettingMatchAbi}__ and `functionName` set to `"setUSDCToken"`
- */
-export const useBettingMatchWriteSetUsdcToken =
-  /*#__PURE__*/ createUseWriteContract({
-    abi: bettingMatchAbi,
-    functionName: 'setUSDCToken',
-  })
-
-/**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link bettingMatchAbi}__ and `functionName` set to `"suspendMarket"`
- */
-export const useBettingMatchWriteSuspendMarket =
-  /*#__PURE__*/ createUseWriteContract({
-    abi: bettingMatchAbi,
-    functionName: 'suspendMarket',
-  })
-
-/**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link bettingMatchAbi}__ and `functionName` set to `"transferOwnership"`
- */
-export const useBettingMatchWriteTransferOwnership =
-  /*#__PURE__*/ createUseWriteContract({
-    abi: bettingMatchAbi,
-    functionName: 'transferOwnership',
-  })
-
-/**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link bettingMatchAbi}__ and `functionName` set to `"unpause"`
- */
-export const useBettingMatchWriteUnpause = /*#__PURE__*/ createUseWriteContract(
-  { abi: bettingMatchAbi, functionName: 'unpause' },
-)
-
-/**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link bettingMatchAbi}__ and `functionName` set to `"upgradeToAndCall"`
- */
-export const useBettingMatchWriteUpgradeToAndCall =
-  /*#__PURE__*/ createUseWriteContract({
-    abi: bettingMatchAbi,
-    functionName: 'upgradeToAndCall',
-  })
-
-/**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link bettingMatchAbi}__
- */
-export const useBettingMatchSimulateundefined =
-  /*#__PURE__*/ createUseSimulateContract({ abi: bettingMatchAbi })
-
-/**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link bettingMatchAbi}__ and `functionName` set to `"addMarketWithLine"`
- */
-export const useBettingMatchSimulateAddMarketWithLine =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: bettingMatchAbi,
-    functionName: 'addMarketWithLine',
-  })
-
-/**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link bettingMatchAbi}__ and `functionName` set to `"cancelMarket"`
- */
-export const useBettingMatchSimulateCancelMarket =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: bettingMatchAbi,
-    functionName: 'cancelMarket',
-  })
-
-/**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link bettingMatchAbi}__ and `functionName` set to `"claim"`
- */
-export const useBettingMatchSimulateClaim =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: bettingMatchAbi,
-    functionName: 'claim',
-  })
-
-/**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link bettingMatchAbi}__ and `functionName` set to `"claimAll"`
- */
-export const useBettingMatchSimulateClaimAll =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: bettingMatchAbi,
-    functionName: 'claimAll',
-  })
-
-/**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link bettingMatchAbi}__ and `functionName` set to `"claimRange"`
- */
-export const useBettingMatchSimulateClaimRange =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: bettingMatchAbi,
-    functionName: 'claimRange',
-  })
-
-/**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link bettingMatchAbi}__ and `functionName` set to `"claimRefund"`
- */
-export const useBettingMatchSimulateClaimRefund =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: bettingMatchAbi,
-    functionName: 'claimRefund',
-  })
-
-/**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link bettingMatchAbi}__ and `functionName` set to `"closeMarket"`
- */
-export const useBettingMatchSimulateCloseMarket =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: bettingMatchAbi,
-    functionName: 'closeMarket',
-  })
-
-/**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link bettingMatchAbi}__ and `functionName` set to `"closeMarketsBatch"`
- */
-export const useBettingMatchSimulateCloseMarketsBatch =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: bettingMatchAbi,
-    functionName: 'closeMarketsBatch',
-  })
-
-/**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link bettingMatchAbi}__ and `functionName` set to `"emergencyPause"`
- */
-export const useBettingMatchSimulateEmergencyPause =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: bettingMatchAbi,
-    functionName: 'emergencyPause',
-  })
-
-/**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link bettingMatchAbi}__ and `functionName` set to `"grantRole"`
- */
-export const useBettingMatchSimulateGrantRole =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: bettingMatchAbi,
-    functionName: 'grantRole',
-  })
-
-/**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link bettingMatchAbi}__ and `functionName` set to `"openMarket"`
- */
-export const useBettingMatchSimulateOpenMarket =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: bettingMatchAbi,
-    functionName: 'openMarket',
-  })
-
-/**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link bettingMatchAbi}__ and `functionName` set to `"openMarketsBatch"`
- */
-export const useBettingMatchSimulateOpenMarketsBatch =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: bettingMatchAbi,
-    functionName: 'openMarketsBatch',
-  })
-
-/**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link bettingMatchAbi}__ and `functionName` set to `"placeBetUSDC"`
- */
-export const useBettingMatchSimulatePlaceBetUsdc =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: bettingMatchAbi,
-    functionName: 'placeBetUSDC',
-  })
-
-/**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link bettingMatchAbi}__ and `functionName` set to `"placeBetUSDCFor"`
- */
-export const useBettingMatchSimulatePlaceBetUsdcFor =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: bettingMatchAbi,
-    functionName: 'placeBetUSDCFor',
-  })
-
-/**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link bettingMatchAbi}__ and `functionName` set to `"renounceOwnership"`
- */
-export const useBettingMatchSimulateRenounceOwnership =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: bettingMatchAbi,
-    functionName: 'renounceOwnership',
-  })
-
-/**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link bettingMatchAbi}__ and `functionName` set to `"renounceRole"`
- */
-export const useBettingMatchSimulateRenounceRole =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: bettingMatchAbi,
-    functionName: 'renounceRole',
-  })
-
-/**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link bettingMatchAbi}__ and `functionName` set to `"resolveMarket"`
- */
-export const useBettingMatchSimulateResolveMarket =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: bettingMatchAbi,
-    functionName: 'resolveMarket',
-  })
-
-/**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link bettingMatchAbi}__ and `functionName` set to `"resolveMarketsBatch"`
- */
-export const useBettingMatchSimulateResolveMarketsBatch =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: bettingMatchAbi,
-    functionName: 'resolveMarketsBatch',
-  })
-
-/**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link bettingMatchAbi}__ and `functionName` set to `"revokeRole"`
- */
-export const useBettingMatchSimulateRevokeRole =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: bettingMatchAbi,
-    functionName: 'revokeRole',
-  })
-
-/**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link bettingMatchAbi}__ and `functionName` set to `"setLiquidityPool"`
- */
-export const useBettingMatchSimulateSetLiquidityPool =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: bettingMatchAbi,
-    functionName: 'setLiquidityPool',
-  })
-
-/**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link bettingMatchAbi}__ and `functionName` set to `"setMarketOdds"`
- */
-export const useBettingMatchSimulateSetMarketOdds =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: bettingMatchAbi,
-    functionName: 'setMarketOdds',
-  })
-
-/**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link bettingMatchAbi}__ and `functionName` set to `"setMaxAllowedOdds"`
- */
-export const useBettingMatchSimulateSetMaxAllowedOdds =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: bettingMatchAbi,
-    functionName: 'setMaxAllowedOdds',
-  })
-
-/**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link bettingMatchAbi}__ and `functionName` set to `"setUSDCToken"`
- */
-export const useBettingMatchSimulateSetUsdcToken =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: bettingMatchAbi,
-    functionName: 'setUSDCToken',
-  })
-
-/**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link bettingMatchAbi}__ and `functionName` set to `"suspendMarket"`
- */
-export const useBettingMatchSimulateSuspendMarket =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: bettingMatchAbi,
-    functionName: 'suspendMarket',
-  })
-
-/**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link bettingMatchAbi}__ and `functionName` set to `"transferOwnership"`
- */
-export const useBettingMatchSimulateTransferOwnership =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: bettingMatchAbi,
-    functionName: 'transferOwnership',
-  })
-
-/**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link bettingMatchAbi}__ and `functionName` set to `"unpause"`
- */
-export const useBettingMatchSimulateUnpause =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: bettingMatchAbi,
-    functionName: 'unpause',
-  })
-
-/**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link bettingMatchAbi}__ and `functionName` set to `"upgradeToAndCall"`
- */
-export const useBettingMatchSimulateUpgradeToAndCall =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: bettingMatchAbi,
-    functionName: 'upgradeToAndCall',
-  })
-
-/**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link bettingMatchAbi}__
- */
-export const useBettingMatchWatchundefined =
-  /*#__PURE__*/ createUseWatchContractEvent({ abi: bettingMatchAbi })
-
-/**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link bettingMatchAbi}__ and `eventName` set to `"BetPlaced"`
- */
-export const useBettingMatchWatchBetPlaced =
-  /*#__PURE__*/ createUseWatchContractEvent({
-    abi: bettingMatchAbi,
-    eventName: 'BetPlaced',
-  })
-
-/**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link bettingMatchAbi}__ and `eventName` set to `"Initialized"`
- */
-export const useBettingMatchWatchInitialized =
-  /*#__PURE__*/ createUseWatchContractEvent({
-    abi: bettingMatchAbi,
-    eventName: 'Initialized',
-  })
-
-/**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link bettingMatchAbi}__ and `eventName` set to `"LiquidityPoolSet"`
- */
-export const useBettingMatchWatchLiquidityPoolSet =
-  /*#__PURE__*/ createUseWatchContractEvent({
-    abi: bettingMatchAbi,
-    eventName: 'LiquidityPoolSet',
-  })
-
-/**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link bettingMatchAbi}__ and `eventName` set to `"MarketCancelled"`
- */
-export const useBettingMatchWatchMarketCancelled =
-  /*#__PURE__*/ createUseWatchContractEvent({
-    abi: bettingMatchAbi,
-    eventName: 'MarketCancelled',
-  })
-
-/**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link bettingMatchAbi}__ and `eventName` set to `"MarketCreated"`
- */
-export const useBettingMatchWatchMarketCreated =
-  /*#__PURE__*/ createUseWatchContractEvent({
-    abi: bettingMatchAbi,
-    eventName: 'MarketCreated',
-  })
-
-/**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link bettingMatchAbi}__ and `eventName` set to `"MarketResolved"`
- */
-export const useBettingMatchWatchMarketResolved =
-  /*#__PURE__*/ createUseWatchContractEvent({
-    abi: bettingMatchAbi,
-    eventName: 'MarketResolved',
-  })
-
-/**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link bettingMatchAbi}__ and `eventName` set to `"MarketStateChanged"`
- */
-export const useBettingMatchWatchMarketStateChanged =
-  /*#__PURE__*/ createUseWatchContractEvent({
-    abi: bettingMatchAbi,
-    eventName: 'MarketStateChanged',
-  })
-
-/**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link bettingMatchAbi}__ and `eventName` set to `"MatchInitialized"`
- */
-export const useBettingMatchWatchMatchInitialized =
-  /*#__PURE__*/ createUseWatchContractEvent({
-    abi: bettingMatchAbi,
-    eventName: 'MatchInitialized',
-  })
-
-/**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link bettingMatchAbi}__ and `eventName` set to `"MaxAllowedOddsSet"`
- */
-export const useBettingMatchWatchMaxAllowedOddsSet =
-  /*#__PURE__*/ createUseWatchContractEvent({
-    abi: bettingMatchAbi,
-    eventName: 'MaxAllowedOddsSet',
-  })
-
-/**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link bettingMatchAbi}__ and `eventName` set to `"OddsUpdated"`
- */
-export const useBettingMatchWatchOddsUpdated =
-  /*#__PURE__*/ createUseWatchContractEvent({
-    abi: bettingMatchAbi,
-    eventName: 'OddsUpdated',
-  })
-
-/**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link bettingMatchAbi}__ and `eventName` set to `"OwnershipTransferred"`
- */
-export const useBettingMatchWatchOwnershipTransferred =
-  /*#__PURE__*/ createUseWatchContractEvent({
-    abi: bettingMatchAbi,
-    eventName: 'OwnershipTransferred',
-  })
-
-/**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link bettingMatchAbi}__ and `eventName` set to `"Paused"`
- */
-export const useBettingMatchWatchPaused =
-  /*#__PURE__*/ createUseWatchContractEvent({
-    abi: bettingMatchAbi,
-    eventName: 'Paused',
-  })
-
-/**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link bettingMatchAbi}__ and `eventName` set to `"Payout"`
- */
-export const useBettingMatchWatchPayout =
-  /*#__PURE__*/ createUseWatchContractEvent({
-    abi: bettingMatchAbi,
-    eventName: 'Payout',
-  })
-
-/**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link bettingMatchAbi}__ and `eventName` set to `"Refund"`
- */
-export const useBettingMatchWatchRefund =
-  /*#__PURE__*/ createUseWatchContractEvent({
-    abi: bettingMatchAbi,
-    eventName: 'Refund',
-  })
-
-/**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link bettingMatchAbi}__ and `eventName` set to `"RoleAdminChanged"`
- */
-export const useBettingMatchWatchRoleAdminChanged =
-  /*#__PURE__*/ createUseWatchContractEvent({
-    abi: bettingMatchAbi,
-    eventName: 'RoleAdminChanged',
-  })
-
-/**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link bettingMatchAbi}__ and `eventName` set to `"RoleGranted"`
- */
-export const useBettingMatchWatchRoleGranted =
-  /*#__PURE__*/ createUseWatchContractEvent({
-    abi: bettingMatchAbi,
-    eventName: 'RoleGranted',
-  })
-
-/**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link bettingMatchAbi}__ and `eventName` set to `"RoleRevoked"`
- */
-export const useBettingMatchWatchRoleRevoked =
-  /*#__PURE__*/ createUseWatchContractEvent({
-    abi: bettingMatchAbi,
-    eventName: 'RoleRevoked',
-  })
-
-/**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link bettingMatchAbi}__ and `eventName` set to `"USDCTokenSet"`
- */
-export const useBettingMatchWatchUsdcTokenSet =
-  /*#__PURE__*/ createUseWatchContractEvent({
-    abi: bettingMatchAbi,
-    eventName: 'USDCTokenSet',
-  })
-
-/**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link bettingMatchAbi}__ and `eventName` set to `"Unpaused"`
- */
-export const useBettingMatchWatchUnpaused =
-  /*#__PURE__*/ createUseWatchContractEvent({
-    abi: bettingMatchAbi,
-    eventName: 'Unpaused',
-  })
-
-/**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link bettingMatchAbi}__ and `eventName` set to `"Upgraded"`
- */
-export const useBettingMatchWatchUpgraded =
-  /*#__PURE__*/ createUseWatchContractEvent({
-    abi: bettingMatchAbi,
-    eventName: 'Upgraded',
-  })
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link bettingMatchFactoryAbi}__
- */
-export const useBettingMatchFactoryReadundefined =
-  /*#__PURE__*/ createUseReadContract({ abi: bettingMatchFactoryAbi })
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link bettingMatchFactoryAbi}__ and `functionName` set to `"BASKETBALL"`
- */
-export const useBettingMatchFactoryReadBasketball =
-  /*#__PURE__*/ createUseReadContract({
-    abi: bettingMatchFactoryAbi,
-    functionName: 'BASKETBALL',
-  })
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link bettingMatchFactoryAbi}__ and `functionName` set to `"FOOTBALL"`
- */
-export const useBettingMatchFactoryReadFootball =
-  /*#__PURE__*/ createUseReadContract({
-    abi: bettingMatchFactoryAbi,
-    functionName: 'FOOTBALL',
-  })
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link bettingMatchFactoryAbi}__ and `functionName` set to `"allMatches"`
- */
-export const useBettingMatchFactoryReadAllMatches =
-  /*#__PURE__*/ createUseReadContract({
-    abi: bettingMatchFactoryAbi,
-    functionName: 'allMatches',
-  })
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link bettingMatchFactoryAbi}__ and `functionName` set to `"basketballImplementation"`
- */
-export const useBettingMatchFactoryReadBasketballImplementation =
-  /*#__PURE__*/ createUseReadContract({
-    abi: bettingMatchFactoryAbi,
-    functionName: 'basketballImplementation',
-  })
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link bettingMatchFactoryAbi}__ and `functionName` set to `"footballImplementation"`
- */
-export const useBettingMatchFactoryReadFootballImplementation =
-  /*#__PURE__*/ createUseReadContract({
-    abi: bettingMatchFactoryAbi,
-    functionName: 'footballImplementation',
-  })
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link bettingMatchFactoryAbi}__ and `functionName` set to `"getAllMatches"`
- */
-export const useBettingMatchFactoryReadGetAllMatches =
-  /*#__PURE__*/ createUseReadContract({
-    abi: bettingMatchFactoryAbi,
-    functionName: 'getAllMatches',
-  })
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link bettingMatchFactoryAbi}__ and `functionName` set to `"getSportType"`
- */
-export const useBettingMatchFactoryReadGetSportType =
-  /*#__PURE__*/ createUseReadContract({
-    abi: bettingMatchFactoryAbi,
-    functionName: 'getSportType',
-  })
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link bettingMatchFactoryAbi}__ and `functionName` set to `"implementations"`
- */
-export const useBettingMatchFactoryReadImplementations =
-  /*#__PURE__*/ createUseReadContract({
-    abi: bettingMatchFactoryAbi,
-    functionName: 'implementations',
-  })
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link bettingMatchFactoryAbi}__ and `functionName` set to `"isMatch"`
- */
-export const useBettingMatchFactoryReadIsMatch =
-  /*#__PURE__*/ createUseReadContract({
-    abi: bettingMatchFactoryAbi,
-    functionName: 'isMatch',
-  })
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link bettingMatchFactoryAbi}__ and `functionName` set to `"liquidityPool"`
- */
-export const useBettingMatchFactoryReadLiquidityPool =
-  /*#__PURE__*/ createUseReadContract({
-    abi: bettingMatchFactoryAbi,
-    functionName: 'liquidityPool',
-  })
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link bettingMatchFactoryAbi}__ and `functionName` set to `"matchSportType"`
- */
-export const useBettingMatchFactoryReadMatchSportType =
-  /*#__PURE__*/ createUseReadContract({
-    abi: bettingMatchFactoryAbi,
-    functionName: 'matchSportType',
-  })
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link bettingMatchFactoryAbi}__ and `functionName` set to `"owner"`
- */
-export const useBettingMatchFactoryReadOwner =
-  /*#__PURE__*/ createUseReadContract({
-    abi: bettingMatchFactoryAbi,
+    abi: basketballPariMatchAbi,
     functionName: 'owner',
   })
 
 /**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link bettingMatchFactoryAbi}__ and `functionName` set to `"swapRouter"`
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link basketballPariMatchAbi}__ and `functionName` set to `"paused"`
  */
-export const useBettingMatchFactoryReadSwapRouter =
+export const useBasketballPariMatchReadPaused =
   /*#__PURE__*/ createUseReadContract({
-    abi: bettingMatchFactoryAbi,
-    functionName: 'swapRouter',
+    abi: basketballPariMatchAbi,
+    functionName: 'paused',
   })
 
 /**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link bettingMatchFactoryAbi}__ and `functionName` set to `"usdcToken"`
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link basketballPariMatchAbi}__ and `functionName` set to `"proxiableUUID"`
  */
-export const useBettingMatchFactoryReadUsdcToken =
+export const useBasketballPariMatchReadProxiableUuid =
   /*#__PURE__*/ createUseReadContract({
-    abi: bettingMatchFactoryAbi,
+    abi: basketballPariMatchAbi,
+    functionName: 'proxiableUUID',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link basketballPariMatchAbi}__ and `functionName` set to `"sportType"`
+ */
+export const useBasketballPariMatchReadSportType =
+  /*#__PURE__*/ createUseReadContract({
+    abi: basketballPariMatchAbi,
+    functionName: 'sportType',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link basketballPariMatchAbi}__ and `functionName` set to `"supportsInterface"`
+ */
+export const useBasketballPariMatchReadSupportsInterface =
+  /*#__PURE__*/ createUseReadContract({
+    abi: basketballPariMatchAbi,
+    functionName: 'supportsInterface',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link basketballPariMatchAbi}__ and `functionName` set to `"usdcToken"`
+ */
+export const useBasketballPariMatchReadUsdcToken =
+  /*#__PURE__*/ createUseReadContract({
+    abi: basketballPariMatchAbi,
     functionName: 'usdcToken',
   })
 
 /**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link bettingMatchFactoryAbi}__
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link basketballPariMatchAbi}__
  */
-export const useBettingMatchFactoryWriteundefined =
-  /*#__PURE__*/ createUseWriteContract({ abi: bettingMatchFactoryAbi })
+export const useBasketballPariMatchWriteundefined =
+  /*#__PURE__*/ createUseWriteContract({ abi: basketballPariMatchAbi })
 
 /**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link bettingMatchFactoryAbi}__ and `functionName` set to `"createBasketballMatch"`
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link basketballPariMatchAbi}__ and `functionName` set to `"addMarketAdvanced"`
  */
-export const useBettingMatchFactoryWriteCreateBasketballMatch =
+export const useBasketballPariMatchWriteAddMarketAdvanced =
   /*#__PURE__*/ createUseWriteContract({
-    abi: bettingMatchFactoryAbi,
-    functionName: 'createBasketballMatch',
+    abi: basketballPariMatchAbi,
+    functionName: 'addMarketAdvanced',
   })
 
 /**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link bettingMatchFactoryAbi}__ and `functionName` set to `"createFootballMatch"`
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link basketballPariMatchAbi}__ and `functionName` set to `"addMarketWithLine"`
  */
-export const useBettingMatchFactoryWriteCreateFootballMatch =
+export const useBasketballPariMatchWriteAddMarketWithLine =
   /*#__PURE__*/ createUseWriteContract({
-    abi: bettingMatchFactoryAbi,
-    functionName: 'createFootballMatch',
+    abi: basketballPariMatchAbi,
+    functionName: 'addMarketWithLine',
   })
 
 /**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link bettingMatchFactoryAbi}__ and `functionName` set to `"renounceOwnership"`
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link basketballPariMatchAbi}__ and `functionName` set to `"addMarketsBatch"`
  */
-export const useBettingMatchFactoryWriteRenounceOwnership =
+export const useBasketballPariMatchWriteAddMarketsBatch =
   /*#__PURE__*/ createUseWriteContract({
-    abi: bettingMatchFactoryAbi,
+    abi: basketballPariMatchAbi,
+    functionName: 'addMarketsBatch',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link basketballPariMatchAbi}__ and `functionName` set to `"addMarketsBatchAdvanced"`
+ */
+export const useBasketballPariMatchWriteAddMarketsBatchAdvanced =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: basketballPariMatchAbi,
+    functionName: 'addMarketsBatchAdvanced',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link basketballPariMatchAbi}__ and `functionName` set to `"addPointsExactMarket"`
+ */
+export const useBasketballPariMatchWriteAddPointsExactMarket =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: basketballPariMatchAbi,
+    functionName: 'addPointsExactMarket',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link basketballPariMatchAbi}__ and `functionName` set to `"addQuarterMarket"`
+ */
+export const useBasketballPariMatchWriteAddQuarterMarket =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: basketballPariMatchAbi,
+    functionName: 'addQuarterMarket',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link basketballPariMatchAbi}__ and `functionName` set to `"cancelMarket"`
+ */
+export const useBasketballPariMatchWriteCancelMarket =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: basketballPariMatchAbi,
+    functionName: 'cancelMarket',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link basketballPariMatchAbi}__ and `functionName` set to `"claim"`
+ */
+export const useBasketballPariMatchWriteClaim =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: basketballPariMatchAbi,
+    functionName: 'claim',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link basketballPariMatchAbi}__ and `functionName` set to `"claimBatch"`
+ */
+export const useBasketballPariMatchWriteClaimBatch =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: basketballPariMatchAbi,
+    functionName: 'claimBatch',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link basketballPariMatchAbi}__ and `functionName` set to `"claimRefund"`
+ */
+export const useBasketballPariMatchWriteClaimRefund =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: basketballPariMatchAbi,
+    functionName: 'claimRefund',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link basketballPariMatchAbi}__ and `functionName` set to `"claimRefundBatch"`
+ */
+export const useBasketballPariMatchWriteClaimRefundBatch =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: basketballPariMatchAbi,
+    functionName: 'claimRefundBatch',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link basketballPariMatchAbi}__ and `functionName` set to `"closeMarket"`
+ */
+export const useBasketballPariMatchWriteCloseMarket =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: basketballPariMatchAbi,
+    functionName: 'closeMarket',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link basketballPariMatchAbi}__ and `functionName` set to `"closeMarketsBatch"`
+ */
+export const useBasketballPariMatchWriteCloseMarketsBatch =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: basketballPariMatchAbi,
+    functionName: 'closeMarketsBatch',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link basketballPariMatchAbi}__ and `functionName` set to `"emergencyPause"`
+ */
+export const useBasketballPariMatchWriteEmergencyPause =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: basketballPariMatchAbi,
+    functionName: 'emergencyPause',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link basketballPariMatchAbi}__ and `functionName` set to `"grantRole"`
+ */
+export const useBasketballPariMatchWriteGrantRole =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: basketballPariMatchAbi,
+    functionName: 'grantRole',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link basketballPariMatchAbi}__ and `functionName` set to `"initialize"`
+ */
+export const useBasketballPariMatchWriteInitialize =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: basketballPariMatchAbi,
+    functionName: 'initialize',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link basketballPariMatchAbi}__ and `functionName` set to `"openMarket"`
+ */
+export const useBasketballPariMatchWriteOpenMarket =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: basketballPariMatchAbi,
+    functionName: 'openMarket',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link basketballPariMatchAbi}__ and `functionName` set to `"openMarketsBatch"`
+ */
+export const useBasketballPariMatchWriteOpenMarketsBatch =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: basketballPariMatchAbi,
+    functionName: 'openMarketsBatch',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link basketballPariMatchAbi}__ and `functionName` set to `"placeBetUSDC"`
+ */
+export const useBasketballPariMatchWritePlaceBetUsdc =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: basketballPariMatchAbi,
+    functionName: 'placeBetUSDC',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link basketballPariMatchAbi}__ and `functionName` set to `"placeBetUSDCFor"`
+ */
+export const useBasketballPariMatchWritePlaceBetUsdcFor =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: basketballPariMatchAbi,
+    functionName: 'placeBetUSDCFor',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link basketballPariMatchAbi}__ and `functionName` set to `"renounceOwnership"`
+ */
+export const useBasketballPariMatchWriteRenounceOwnership =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: basketballPariMatchAbi,
     functionName: 'renounceOwnership',
   })
 
 /**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link bettingMatchFactoryAbi}__ and `functionName` set to `"setBasketballImplementation"`
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link basketballPariMatchAbi}__ and `functionName` set to `"renounceRole"`
  */
-export const useBettingMatchFactoryWriteSetBasketballImplementation =
+export const useBasketballPariMatchWriteRenounceRole =
   /*#__PURE__*/ createUseWriteContract({
-    abi: bettingMatchFactoryAbi,
-    functionName: 'setBasketballImplementation',
+    abi: basketballPariMatchAbi,
+    functionName: 'renounceRole',
   })
 
 /**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link bettingMatchFactoryAbi}__ and `functionName` set to `"setFootballImplementation"`
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link basketballPariMatchAbi}__ and `functionName` set to `"resolveBatchByScore"`
  */
-export const useBettingMatchFactoryWriteSetFootballImplementation =
+export const useBasketballPariMatchWriteResolveBatchByScore =
   /*#__PURE__*/ createUseWriteContract({
-    abi: bettingMatchFactoryAbi,
-    functionName: 'setFootballImplementation',
+    abi: basketballPariMatchAbi,
+    functionName: 'resolveBatchByScore',
   })
 
 /**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link bettingMatchFactoryAbi}__ and `functionName` set to `"setWiring"`
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link basketballPariMatchAbi}__ and `functionName` set to `"resolveByScore"`
  */
-export const useBettingMatchFactoryWriteSetWiring =
+export const useBasketballPariMatchWriteResolveByScore =
   /*#__PURE__*/ createUseWriteContract({
-    abi: bettingMatchFactoryAbi,
-    functionName: 'setWiring',
+    abi: basketballPariMatchAbi,
+    functionName: 'resolveByScore',
   })
 
 /**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link bettingMatchFactoryAbi}__ and `functionName` set to `"transferOwnership"`
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link basketballPariMatchAbi}__ and `functionName` set to `"resolveMarket"`
  */
-export const useBettingMatchFactoryWriteTransferOwnership =
+export const useBasketballPariMatchWriteResolveMarket =
   /*#__PURE__*/ createUseWriteContract({
-    abi: bettingMatchFactoryAbi,
+    abi: basketballPariMatchAbi,
+    functionName: 'resolveMarket',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link basketballPariMatchAbi}__ and `functionName` set to `"resolveMarketsBatch"`
+ */
+export const useBasketballPariMatchWriteResolveMarketsBatch =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: basketballPariMatchAbi,
+    functionName: 'resolveMarketsBatch',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link basketballPariMatchAbi}__ and `functionName` set to `"revokeRole"`
+ */
+export const useBasketballPariMatchWriteRevokeRole =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: basketballPariMatchAbi,
+    functionName: 'revokeRole',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link basketballPariMatchAbi}__ and `functionName` set to `"setFeeBps"`
+ */
+export const useBasketballPariMatchWriteSetFeeBps =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: basketballPariMatchAbi,
+    functionName: 'setFeeBps',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link basketballPariMatchAbi}__ and `functionName` set to `"setFeeRecipient"`
+ */
+export const useBasketballPariMatchWriteSetFeeRecipient =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: basketballPariMatchAbi,
+    functionName: 'setFeeRecipient',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link basketballPariMatchAbi}__ and `functionName` set to `"setLeaderboardFeeBps"`
+ */
+export const useBasketballPariMatchWriteSetLeaderboardFeeBps =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: basketballPariMatchAbi,
+    functionName: 'setLeaderboardFeeBps',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link basketballPariMatchAbi}__ and `functionName` set to `"setLeaderboardRecipient"`
+ */
+export const useBasketballPariMatchWriteSetLeaderboardRecipient =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: basketballPariMatchAbi,
+    functionName: 'setLeaderboardRecipient',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link basketballPariMatchAbi}__ and `functionName` set to `"setUSDCToken"`
+ */
+export const useBasketballPariMatchWriteSetUsdcToken =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: basketballPariMatchAbi,
+    functionName: 'setUSDCToken',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link basketballPariMatchAbi}__ and `functionName` set to `"suspendMarket"`
+ */
+export const useBasketballPariMatchWriteSuspendMarket =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: basketballPariMatchAbi,
+    functionName: 'suspendMarket',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link basketballPariMatchAbi}__ and `functionName` set to `"transferOwnership"`
+ */
+export const useBasketballPariMatchWriteTransferOwnership =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: basketballPariMatchAbi,
     functionName: 'transferOwnership',
   })
 
 /**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link bettingMatchFactoryAbi}__
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link basketballPariMatchAbi}__ and `functionName` set to `"unpause"`
  */
-export const useBettingMatchFactorySimulateundefined =
-  /*#__PURE__*/ createUseSimulateContract({ abi: bettingMatchFactoryAbi })
-
-/**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link bettingMatchFactoryAbi}__ and `functionName` set to `"createBasketballMatch"`
- */
-export const useBettingMatchFactorySimulateCreateBasketballMatch =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: bettingMatchFactoryAbi,
-    functionName: 'createBasketballMatch',
+export const useBasketballPariMatchWriteUnpause =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: basketballPariMatchAbi,
+    functionName: 'unpause',
   })
 
 /**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link bettingMatchFactoryAbi}__ and `functionName` set to `"createFootballMatch"`
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link basketballPariMatchAbi}__ and `functionName` set to `"upgradeToAndCall"`
  */
-export const useBettingMatchFactorySimulateCreateFootballMatch =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: bettingMatchFactoryAbi,
-    functionName: 'createFootballMatch',
+export const useBasketballPariMatchWriteUpgradeToAndCall =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: basketballPariMatchAbi,
+    functionName: 'upgradeToAndCall',
   })
 
 /**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link bettingMatchFactoryAbi}__ and `functionName` set to `"renounceOwnership"`
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link basketballPariMatchAbi}__
  */
-export const useBettingMatchFactorySimulateRenounceOwnership =
+export const useBasketballPariMatchSimulateundefined =
+  /*#__PURE__*/ createUseSimulateContract({ abi: basketballPariMatchAbi })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link basketballPariMatchAbi}__ and `functionName` set to `"addMarketAdvanced"`
+ */
+export const useBasketballPariMatchSimulateAddMarketAdvanced =
   /*#__PURE__*/ createUseSimulateContract({
-    abi: bettingMatchFactoryAbi,
+    abi: basketballPariMatchAbi,
+    functionName: 'addMarketAdvanced',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link basketballPariMatchAbi}__ and `functionName` set to `"addMarketWithLine"`
+ */
+export const useBasketballPariMatchSimulateAddMarketWithLine =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: basketballPariMatchAbi,
+    functionName: 'addMarketWithLine',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link basketballPariMatchAbi}__ and `functionName` set to `"addMarketsBatch"`
+ */
+export const useBasketballPariMatchSimulateAddMarketsBatch =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: basketballPariMatchAbi,
+    functionName: 'addMarketsBatch',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link basketballPariMatchAbi}__ and `functionName` set to `"addMarketsBatchAdvanced"`
+ */
+export const useBasketballPariMatchSimulateAddMarketsBatchAdvanced =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: basketballPariMatchAbi,
+    functionName: 'addMarketsBatchAdvanced',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link basketballPariMatchAbi}__ and `functionName` set to `"addPointsExactMarket"`
+ */
+export const useBasketballPariMatchSimulateAddPointsExactMarket =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: basketballPariMatchAbi,
+    functionName: 'addPointsExactMarket',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link basketballPariMatchAbi}__ and `functionName` set to `"addQuarterMarket"`
+ */
+export const useBasketballPariMatchSimulateAddQuarterMarket =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: basketballPariMatchAbi,
+    functionName: 'addQuarterMarket',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link basketballPariMatchAbi}__ and `functionName` set to `"cancelMarket"`
+ */
+export const useBasketballPariMatchSimulateCancelMarket =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: basketballPariMatchAbi,
+    functionName: 'cancelMarket',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link basketballPariMatchAbi}__ and `functionName` set to `"claim"`
+ */
+export const useBasketballPariMatchSimulateClaim =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: basketballPariMatchAbi,
+    functionName: 'claim',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link basketballPariMatchAbi}__ and `functionName` set to `"claimBatch"`
+ */
+export const useBasketballPariMatchSimulateClaimBatch =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: basketballPariMatchAbi,
+    functionName: 'claimBatch',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link basketballPariMatchAbi}__ and `functionName` set to `"claimRefund"`
+ */
+export const useBasketballPariMatchSimulateClaimRefund =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: basketballPariMatchAbi,
+    functionName: 'claimRefund',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link basketballPariMatchAbi}__ and `functionName` set to `"claimRefundBatch"`
+ */
+export const useBasketballPariMatchSimulateClaimRefundBatch =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: basketballPariMatchAbi,
+    functionName: 'claimRefundBatch',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link basketballPariMatchAbi}__ and `functionName` set to `"closeMarket"`
+ */
+export const useBasketballPariMatchSimulateCloseMarket =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: basketballPariMatchAbi,
+    functionName: 'closeMarket',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link basketballPariMatchAbi}__ and `functionName` set to `"closeMarketsBatch"`
+ */
+export const useBasketballPariMatchSimulateCloseMarketsBatch =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: basketballPariMatchAbi,
+    functionName: 'closeMarketsBatch',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link basketballPariMatchAbi}__ and `functionName` set to `"emergencyPause"`
+ */
+export const useBasketballPariMatchSimulateEmergencyPause =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: basketballPariMatchAbi,
+    functionName: 'emergencyPause',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link basketballPariMatchAbi}__ and `functionName` set to `"grantRole"`
+ */
+export const useBasketballPariMatchSimulateGrantRole =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: basketballPariMatchAbi,
+    functionName: 'grantRole',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link basketballPariMatchAbi}__ and `functionName` set to `"initialize"`
+ */
+export const useBasketballPariMatchSimulateInitialize =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: basketballPariMatchAbi,
+    functionName: 'initialize',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link basketballPariMatchAbi}__ and `functionName` set to `"openMarket"`
+ */
+export const useBasketballPariMatchSimulateOpenMarket =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: basketballPariMatchAbi,
+    functionName: 'openMarket',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link basketballPariMatchAbi}__ and `functionName` set to `"openMarketsBatch"`
+ */
+export const useBasketballPariMatchSimulateOpenMarketsBatch =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: basketballPariMatchAbi,
+    functionName: 'openMarketsBatch',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link basketballPariMatchAbi}__ and `functionName` set to `"placeBetUSDC"`
+ */
+export const useBasketballPariMatchSimulatePlaceBetUsdc =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: basketballPariMatchAbi,
+    functionName: 'placeBetUSDC',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link basketballPariMatchAbi}__ and `functionName` set to `"placeBetUSDCFor"`
+ */
+export const useBasketballPariMatchSimulatePlaceBetUsdcFor =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: basketballPariMatchAbi,
+    functionName: 'placeBetUSDCFor',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link basketballPariMatchAbi}__ and `functionName` set to `"renounceOwnership"`
+ */
+export const useBasketballPariMatchSimulateRenounceOwnership =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: basketballPariMatchAbi,
     functionName: 'renounceOwnership',
   })
 
 /**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link bettingMatchFactoryAbi}__ and `functionName` set to `"setBasketballImplementation"`
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link basketballPariMatchAbi}__ and `functionName` set to `"renounceRole"`
  */
-export const useBettingMatchFactorySimulateSetBasketballImplementation =
+export const useBasketballPariMatchSimulateRenounceRole =
   /*#__PURE__*/ createUseSimulateContract({
-    abi: bettingMatchFactoryAbi,
-    functionName: 'setBasketballImplementation',
+    abi: basketballPariMatchAbi,
+    functionName: 'renounceRole',
   })
 
 /**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link bettingMatchFactoryAbi}__ and `functionName` set to `"setFootballImplementation"`
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link basketballPariMatchAbi}__ and `functionName` set to `"resolveBatchByScore"`
  */
-export const useBettingMatchFactorySimulateSetFootballImplementation =
+export const useBasketballPariMatchSimulateResolveBatchByScore =
   /*#__PURE__*/ createUseSimulateContract({
-    abi: bettingMatchFactoryAbi,
-    functionName: 'setFootballImplementation',
+    abi: basketballPariMatchAbi,
+    functionName: 'resolveBatchByScore',
   })
 
 /**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link bettingMatchFactoryAbi}__ and `functionName` set to `"setWiring"`
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link basketballPariMatchAbi}__ and `functionName` set to `"resolveByScore"`
  */
-export const useBettingMatchFactorySimulateSetWiring =
+export const useBasketballPariMatchSimulateResolveByScore =
   /*#__PURE__*/ createUseSimulateContract({
-    abi: bettingMatchFactoryAbi,
-    functionName: 'setWiring',
+    abi: basketballPariMatchAbi,
+    functionName: 'resolveByScore',
   })
 
 /**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link bettingMatchFactoryAbi}__ and `functionName` set to `"transferOwnership"`
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link basketballPariMatchAbi}__ and `functionName` set to `"resolveMarket"`
  */
-export const useBettingMatchFactorySimulateTransferOwnership =
+export const useBasketballPariMatchSimulateResolveMarket =
   /*#__PURE__*/ createUseSimulateContract({
-    abi: bettingMatchFactoryAbi,
+    abi: basketballPariMatchAbi,
+    functionName: 'resolveMarket',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link basketballPariMatchAbi}__ and `functionName` set to `"resolveMarketsBatch"`
+ */
+export const useBasketballPariMatchSimulateResolveMarketsBatch =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: basketballPariMatchAbi,
+    functionName: 'resolveMarketsBatch',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link basketballPariMatchAbi}__ and `functionName` set to `"revokeRole"`
+ */
+export const useBasketballPariMatchSimulateRevokeRole =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: basketballPariMatchAbi,
+    functionName: 'revokeRole',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link basketballPariMatchAbi}__ and `functionName` set to `"setFeeBps"`
+ */
+export const useBasketballPariMatchSimulateSetFeeBps =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: basketballPariMatchAbi,
+    functionName: 'setFeeBps',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link basketballPariMatchAbi}__ and `functionName` set to `"setFeeRecipient"`
+ */
+export const useBasketballPariMatchSimulateSetFeeRecipient =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: basketballPariMatchAbi,
+    functionName: 'setFeeRecipient',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link basketballPariMatchAbi}__ and `functionName` set to `"setLeaderboardFeeBps"`
+ */
+export const useBasketballPariMatchSimulateSetLeaderboardFeeBps =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: basketballPariMatchAbi,
+    functionName: 'setLeaderboardFeeBps',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link basketballPariMatchAbi}__ and `functionName` set to `"setLeaderboardRecipient"`
+ */
+export const useBasketballPariMatchSimulateSetLeaderboardRecipient =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: basketballPariMatchAbi,
+    functionName: 'setLeaderboardRecipient',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link basketballPariMatchAbi}__ and `functionName` set to `"setUSDCToken"`
+ */
+export const useBasketballPariMatchSimulateSetUsdcToken =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: basketballPariMatchAbi,
+    functionName: 'setUSDCToken',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link basketballPariMatchAbi}__ and `functionName` set to `"suspendMarket"`
+ */
+export const useBasketballPariMatchSimulateSuspendMarket =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: basketballPariMatchAbi,
+    functionName: 'suspendMarket',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link basketballPariMatchAbi}__ and `functionName` set to `"transferOwnership"`
+ */
+export const useBasketballPariMatchSimulateTransferOwnership =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: basketballPariMatchAbi,
     functionName: 'transferOwnership',
   })
 
 /**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link bettingMatchFactoryAbi}__
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link basketballPariMatchAbi}__ and `functionName` set to `"unpause"`
  */
-export const useBettingMatchFactoryWatchundefined =
-  /*#__PURE__*/ createUseWatchContractEvent({ abi: bettingMatchFactoryAbi })
-
-/**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link bettingMatchFactoryAbi}__ and `eventName` set to `"BasketballImplementationUpdated"`
- */
-export const useBettingMatchFactoryWatchBasketballImplementationUpdated =
-  /*#__PURE__*/ createUseWatchContractEvent({
-    abi: bettingMatchFactoryAbi,
-    eventName: 'BasketballImplementationUpdated',
+export const useBasketballPariMatchSimulateUnpause =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: basketballPariMatchAbi,
+    functionName: 'unpause',
   })
 
 /**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link bettingMatchFactoryAbi}__ and `eventName` set to `"FootballImplementationUpdated"`
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link basketballPariMatchAbi}__ and `functionName` set to `"upgradeToAndCall"`
  */
-export const useBettingMatchFactoryWatchFootballImplementationUpdated =
-  /*#__PURE__*/ createUseWatchContractEvent({
-    abi: bettingMatchFactoryAbi,
-    eventName: 'FootballImplementationUpdated',
+export const useBasketballPariMatchSimulateUpgradeToAndCall =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: basketballPariMatchAbi,
+    functionName: 'upgradeToAndCall',
   })
 
 /**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link bettingMatchFactoryAbi}__ and `eventName` set to `"MatchCreated"`
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link basketballPariMatchAbi}__
  */
-export const useBettingMatchFactoryWatchMatchCreated =
+export const useBasketballPariMatchWatchundefined =
+  /*#__PURE__*/ createUseWatchContractEvent({ abi: basketballPariMatchAbi })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link basketballPariMatchAbi}__ and `eventName` set to `"FeeBpsSet"`
+ */
+export const useBasketballPariMatchWatchFeeBpsSet =
   /*#__PURE__*/ createUseWatchContractEvent({
-    abi: bettingMatchFactoryAbi,
-    eventName: 'MatchCreated',
+    abi: basketballPariMatchAbi,
+    eventName: 'FeeBpsSet',
   })
 
 /**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link bettingMatchFactoryAbi}__ and `eventName` set to `"OwnershipTransferred"`
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link basketballPariMatchAbi}__ and `eventName` set to `"FeeRecipientSet"`
  */
-export const useBettingMatchFactoryWatchOwnershipTransferred =
+export const useBasketballPariMatchWatchFeeRecipientSet =
   /*#__PURE__*/ createUseWatchContractEvent({
-    abi: bettingMatchFactoryAbi,
+    abi: basketballPariMatchAbi,
+    eventName: 'FeeRecipientSet',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link basketballPariMatchAbi}__ and `eventName` set to `"Initialized"`
+ */
+export const useBasketballPariMatchWatchInitialized =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: basketballPariMatchAbi,
+    eventName: 'Initialized',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link basketballPariMatchAbi}__ and `eventName` set to `"LeaderboardFeeBpsSet"`
+ */
+export const useBasketballPariMatchWatchLeaderboardFeeBpsSet =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: basketballPariMatchAbi,
+    eventName: 'LeaderboardFeeBpsSet',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link basketballPariMatchAbi}__ and `eventName` set to `"LeaderboardRecipientSet"`
+ */
+export const useBasketballPariMatchWatchLeaderboardRecipientSet =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: basketballPariMatchAbi,
+    eventName: 'LeaderboardRecipientSet',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link basketballPariMatchAbi}__ and `eventName` set to `"LeaderboardRecordFailed"`
+ */
+export const useBasketballPariMatchWatchLeaderboardRecordFailed =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: basketballPariMatchAbi,
+    eventName: 'LeaderboardRecordFailed',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link basketballPariMatchAbi}__ and `eventName` set to `"MarketCancelled"`
+ */
+export const useBasketballPariMatchWatchMarketCancelled =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: basketballPariMatchAbi,
+    eventName: 'MarketCancelled',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link basketballPariMatchAbi}__ and `eventName` set to `"MarketCreated"`
+ */
+export const useBasketballPariMatchWatchMarketCreated =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: basketballPariMatchAbi,
+    eventName: 'MarketCreated',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link basketballPariMatchAbi}__ and `eventName` set to `"MarketResolved"`
+ */
+export const useBasketballPariMatchWatchMarketResolved =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: basketballPariMatchAbi,
+    eventName: 'MarketResolved',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link basketballPariMatchAbi}__ and `eventName` set to `"MarketStateChanged"`
+ */
+export const useBasketballPariMatchWatchMarketStateChanged =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: basketballPariMatchAbi,
+    eventName: 'MarketStateChanged',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link basketballPariMatchAbi}__ and `eventName` set to `"MatchInitialized"`
+ */
+export const useBasketballPariMatchWatchMatchInitialized =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: basketballPariMatchAbi,
+    eventName: 'MatchInitialized',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link basketballPariMatchAbi}__ and `eventName` set to `"MatchScoreResolved"`
+ */
+export const useBasketballPariMatchWatchMatchScoreResolved =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: basketballPariMatchAbi,
+    eventName: 'MatchScoreResolved',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link basketballPariMatchAbi}__ and `eventName` set to `"OwnershipTransferred"`
+ */
+export const useBasketballPariMatchWatchOwnershipTransferred =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: basketballPariMatchAbi,
     eventName: 'OwnershipTransferred',
   })
 
 /**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link bettingMatchFactoryAbi}__ and `eventName` set to `"WiringSet"`
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link basketballPariMatchAbi}__ and `eventName` set to `"Paused"`
  */
-export const useBettingMatchFactoryWatchWiringSet =
+export const useBasketballPariMatchWatchPaused =
   /*#__PURE__*/ createUseWatchContractEvent({
-    abi: bettingMatchFactoryAbi,
-    eventName: 'WiringSet',
+    abi: basketballPariMatchAbi,
+    eventName: 'Paused',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link basketballPariMatchAbi}__ and `eventName` set to `"PositionClaimed"`
+ */
+export const useBasketballPariMatchWatchPositionClaimed =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: basketballPariMatchAbi,
+    eventName: 'PositionClaimed',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link basketballPariMatchAbi}__ and `eventName` set to `"PositionTaken"`
+ */
+export const useBasketballPariMatchWatchPositionTaken =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: basketballPariMatchAbi,
+    eventName: 'PositionTaken',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link basketballPariMatchAbi}__ and `eventName` set to `"RoleAdminChanged"`
+ */
+export const useBasketballPariMatchWatchRoleAdminChanged =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: basketballPariMatchAbi,
+    eventName: 'RoleAdminChanged',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link basketballPariMatchAbi}__ and `eventName` set to `"RoleGranted"`
+ */
+export const useBasketballPariMatchWatchRoleGranted =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: basketballPariMatchAbi,
+    eventName: 'RoleGranted',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link basketballPariMatchAbi}__ and `eventName` set to `"RoleRevoked"`
+ */
+export const useBasketballPariMatchWatchRoleRevoked =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: basketballPariMatchAbi,
+    eventName: 'RoleRevoked',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link basketballPariMatchAbi}__ and `eventName` set to `"StakeRefunded"`
+ */
+export const useBasketballPariMatchWatchStakeRefunded =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: basketballPariMatchAbi,
+    eventName: 'StakeRefunded',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link basketballPariMatchAbi}__ and `eventName` set to `"USDCTokenSet"`
+ */
+export const useBasketballPariMatchWatchUsdcTokenSet =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: basketballPariMatchAbi,
+    eventName: 'USDCTokenSet',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link basketballPariMatchAbi}__ and `eventName` set to `"Unpaused"`
+ */
+export const useBasketballPariMatchWatchUnpaused =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: basketballPariMatchAbi,
+    eventName: 'Unpaused',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link basketballPariMatchAbi}__ and `eventName` set to `"Upgraded"`
+ */
+export const useBasketballPariMatchWatchUpgraded =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: basketballPariMatchAbi,
+    eventName: 'Upgraded',
   })
 
 /**
@@ -9581,15 +7890,6 @@ export const useChilizSwapRouterReadBettingMatchFactory =
   /*#__PURE__*/ createUseReadContract({
     abi: chilizSwapRouterAbi,
     functionName: 'bettingMatchFactory',
-  })
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link chilizSwapRouterAbi}__ and `functionName` set to `"liquidityPool"`
- */
-export const useChilizSwapRouterReadLiquidityPool =
-  /*#__PURE__*/ createUseReadContract({
-    abi: chilizSwapRouterAbi,
-    functionName: 'liquidityPool',
   })
 
 /**
@@ -9667,33 +7967,6 @@ export const useChilizSwapRouterWriteundefined =
   /*#__PURE__*/ createUseWriteContract({ abi: chilizSwapRouterAbi })
 
 /**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link chilizSwapRouterAbi}__ and `functionName` set to `"depositLiquidityWithCHZ"`
- */
-export const useChilizSwapRouterWriteDepositLiquidityWithChz =
-  /*#__PURE__*/ createUseWriteContract({
-    abi: chilizSwapRouterAbi,
-    functionName: 'depositLiquidityWithCHZ',
-  })
-
-/**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link chilizSwapRouterAbi}__ and `functionName` set to `"depositLiquidityWithToken"`
- */
-export const useChilizSwapRouterWriteDepositLiquidityWithToken =
-  /*#__PURE__*/ createUseWriteContract({
-    abi: chilizSwapRouterAbi,
-    functionName: 'depositLiquidityWithToken',
-  })
-
-/**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link chilizSwapRouterAbi}__ and `functionName` set to `"depositLiquidityWithUSDC"`
- */
-export const useChilizSwapRouterWriteDepositLiquidityWithUsdc =
-  /*#__PURE__*/ createUseWriteContract({
-    abi: chilizSwapRouterAbi,
-    functionName: 'depositLiquidityWithUSDC',
-  })
-
-/**
  * Wraps __{@link useWriteContract}__ with `abi` set to __{@link chilizSwapRouterAbi}__ and `functionName` set to `"donateWithCHZ"`
  */
 export const useChilizSwapRouterWriteDonateWithChz =
@@ -9754,15 +8027,6 @@ export const useChilizSwapRouterWriteRenounceOwnership =
   /*#__PURE__*/ createUseWriteContract({
     abi: chilizSwapRouterAbi,
     functionName: 'renounceOwnership',
-  })
-
-/**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link chilizSwapRouterAbi}__ and `functionName` set to `"setLiquidityPool"`
- */
-export const useChilizSwapRouterWriteSetLiquidityPool =
-  /*#__PURE__*/ createUseWriteContract({
-    abi: chilizSwapRouterAbi,
-    functionName: 'setLiquidityPool',
   })
 
 /**
@@ -9844,33 +8108,6 @@ export const useChilizSwapRouterSimulateundefined =
   /*#__PURE__*/ createUseSimulateContract({ abi: chilizSwapRouterAbi })
 
 /**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link chilizSwapRouterAbi}__ and `functionName` set to `"depositLiquidityWithCHZ"`
- */
-export const useChilizSwapRouterSimulateDepositLiquidityWithChz =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: chilizSwapRouterAbi,
-    functionName: 'depositLiquidityWithCHZ',
-  })
-
-/**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link chilizSwapRouterAbi}__ and `functionName` set to `"depositLiquidityWithToken"`
- */
-export const useChilizSwapRouterSimulateDepositLiquidityWithToken =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: chilizSwapRouterAbi,
-    functionName: 'depositLiquidityWithToken',
-  })
-
-/**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link chilizSwapRouterAbi}__ and `functionName` set to `"depositLiquidityWithUSDC"`
- */
-export const useChilizSwapRouterSimulateDepositLiquidityWithUsdc =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: chilizSwapRouterAbi,
-    functionName: 'depositLiquidityWithUSDC',
-  })
-
-/**
  * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link chilizSwapRouterAbi}__ and `functionName` set to `"donateWithCHZ"`
  */
 export const useChilizSwapRouterSimulateDonateWithChz =
@@ -9931,15 +8168,6 @@ export const useChilizSwapRouterSimulateRenounceOwnership =
   /*#__PURE__*/ createUseSimulateContract({
     abi: chilizSwapRouterAbi,
     functionName: 'renounceOwnership',
-  })
-
-/**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link chilizSwapRouterAbi}__ and `functionName` set to `"setLiquidityPool"`
- */
-export const useChilizSwapRouterSimulateSetLiquidityPool =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: chilizSwapRouterAbi,
-    functionName: 'setLiquidityPool',
   })
 
 /**
@@ -10075,42 +8303,6 @@ export const useChilizSwapRouterWatchDonationWithUsdcEvent =
   })
 
 /**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link chilizSwapRouterAbi}__ and `eventName` set to `"LiquidityDepositedWithCHZ"`
- */
-export const useChilizSwapRouterWatchLiquidityDepositedWithChz =
-  /*#__PURE__*/ createUseWatchContractEvent({
-    abi: chilizSwapRouterAbi,
-    eventName: 'LiquidityDepositedWithCHZ',
-  })
-
-/**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link chilizSwapRouterAbi}__ and `eventName` set to `"LiquidityDepositedWithToken"`
- */
-export const useChilizSwapRouterWatchLiquidityDepositedWithToken =
-  /*#__PURE__*/ createUseWatchContractEvent({
-    abi: chilizSwapRouterAbi,
-    eventName: 'LiquidityDepositedWithToken',
-  })
-
-/**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link chilizSwapRouterAbi}__ and `eventName` set to `"LiquidityDepositedWithUSDC"`
- */
-export const useChilizSwapRouterWatchLiquidityDepositedWithUsdc =
-  /*#__PURE__*/ createUseWatchContractEvent({
-    abi: chilizSwapRouterAbi,
-    eventName: 'LiquidityDepositedWithUSDC',
-  })
-
-/**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link chilizSwapRouterAbi}__ and `eventName` set to `"LiquidityPoolSet"`
- */
-export const useChilizSwapRouterWatchLiquidityPoolSet =
-  /*#__PURE__*/ createUseWatchContractEvent({
-    abi: chilizSwapRouterAbi,
-    eventName: 'LiquidityPoolSet',
-  })
-
-/**
  * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link chilizSwapRouterAbi}__ and `eventName` set to `"MatchFactorySet"`
  */
 export const useChilizSwapRouterWatchMatchFactorySet =
@@ -10183,2371 +8375,3175 @@ export const useChilizSwapRouterWatchTreasurySet =
   })
 
 /**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link footballMatchAbi}__
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link footballPariMatchAbi}__
  */
-export const useFootballMatchReadundefined =
-  /*#__PURE__*/ createUseReadContract({ abi: footballMatchAbi })
+export const useFootballPariMatchReadundefined =
+  /*#__PURE__*/ createUseReadContract({ abi: footballPariMatchAbi })
 
 /**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link footballMatchAbi}__ and `functionName` set to `"ADMIN_ROLE"`
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link footballPariMatchAbi}__ and `functionName` set to `"ADMIN_ROLE"`
  */
-export const useFootballMatchReadAdminRole =
+export const useFootballPariMatchReadAdminRole =
   /*#__PURE__*/ createUseReadContract({
-    abi: footballMatchAbi,
+    abi: footballPariMatchAbi,
     functionName: 'ADMIN_ROLE',
   })
 
 /**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link footballMatchAbi}__ and `functionName` set to `"DEFAULT_ADMIN_ROLE"`
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link footballPariMatchAbi}__ and `functionName` set to `"BPS_DENOM"`
  */
-export const useFootballMatchReadDefaultAdminRole =
+export const useFootballPariMatchReadBpsDenom =
   /*#__PURE__*/ createUseReadContract({
-    abi: footballMatchAbi,
+    abi: footballPariMatchAbi,
+    functionName: 'BPS_DENOM',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link footballPariMatchAbi}__ and `functionName` set to `"DEFAULT_ADMIN_ROLE"`
+ */
+export const useFootballPariMatchReadDefaultAdminRole =
+  /*#__PURE__*/ createUseReadContract({
+    abi: footballPariMatchAbi,
     functionName: 'DEFAULT_ADMIN_ROLE',
   })
 
 /**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link footballMatchAbi}__ and `functionName` set to `"MARKET_BOTH_SCORE"`
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link footballPariMatchAbi}__ and `functionName` set to `"MARKET_BOTH_SCORE"`
  */
-export const useFootballMatchReadMarketBothScore =
+export const useFootballPariMatchReadMarketBothScore =
   /*#__PURE__*/ createUseReadContract({
-    abi: footballMatchAbi,
+    abi: footballPariMatchAbi,
     functionName: 'MARKET_BOTH_SCORE',
   })
 
 /**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link footballMatchAbi}__ and `functionName` set to `"MARKET_CORRECT_SCORE"`
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link footballPariMatchAbi}__ and `functionName` set to `"MARKET_CORRECT_SCORE"`
  */
-export const useFootballMatchReadMarketCorrectScore =
+export const useFootballPariMatchReadMarketCorrectScore =
   /*#__PURE__*/ createUseReadContract({
-    abi: footballMatchAbi,
+    abi: footballPariMatchAbi,
     functionName: 'MARKET_CORRECT_SCORE',
   })
 
 /**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link footballMatchAbi}__ and `functionName` set to `"MARKET_FIRST_SCORER"`
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link footballPariMatchAbi}__ and `functionName` set to `"MARKET_FIRST_SCORER"`
  */
-export const useFootballMatchReadMarketFirstScorer =
+export const useFootballPariMatchReadMarketFirstScorer =
   /*#__PURE__*/ createUseReadContract({
-    abi: footballMatchAbi,
+    abi: footballPariMatchAbi,
     functionName: 'MARKET_FIRST_SCORER',
   })
 
 /**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link footballMatchAbi}__ and `functionName` set to `"MARKET_GOALS_TOTAL"`
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link footballPariMatchAbi}__ and `functionName` set to `"MARKET_GOALS_EXACT"`
  */
-export const useFootballMatchReadMarketGoalsTotal =
+export const useFootballPariMatchReadMarketGoalsExact =
   /*#__PURE__*/ createUseReadContract({
-    abi: footballMatchAbi,
+    abi: footballPariMatchAbi,
+    functionName: 'MARKET_GOALS_EXACT',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link footballPariMatchAbi}__ and `functionName` set to `"MARKET_GOALS_TOTAL"`
+ */
+export const useFootballPariMatchReadMarketGoalsTotal =
+  /*#__PURE__*/ createUseReadContract({
+    abi: footballPariMatchAbi,
     functionName: 'MARKET_GOALS_TOTAL',
   })
 
 /**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link footballMatchAbi}__ and `functionName` set to `"MARKET_HALFTIME"`
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link footballPariMatchAbi}__ and `functionName` set to `"MARKET_HALFTIME"`
  */
-export const useFootballMatchReadMarketHalftime =
+export const useFootballPariMatchReadMarketHalftime =
   /*#__PURE__*/ createUseReadContract({
-    abi: footballMatchAbi,
+    abi: footballPariMatchAbi,
     functionName: 'MARKET_HALFTIME',
   })
 
 /**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link footballMatchAbi}__ and `functionName` set to `"MARKET_WINNER"`
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link footballPariMatchAbi}__ and `functionName` set to `"MARKET_WINNER"`
  */
-export const useFootballMatchReadMarketWinner =
+export const useFootballPariMatchReadMarketWinner =
   /*#__PURE__*/ createUseReadContract({
-    abi: footballMatchAbi,
+    abi: footballPariMatchAbi,
     functionName: 'MARKET_WINNER',
   })
 
 /**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link footballMatchAbi}__ and `functionName` set to `"MAX_ODDS"`
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link footballPariMatchAbi}__ and `functionName` set to `"MAX_FEE_BPS"`
  */
-export const useFootballMatchReadMaxOdds = /*#__PURE__*/ createUseReadContract({
-  abi: footballMatchAbi,
-  functionName: 'MAX_ODDS',
-})
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link footballMatchAbi}__ and `functionName` set to `"MIN_NET_STAKE"`
- */
-export const useFootballMatchReadMinNetStake =
+export const useFootballPariMatchReadMaxFeeBps =
   /*#__PURE__*/ createUseReadContract({
-    abi: footballMatchAbi,
-    functionName: 'MIN_NET_STAKE',
+    abi: footballPariMatchAbi,
+    functionName: 'MAX_FEE_BPS',
   })
 
 /**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link footballMatchAbi}__ and `functionName` set to `"MIN_ODDS"`
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link footballPariMatchAbi}__ and `functionName` set to `"MIN_STAKE"`
  */
-export const useFootballMatchReadMinOdds = /*#__PURE__*/ createUseReadContract({
-  abi: footballMatchAbi,
-  functionName: 'MIN_ODDS',
-})
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link footballMatchAbi}__ and `functionName` set to `"ODDS_PRECISION"`
- */
-export const useFootballMatchReadOddsPrecision =
+export const useFootballPariMatchReadMinStake =
   /*#__PURE__*/ createUseReadContract({
-    abi: footballMatchAbi,
-    functionName: 'ODDS_PRECISION',
+    abi: footballPariMatchAbi,
+    functionName: 'MIN_STAKE',
   })
 
 /**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link footballMatchAbi}__ and `functionName` set to `"ODDS_SETTER_ROLE"`
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link footballPariMatchAbi}__ and `functionName` set to `"PAUSER_ROLE"`
  */
-export const useFootballMatchReadOddsSetterRole =
+export const useFootballPariMatchReadPauserRole =
   /*#__PURE__*/ createUseReadContract({
-    abi: footballMatchAbi,
-    functionName: 'ODDS_SETTER_ROLE',
-  })
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link footballMatchAbi}__ and `functionName` set to `"PAUSER_ROLE"`
- */
-export const useFootballMatchReadPauserRole =
-  /*#__PURE__*/ createUseReadContract({
-    abi: footballMatchAbi,
+    abi: footballPariMatchAbi,
     functionName: 'PAUSER_ROLE',
   })
 
 /**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link footballMatchAbi}__ and `functionName` set to `"RESOLVER_ROLE"`
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link footballPariMatchAbi}__ and `functionName` set to `"RESOLVER_ROLE"`
  */
-export const useFootballMatchReadResolverRole =
+export const useFootballPariMatchReadResolverRole =
   /*#__PURE__*/ createUseReadContract({
-    abi: footballMatchAbi,
+    abi: footballPariMatchAbi,
     functionName: 'RESOLVER_ROLE',
   })
 
 /**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link footballMatchAbi}__ and `functionName` set to `"SWAP_ROUTER_ROLE"`
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link footballPariMatchAbi}__ and `functionName` set to `"SWAP_ROUTER_ROLE"`
  */
-export const useFootballMatchReadSwapRouterRole =
+export const useFootballPariMatchReadSwapRouterRole =
   /*#__PURE__*/ createUseReadContract({
-    abi: footballMatchAbi,
+    abi: footballPariMatchAbi,
     functionName: 'SWAP_ROUTER_ROLE',
   })
 
 /**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link footballMatchAbi}__ and `functionName` set to `"UPGRADE_INTERFACE_VERSION"`
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link footballPariMatchAbi}__ and `functionName` set to `"UPGRADE_INTERFACE_VERSION"`
  */
-export const useFootballMatchReadUpgradeInterfaceVersion =
+export const useFootballPariMatchReadUpgradeInterfaceVersion =
   /*#__PURE__*/ createUseReadContract({
-    abi: footballMatchAbi,
+    abi: footballPariMatchAbi,
     functionName: 'UPGRADE_INTERFACE_VERSION',
   })
 
 /**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link footballMatchAbi}__ and `functionName` set to `"footballMarkets"`
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link footballPariMatchAbi}__ and `functionName` set to `"computeOutcome"`
  */
-export const useFootballMatchReadFootballMarkets =
+export const useFootballPariMatchReadComputeOutcome =
   /*#__PURE__*/ createUseReadContract({
-    abi: footballMatchAbi,
-    functionName: 'footballMarkets',
+    abi: footballPariMatchAbi,
+    functionName: 'computeOutcome',
   })
 
 /**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link footballMatchAbi}__ and `functionName` set to `"getBetDetails"`
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link footballPariMatchAbi}__ and `functionName` set to `"feeBps"`
  */
-export const useFootballMatchReadGetBetDetails =
+export const useFootballPariMatchReadFeeBps =
   /*#__PURE__*/ createUseReadContract({
-    abi: footballMatchAbi,
-    functionName: 'getBetDetails',
+    abi: footballPariMatchAbi,
+    functionName: 'feeBps',
   })
 
 /**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link footballMatchAbi}__ and `functionName` set to `"getCurrentOdds"`
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link footballPariMatchAbi}__ and `functionName` set to `"feeRecipient"`
  */
-export const useFootballMatchReadGetCurrentOdds =
+export const useFootballPariMatchReadFeeRecipient =
   /*#__PURE__*/ createUseReadContract({
-    abi: footballMatchAbi,
-    functionName: 'getCurrentOdds',
+    abi: footballPariMatchAbi,
+    functionName: 'feeRecipient',
   })
 
 /**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link footballMatchAbi}__ and `functionName` set to `"getFootballMarket"`
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link footballPariMatchAbi}__ and `functionName` set to `"getImpliedProbabilityBps"`
  */
-export const useFootballMatchReadGetFootballMarket =
+export const useFootballPariMatchReadGetImpliedProbabilityBps =
   /*#__PURE__*/ createUseReadContract({
-    abi: footballMatchAbi,
-    functionName: 'getFootballMarket',
+    abi: footballPariMatchAbi,
+    functionName: 'getImpliedProbabilityBps',
   })
 
 /**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link footballMatchAbi}__ and `functionName` set to `"getMarketCore"`
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link footballPariMatchAbi}__ and `functionName` set to `"getMarketCore"`
  */
-export const useFootballMatchReadGetMarketCore =
+export const useFootballPariMatchReadGetMarketCore =
   /*#__PURE__*/ createUseReadContract({
-    abi: footballMatchAbi,
+    abi: footballPariMatchAbi,
     functionName: 'getMarketCore',
   })
 
 /**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link footballMatchAbi}__ and `functionName` set to `"getMarketInfo"`
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link footballPariMatchAbi}__ and `functionName` set to `"getMarketInfo"`
  */
-export const useFootballMatchReadGetMarketInfo =
+export const useFootballPariMatchReadGetMarketInfo =
   /*#__PURE__*/ createUseReadContract({
-    abi: footballMatchAbi,
+    abi: footballPariMatchAbi,
     functionName: 'getMarketInfo',
   })
 
 /**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link footballMatchAbi}__ and `functionName` set to `"getMarketLiability"`
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link footballPariMatchAbi}__ and `functionName` set to `"getMarketSpec"`
  */
-export const useFootballMatchReadGetMarketLiability =
+export const useFootballPariMatchReadGetMarketSpec =
   /*#__PURE__*/ createUseReadContract({
-    abi: footballMatchAbi,
-    functionName: 'getMarketLiability',
+    abi: footballPariMatchAbi,
+    functionName: 'getMarketSpec',
   })
 
 /**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link footballMatchAbi}__ and `functionName` set to `"getOddsHistory"`
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link footballPariMatchAbi}__ and `functionName` set to `"getOutcomePool"`
  */
-export const useFootballMatchReadGetOddsHistory =
+export const useFootballPariMatchReadGetOutcomePool =
   /*#__PURE__*/ createUseReadContract({
-    abi: footballMatchAbi,
-    functionName: 'getOddsHistory',
+    abi: footballPariMatchAbi,
+    functionName: 'getOutcomePool',
   })
 
 /**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link footballMatchAbi}__ and `functionName` set to `"getRoleAdmin"`
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link footballPariMatchAbi}__ and `functionName` set to `"getRoleAdmin"`
  */
-export const useFootballMatchReadGetRoleAdmin =
+export const useFootballPariMatchReadGetRoleAdmin =
   /*#__PURE__*/ createUseReadContract({
-    abi: footballMatchAbi,
+    abi: footballPariMatchAbi,
     functionName: 'getRoleAdmin',
   })
 
 /**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link footballMatchAbi}__ and `functionName` set to `"getUserBets"`
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link footballPariMatchAbi}__ and `functionName` set to `"getTotalPool"`
  */
-export const useFootballMatchReadGetUserBets =
+export const useFootballPariMatchReadGetTotalPool =
   /*#__PURE__*/ createUseReadContract({
-    abi: footballMatchAbi,
-    functionName: 'getUserBets',
+    abi: footballPariMatchAbi,
+    functionName: 'getTotalPool',
   })
 
 /**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link footballMatchAbi}__ and `functionName` set to `"hasRole"`
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link footballPariMatchAbi}__ and `functionName` set to `"getUserStake"`
  */
-export const useFootballMatchReadHasRole = /*#__PURE__*/ createUseReadContract({
-  abi: footballMatchAbi,
-  functionName: 'hasRole',
-})
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link footballMatchAbi}__ and `functionName` set to `"liquidityPool"`
- */
-export const useFootballMatchReadLiquidityPool =
+export const useFootballPariMatchReadGetUserStake =
   /*#__PURE__*/ createUseReadContract({
-    abi: footballMatchAbi,
-    functionName: 'liquidityPool',
+    abi: footballPariMatchAbi,
+    functionName: 'getUserStake',
   })
 
 /**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link footballMatchAbi}__ and `functionName` set to `"marketCount"`
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link footballPariMatchAbi}__ and `functionName` set to `"getUserTotalStake"`
  */
-export const useFootballMatchReadMarketCount =
+export const useFootballPariMatchReadGetUserTotalStake =
   /*#__PURE__*/ createUseReadContract({
-    abi: footballMatchAbi,
+    abi: footballPariMatchAbi,
+    functionName: 'getUserTotalStake',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link footballPariMatchAbi}__ and `functionName` set to `"hasClaimed"`
+ */
+export const useFootballPariMatchReadHasClaimed =
+  /*#__PURE__*/ createUseReadContract({
+    abi: footballPariMatchAbi,
+    functionName: 'hasClaimed',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link footballPariMatchAbi}__ and `functionName` set to `"hasRole"`
+ */
+export const useFootballPariMatchReadHasRole =
+  /*#__PURE__*/ createUseReadContract({
+    abi: footballPariMatchAbi,
+    functionName: 'hasRole',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link footballPariMatchAbi}__ and `functionName` set to `"leaderboardFeeBps"`
+ */
+export const useFootballPariMatchReadLeaderboardFeeBps =
+  /*#__PURE__*/ createUseReadContract({
+    abi: footballPariMatchAbi,
+    functionName: 'leaderboardFeeBps',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link footballPariMatchAbi}__ and `functionName` set to `"leaderboardRecipient"`
+ */
+export const useFootballPariMatchReadLeaderboardRecipient =
+  /*#__PURE__*/ createUseReadContract({
+    abi: footballPariMatchAbi,
+    functionName: 'leaderboardRecipient',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link footballPariMatchAbi}__ and `functionName` set to `"marketCount"`
+ */
+export const useFootballPariMatchReadMarketCount =
+  /*#__PURE__*/ createUseReadContract({
+    abi: footballPariMatchAbi,
     functionName: 'marketCount',
   })
 
 /**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link footballMatchAbi}__ and `functionName` set to `"matchName"`
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link footballPariMatchAbi}__ and `functionName` set to `"matchName"`
  */
-export const useFootballMatchReadMatchName =
+export const useFootballPariMatchReadMatchName =
   /*#__PURE__*/ createUseReadContract({
-    abi: footballMatchAbi,
+    abi: footballPariMatchAbi,
     functionName: 'matchName',
   })
 
 /**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link footballMatchAbi}__ and `functionName` set to `"maxAllowedOdds"`
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link footballPariMatchAbi}__ and `functionName` set to `"owner"`
  */
-export const useFootballMatchReadMaxAllowedOdds =
+export const useFootballPariMatchReadOwner =
   /*#__PURE__*/ createUseReadContract({
-    abi: footballMatchAbi,
-    functionName: 'maxAllowedOdds',
+    abi: footballPariMatchAbi,
+    functionName: 'owner',
   })
 
 /**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link footballMatchAbi}__ and `functionName` set to `"owner"`
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link footballPariMatchAbi}__ and `functionName` set to `"paused"`
  */
-export const useFootballMatchReadOwner = /*#__PURE__*/ createUseReadContract({
-  abi: footballMatchAbi,
-  functionName: 'owner',
-})
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link footballMatchAbi}__ and `functionName` set to `"paused"`
- */
-export const useFootballMatchReadPaused = /*#__PURE__*/ createUseReadContract({
-  abi: footballMatchAbi,
-  functionName: 'paused',
-})
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link footballMatchAbi}__ and `functionName` set to `"proxiableUUID"`
- */
-export const useFootballMatchReadProxiableUuid =
+export const useFootballPariMatchReadPaused =
   /*#__PURE__*/ createUseReadContract({
-    abi: footballMatchAbi,
+    abi: footballPariMatchAbi,
+    functionName: 'paused',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link footballPariMatchAbi}__ and `functionName` set to `"proxiableUUID"`
+ */
+export const useFootballPariMatchReadProxiableUuid =
+  /*#__PURE__*/ createUseReadContract({
+    abi: footballPariMatchAbi,
     functionName: 'proxiableUUID',
   })
 
 /**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link footballMatchAbi}__ and `functionName` set to `"quoteNetExposure"`
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link footballPariMatchAbi}__ and `functionName` set to `"sportType"`
  */
-export const useFootballMatchReadQuoteNetExposure =
+export const useFootballPariMatchReadSportType =
   /*#__PURE__*/ createUseReadContract({
-    abi: footballMatchAbi,
-    functionName: 'quoteNetExposure',
-  })
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link footballMatchAbi}__ and `functionName` set to `"sportType"`
- */
-export const useFootballMatchReadSportType =
-  /*#__PURE__*/ createUseReadContract({
-    abi: footballMatchAbi,
+    abi: footballPariMatchAbi,
     functionName: 'sportType',
   })
 
 /**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link footballMatchAbi}__ and `functionName` set to `"supportsInterface"`
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link footballPariMatchAbi}__ and `functionName` set to `"supportsInterface"`
  */
-export const useFootballMatchReadSupportsInterface =
+export const useFootballPariMatchReadSupportsInterface =
   /*#__PURE__*/ createUseReadContract({
-    abi: footballMatchAbi,
+    abi: footballPariMatchAbi,
     functionName: 'supportsInterface',
   })
 
 /**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link footballMatchAbi}__ and `functionName` set to `"usdcToken"`
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link footballPariMatchAbi}__ and `functionName` set to `"usdcToken"`
  */
-export const useFootballMatchReadUsdcToken =
+export const useFootballPariMatchReadUsdcToken =
   /*#__PURE__*/ createUseReadContract({
-    abi: footballMatchAbi,
+    abi: footballPariMatchAbi,
     functionName: 'usdcToken',
   })
 
 /**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link footballMatchAbi}__
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link footballPariMatchAbi}__
  */
-export const useFootballMatchWriteundefined =
-  /*#__PURE__*/ createUseWriteContract({ abi: footballMatchAbi })
+export const useFootballPariMatchWriteundefined =
+  /*#__PURE__*/ createUseWriteContract({ abi: footballPariMatchAbi })
 
 /**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link footballMatchAbi}__ and `functionName` set to `"addMarketWithLine"`
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link footballPariMatchAbi}__ and `functionName` set to `"addMarketAdvanced"`
  */
-export const useFootballMatchWriteAddMarketWithLine =
+export const useFootballPariMatchWriteAddMarketAdvanced =
   /*#__PURE__*/ createUseWriteContract({
-    abi: footballMatchAbi,
+    abi: footballPariMatchAbi,
+    functionName: 'addMarketAdvanced',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link footballPariMatchAbi}__ and `functionName` set to `"addMarketWithLine"`
+ */
+export const useFootballPariMatchWriteAddMarketWithLine =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: footballPariMatchAbi,
     functionName: 'addMarketWithLine',
   })
 
 /**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link footballMatchAbi}__ and `functionName` set to `"addMarketsBatch"`
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link footballPariMatchAbi}__ and `functionName` set to `"addMarketsBatch"`
  */
-export const useFootballMatchWriteAddMarketsBatch =
+export const useFootballPariMatchWriteAddMarketsBatch =
   /*#__PURE__*/ createUseWriteContract({
-    abi: footballMatchAbi,
+    abi: footballPariMatchAbi,
     functionName: 'addMarketsBatch',
   })
 
 /**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link footballMatchAbi}__ and `functionName` set to `"cancelMarket"`
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link footballPariMatchAbi}__ and `functionName` set to `"addMarketsBatchAdvanced"`
  */
-export const useFootballMatchWriteCancelMarket =
+export const useFootballPariMatchWriteAddMarketsBatchAdvanced =
   /*#__PURE__*/ createUseWriteContract({
-    abi: footballMatchAbi,
+    abi: footballPariMatchAbi,
+    functionName: 'addMarketsBatchAdvanced',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link footballPariMatchAbi}__ and `functionName` set to `"cancelMarket"`
+ */
+export const useFootballPariMatchWriteCancelMarket =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: footballPariMatchAbi,
     functionName: 'cancelMarket',
   })
 
 /**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link footballMatchAbi}__ and `functionName` set to `"claim"`
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link footballPariMatchAbi}__ and `functionName` set to `"claim"`
  */
-export const useFootballMatchWriteClaim = /*#__PURE__*/ createUseWriteContract({
-  abi: footballMatchAbi,
-  functionName: 'claim',
-})
-
-/**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link footballMatchAbi}__ and `functionName` set to `"claimAll"`
- */
-export const useFootballMatchWriteClaimAll =
+export const useFootballPariMatchWriteClaim =
   /*#__PURE__*/ createUseWriteContract({
-    abi: footballMatchAbi,
-    functionName: 'claimAll',
-  })
-
-/**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link footballMatchAbi}__ and `functionName` set to `"claimRange"`
- */
-export const useFootballMatchWriteClaimRange =
-  /*#__PURE__*/ createUseWriteContract({
-    abi: footballMatchAbi,
-    functionName: 'claimRange',
-  })
-
-/**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link footballMatchAbi}__ and `functionName` set to `"claimRefund"`
- */
-export const useFootballMatchWriteClaimRefund =
-  /*#__PURE__*/ createUseWriteContract({
-    abi: footballMatchAbi,
-    functionName: 'claimRefund',
-  })
-
-/**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link footballMatchAbi}__ and `functionName` set to `"closeMarket"`
- */
-export const useFootballMatchWriteCloseMarket =
-  /*#__PURE__*/ createUseWriteContract({
-    abi: footballMatchAbi,
-    functionName: 'closeMarket',
-  })
-
-/**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link footballMatchAbi}__ and `functionName` set to `"closeMarketsBatch"`
- */
-export const useFootballMatchWriteCloseMarketsBatch =
-  /*#__PURE__*/ createUseWriteContract({
-    abi: footballMatchAbi,
-    functionName: 'closeMarketsBatch',
-  })
-
-/**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link footballMatchAbi}__ and `functionName` set to `"emergencyPause"`
- */
-export const useFootballMatchWriteEmergencyPause =
-  /*#__PURE__*/ createUseWriteContract({
-    abi: footballMatchAbi,
-    functionName: 'emergencyPause',
-  })
-
-/**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link footballMatchAbi}__ and `functionName` set to `"grantRole"`
- */
-export const useFootballMatchWriteGrantRole =
-  /*#__PURE__*/ createUseWriteContract({
-    abi: footballMatchAbi,
-    functionName: 'grantRole',
-  })
-
-/**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link footballMatchAbi}__ and `functionName` set to `"initialize"`
- */
-export const useFootballMatchWriteInitialize =
-  /*#__PURE__*/ createUseWriteContract({
-    abi: footballMatchAbi,
-    functionName: 'initialize',
-  })
-
-/**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link footballMatchAbi}__ and `functionName` set to `"openMarket"`
- */
-export const useFootballMatchWriteOpenMarket =
-  /*#__PURE__*/ createUseWriteContract({
-    abi: footballMatchAbi,
-    functionName: 'openMarket',
-  })
-
-/**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link footballMatchAbi}__ and `functionName` set to `"openMarketsBatch"`
- */
-export const useFootballMatchWriteOpenMarketsBatch =
-  /*#__PURE__*/ createUseWriteContract({
-    abi: footballMatchAbi,
-    functionName: 'openMarketsBatch',
-  })
-
-/**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link footballMatchAbi}__ and `functionName` set to `"placeBetUSDC"`
- */
-export const useFootballMatchWritePlaceBetUsdc =
-  /*#__PURE__*/ createUseWriteContract({
-    abi: footballMatchAbi,
-    functionName: 'placeBetUSDC',
-  })
-
-/**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link footballMatchAbi}__ and `functionName` set to `"placeBetUSDCFor"`
- */
-export const useFootballMatchWritePlaceBetUsdcFor =
-  /*#__PURE__*/ createUseWriteContract({
-    abi: footballMatchAbi,
-    functionName: 'placeBetUSDCFor',
-  })
-
-/**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link footballMatchAbi}__ and `functionName` set to `"renounceOwnership"`
- */
-export const useFootballMatchWriteRenounceOwnership =
-  /*#__PURE__*/ createUseWriteContract({
-    abi: footballMatchAbi,
-    functionName: 'renounceOwnership',
-  })
-
-/**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link footballMatchAbi}__ and `functionName` set to `"renounceRole"`
- */
-export const useFootballMatchWriteRenounceRole =
-  /*#__PURE__*/ createUseWriteContract({
-    abi: footballMatchAbi,
-    functionName: 'renounceRole',
-  })
-
-/**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link footballMatchAbi}__ and `functionName` set to `"resolveMarket"`
- */
-export const useFootballMatchWriteResolveMarket =
-  /*#__PURE__*/ createUseWriteContract({
-    abi: footballMatchAbi,
-    functionName: 'resolveMarket',
-  })
-
-/**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link footballMatchAbi}__ and `functionName` set to `"resolveMarketsBatch"`
- */
-export const useFootballMatchWriteResolveMarketsBatch =
-  /*#__PURE__*/ createUseWriteContract({
-    abi: footballMatchAbi,
-    functionName: 'resolveMarketsBatch',
-  })
-
-/**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link footballMatchAbi}__ and `functionName` set to `"revokeRole"`
- */
-export const useFootballMatchWriteRevokeRole =
-  /*#__PURE__*/ createUseWriteContract({
-    abi: footballMatchAbi,
-    functionName: 'revokeRole',
-  })
-
-/**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link footballMatchAbi}__ and `functionName` set to `"setLiquidityPool"`
- */
-export const useFootballMatchWriteSetLiquidityPool =
-  /*#__PURE__*/ createUseWriteContract({
-    abi: footballMatchAbi,
-    functionName: 'setLiquidityPool',
-  })
-
-/**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link footballMatchAbi}__ and `functionName` set to `"setMarketOdds"`
- */
-export const useFootballMatchWriteSetMarketOdds =
-  /*#__PURE__*/ createUseWriteContract({
-    abi: footballMatchAbi,
-    functionName: 'setMarketOdds',
-  })
-
-/**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link footballMatchAbi}__ and `functionName` set to `"setMaxAllowedOdds"`
- */
-export const useFootballMatchWriteSetMaxAllowedOdds =
-  /*#__PURE__*/ createUseWriteContract({
-    abi: footballMatchAbi,
-    functionName: 'setMaxAllowedOdds',
-  })
-
-/**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link footballMatchAbi}__ and `functionName` set to `"setUSDCToken"`
- */
-export const useFootballMatchWriteSetUsdcToken =
-  /*#__PURE__*/ createUseWriteContract({
-    abi: footballMatchAbi,
-    functionName: 'setUSDCToken',
-  })
-
-/**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link footballMatchAbi}__ and `functionName` set to `"suspendMarket"`
- */
-export const useFootballMatchWriteSuspendMarket =
-  /*#__PURE__*/ createUseWriteContract({
-    abi: footballMatchAbi,
-    functionName: 'suspendMarket',
-  })
-
-/**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link footballMatchAbi}__ and `functionName` set to `"transferOwnership"`
- */
-export const useFootballMatchWriteTransferOwnership =
-  /*#__PURE__*/ createUseWriteContract({
-    abi: footballMatchAbi,
-    functionName: 'transferOwnership',
-  })
-
-/**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link footballMatchAbi}__ and `functionName` set to `"unpause"`
- */
-export const useFootballMatchWriteUnpause =
-  /*#__PURE__*/ createUseWriteContract({
-    abi: footballMatchAbi,
-    functionName: 'unpause',
-  })
-
-/**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link footballMatchAbi}__ and `functionName` set to `"upgradeToAndCall"`
- */
-export const useFootballMatchWriteUpgradeToAndCall =
-  /*#__PURE__*/ createUseWriteContract({
-    abi: footballMatchAbi,
-    functionName: 'upgradeToAndCall',
-  })
-
-/**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link footballMatchAbi}__
- */
-export const useFootballMatchSimulateundefined =
-  /*#__PURE__*/ createUseSimulateContract({ abi: footballMatchAbi })
-
-/**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link footballMatchAbi}__ and `functionName` set to `"addMarketWithLine"`
- */
-export const useFootballMatchSimulateAddMarketWithLine =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: footballMatchAbi,
-    functionName: 'addMarketWithLine',
-  })
-
-/**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link footballMatchAbi}__ and `functionName` set to `"addMarketsBatch"`
- */
-export const useFootballMatchSimulateAddMarketsBatch =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: footballMatchAbi,
-    functionName: 'addMarketsBatch',
-  })
-
-/**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link footballMatchAbi}__ and `functionName` set to `"cancelMarket"`
- */
-export const useFootballMatchSimulateCancelMarket =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: footballMatchAbi,
-    functionName: 'cancelMarket',
-  })
-
-/**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link footballMatchAbi}__ and `functionName` set to `"claim"`
- */
-export const useFootballMatchSimulateClaim =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: footballMatchAbi,
+    abi: footballPariMatchAbi,
     functionName: 'claim',
   })
 
 /**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link footballMatchAbi}__ and `functionName` set to `"claimAll"`
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link footballPariMatchAbi}__ and `functionName` set to `"claimBatch"`
  */
-export const useFootballMatchSimulateClaimAll =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: footballMatchAbi,
-    functionName: 'claimAll',
+export const useFootballPariMatchWriteClaimBatch =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: footballPariMatchAbi,
+    functionName: 'claimBatch',
   })
 
 /**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link footballMatchAbi}__ and `functionName` set to `"claimRange"`
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link footballPariMatchAbi}__ and `functionName` set to `"claimRefund"`
  */
-export const useFootballMatchSimulateClaimRange =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: footballMatchAbi,
-    functionName: 'claimRange',
-  })
-
-/**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link footballMatchAbi}__ and `functionName` set to `"claimRefund"`
- */
-export const useFootballMatchSimulateClaimRefund =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: footballMatchAbi,
+export const useFootballPariMatchWriteClaimRefund =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: footballPariMatchAbi,
     functionName: 'claimRefund',
   })
 
 /**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link footballMatchAbi}__ and `functionName` set to `"closeMarket"`
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link footballPariMatchAbi}__ and `functionName` set to `"claimRefundBatch"`
  */
-export const useFootballMatchSimulateCloseMarket =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: footballMatchAbi,
+export const useFootballPariMatchWriteClaimRefundBatch =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: footballPariMatchAbi,
+    functionName: 'claimRefundBatch',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link footballPariMatchAbi}__ and `functionName` set to `"closeMarket"`
+ */
+export const useFootballPariMatchWriteCloseMarket =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: footballPariMatchAbi,
     functionName: 'closeMarket',
   })
 
 /**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link footballMatchAbi}__ and `functionName` set to `"closeMarketsBatch"`
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link footballPariMatchAbi}__ and `functionName` set to `"closeMarketsBatch"`
  */
-export const useFootballMatchSimulateCloseMarketsBatch =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: footballMatchAbi,
+export const useFootballPariMatchWriteCloseMarketsBatch =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: footballPariMatchAbi,
     functionName: 'closeMarketsBatch',
   })
 
 /**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link footballMatchAbi}__ and `functionName` set to `"emergencyPause"`
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link footballPariMatchAbi}__ and `functionName` set to `"emergencyPause"`
  */
-export const useFootballMatchSimulateEmergencyPause =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: footballMatchAbi,
+export const useFootballPariMatchWriteEmergencyPause =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: footballPariMatchAbi,
     functionName: 'emergencyPause',
   })
 
 /**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link footballMatchAbi}__ and `functionName` set to `"grantRole"`
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link footballPariMatchAbi}__ and `functionName` set to `"grantRole"`
  */
-export const useFootballMatchSimulateGrantRole =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: footballMatchAbi,
+export const useFootballPariMatchWriteGrantRole =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: footballPariMatchAbi,
     functionName: 'grantRole',
   })
 
 /**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link footballMatchAbi}__ and `functionName` set to `"initialize"`
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link footballPariMatchAbi}__ and `functionName` set to `"initialize"`
  */
-export const useFootballMatchSimulateInitialize =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: footballMatchAbi,
+export const useFootballPariMatchWriteInitialize =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: footballPariMatchAbi,
     functionName: 'initialize',
   })
 
 /**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link footballMatchAbi}__ and `functionName` set to `"openMarket"`
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link footballPariMatchAbi}__ and `functionName` set to `"openMarket"`
  */
-export const useFootballMatchSimulateOpenMarket =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: footballMatchAbi,
+export const useFootballPariMatchWriteOpenMarket =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: footballPariMatchAbi,
     functionName: 'openMarket',
   })
 
 /**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link footballMatchAbi}__ and `functionName` set to `"openMarketsBatch"`
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link footballPariMatchAbi}__ and `functionName` set to `"openMarketsBatch"`
  */
-export const useFootballMatchSimulateOpenMarketsBatch =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: footballMatchAbi,
+export const useFootballPariMatchWriteOpenMarketsBatch =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: footballPariMatchAbi,
     functionName: 'openMarketsBatch',
   })
 
 /**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link footballMatchAbi}__ and `functionName` set to `"placeBetUSDC"`
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link footballPariMatchAbi}__ and `functionName` set to `"placeBetUSDC"`
  */
-export const useFootballMatchSimulatePlaceBetUsdc =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: footballMatchAbi,
+export const useFootballPariMatchWritePlaceBetUsdc =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: footballPariMatchAbi,
     functionName: 'placeBetUSDC',
   })
 
 /**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link footballMatchAbi}__ and `functionName` set to `"placeBetUSDCFor"`
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link footballPariMatchAbi}__ and `functionName` set to `"placeBetUSDCFor"`
  */
-export const useFootballMatchSimulatePlaceBetUsdcFor =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: footballMatchAbi,
+export const useFootballPariMatchWritePlaceBetUsdcFor =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: footballPariMatchAbi,
     functionName: 'placeBetUSDCFor',
   })
 
 /**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link footballMatchAbi}__ and `functionName` set to `"renounceOwnership"`
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link footballPariMatchAbi}__ and `functionName` set to `"renounceOwnership"`
  */
-export const useFootballMatchSimulateRenounceOwnership =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: footballMatchAbi,
+export const useFootballPariMatchWriteRenounceOwnership =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: footballPariMatchAbi,
     functionName: 'renounceOwnership',
   })
 
 /**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link footballMatchAbi}__ and `functionName` set to `"renounceRole"`
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link footballPariMatchAbi}__ and `functionName` set to `"renounceRole"`
  */
-export const useFootballMatchSimulateRenounceRole =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: footballMatchAbi,
+export const useFootballPariMatchWriteRenounceRole =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: footballPariMatchAbi,
     functionName: 'renounceRole',
   })
 
 /**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link footballMatchAbi}__ and `functionName` set to `"resolveMarket"`
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link footballPariMatchAbi}__ and `functionName` set to `"resolveBatchByScore"`
  */
-export const useFootballMatchSimulateResolveMarket =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: footballMatchAbi,
+export const useFootballPariMatchWriteResolveBatchByScore =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: footballPariMatchAbi,
+    functionName: 'resolveBatchByScore',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link footballPariMatchAbi}__ and `functionName` set to `"resolveByScore"`
+ */
+export const useFootballPariMatchWriteResolveByScore =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: footballPariMatchAbi,
+    functionName: 'resolveByScore',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link footballPariMatchAbi}__ and `functionName` set to `"resolveMarket"`
+ */
+export const useFootballPariMatchWriteResolveMarket =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: footballPariMatchAbi,
     functionName: 'resolveMarket',
   })
 
 /**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link footballMatchAbi}__ and `functionName` set to `"resolveMarketsBatch"`
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link footballPariMatchAbi}__ and `functionName` set to `"resolveMarketsBatch"`
  */
-export const useFootballMatchSimulateResolveMarketsBatch =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: footballMatchAbi,
+export const useFootballPariMatchWriteResolveMarketsBatch =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: footballPariMatchAbi,
     functionName: 'resolveMarketsBatch',
   })
 
 /**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link footballMatchAbi}__ and `functionName` set to `"revokeRole"`
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link footballPariMatchAbi}__ and `functionName` set to `"revokeRole"`
  */
-export const useFootballMatchSimulateRevokeRole =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: footballMatchAbi,
+export const useFootballPariMatchWriteRevokeRole =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: footballPariMatchAbi,
     functionName: 'revokeRole',
   })
 
 /**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link footballMatchAbi}__ and `functionName` set to `"setLiquidityPool"`
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link footballPariMatchAbi}__ and `functionName` set to `"setFeeBps"`
  */
-export const useFootballMatchSimulateSetLiquidityPool =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: footballMatchAbi,
-    functionName: 'setLiquidityPool',
+export const useFootballPariMatchWriteSetFeeBps =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: footballPariMatchAbi,
+    functionName: 'setFeeBps',
   })
 
 /**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link footballMatchAbi}__ and `functionName` set to `"setMarketOdds"`
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link footballPariMatchAbi}__ and `functionName` set to `"setFeeRecipient"`
  */
-export const useFootballMatchSimulateSetMarketOdds =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: footballMatchAbi,
-    functionName: 'setMarketOdds',
+export const useFootballPariMatchWriteSetFeeRecipient =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: footballPariMatchAbi,
+    functionName: 'setFeeRecipient',
   })
 
 /**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link footballMatchAbi}__ and `functionName` set to `"setMaxAllowedOdds"`
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link footballPariMatchAbi}__ and `functionName` set to `"setLeaderboardFeeBps"`
  */
-export const useFootballMatchSimulateSetMaxAllowedOdds =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: footballMatchAbi,
-    functionName: 'setMaxAllowedOdds',
+export const useFootballPariMatchWriteSetLeaderboardFeeBps =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: footballPariMatchAbi,
+    functionName: 'setLeaderboardFeeBps',
   })
 
 /**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link footballMatchAbi}__ and `functionName` set to `"setUSDCToken"`
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link footballPariMatchAbi}__ and `functionName` set to `"setLeaderboardRecipient"`
  */
-export const useFootballMatchSimulateSetUsdcToken =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: footballMatchAbi,
+export const useFootballPariMatchWriteSetLeaderboardRecipient =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: footballPariMatchAbi,
+    functionName: 'setLeaderboardRecipient',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link footballPariMatchAbi}__ and `functionName` set to `"setUSDCToken"`
+ */
+export const useFootballPariMatchWriteSetUsdcToken =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: footballPariMatchAbi,
     functionName: 'setUSDCToken',
   })
 
 /**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link footballMatchAbi}__ and `functionName` set to `"suspendMarket"`
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link footballPariMatchAbi}__ and `functionName` set to `"suspendMarket"`
  */
-export const useFootballMatchSimulateSuspendMarket =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: footballMatchAbi,
+export const useFootballPariMatchWriteSuspendMarket =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: footballPariMatchAbi,
     functionName: 'suspendMarket',
   })
 
 /**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link footballMatchAbi}__ and `functionName` set to `"transferOwnership"`
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link footballPariMatchAbi}__ and `functionName` set to `"transferOwnership"`
  */
-export const useFootballMatchSimulateTransferOwnership =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: footballMatchAbi,
+export const useFootballPariMatchWriteTransferOwnership =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: footballPariMatchAbi,
     functionName: 'transferOwnership',
   })
 
 /**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link footballMatchAbi}__ and `functionName` set to `"unpause"`
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link footballPariMatchAbi}__ and `functionName` set to `"unpause"`
  */
-export const useFootballMatchSimulateUnpause =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: footballMatchAbi,
+export const useFootballPariMatchWriteUnpause =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: footballPariMatchAbi,
     functionName: 'unpause',
   })
 
 /**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link footballMatchAbi}__ and `functionName` set to `"upgradeToAndCall"`
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link footballPariMatchAbi}__ and `functionName` set to `"upgradeToAndCall"`
  */
-export const useFootballMatchSimulateUpgradeToAndCall =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: footballMatchAbi,
+export const useFootballPariMatchWriteUpgradeToAndCall =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: footballPariMatchAbi,
     functionName: 'upgradeToAndCall',
   })
 
 /**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link footballMatchAbi}__
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link footballPariMatchAbi}__
  */
-export const useFootballMatchWatchundefined =
-  /*#__PURE__*/ createUseWatchContractEvent({ abi: footballMatchAbi })
+export const useFootballPariMatchSimulateundefined =
+  /*#__PURE__*/ createUseSimulateContract({ abi: footballPariMatchAbi })
 
 /**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link footballMatchAbi}__ and `eventName` set to `"BetPlaced"`
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link footballPariMatchAbi}__ and `functionName` set to `"addMarketAdvanced"`
  */
-export const useFootballMatchWatchBetPlaced =
-  /*#__PURE__*/ createUseWatchContractEvent({
-    abi: footballMatchAbi,
-    eventName: 'BetPlaced',
+export const useFootballPariMatchSimulateAddMarketAdvanced =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: footballPariMatchAbi,
+    functionName: 'addMarketAdvanced',
   })
 
 /**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link footballMatchAbi}__ and `eventName` set to `"Initialized"`
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link footballPariMatchAbi}__ and `functionName` set to `"addMarketWithLine"`
  */
-export const useFootballMatchWatchInitialized =
+export const useFootballPariMatchSimulateAddMarketWithLine =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: footballPariMatchAbi,
+    functionName: 'addMarketWithLine',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link footballPariMatchAbi}__ and `functionName` set to `"addMarketsBatch"`
+ */
+export const useFootballPariMatchSimulateAddMarketsBatch =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: footballPariMatchAbi,
+    functionName: 'addMarketsBatch',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link footballPariMatchAbi}__ and `functionName` set to `"addMarketsBatchAdvanced"`
+ */
+export const useFootballPariMatchSimulateAddMarketsBatchAdvanced =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: footballPariMatchAbi,
+    functionName: 'addMarketsBatchAdvanced',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link footballPariMatchAbi}__ and `functionName` set to `"cancelMarket"`
+ */
+export const useFootballPariMatchSimulateCancelMarket =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: footballPariMatchAbi,
+    functionName: 'cancelMarket',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link footballPariMatchAbi}__ and `functionName` set to `"claim"`
+ */
+export const useFootballPariMatchSimulateClaim =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: footballPariMatchAbi,
+    functionName: 'claim',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link footballPariMatchAbi}__ and `functionName` set to `"claimBatch"`
+ */
+export const useFootballPariMatchSimulateClaimBatch =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: footballPariMatchAbi,
+    functionName: 'claimBatch',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link footballPariMatchAbi}__ and `functionName` set to `"claimRefund"`
+ */
+export const useFootballPariMatchSimulateClaimRefund =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: footballPariMatchAbi,
+    functionName: 'claimRefund',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link footballPariMatchAbi}__ and `functionName` set to `"claimRefundBatch"`
+ */
+export const useFootballPariMatchSimulateClaimRefundBatch =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: footballPariMatchAbi,
+    functionName: 'claimRefundBatch',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link footballPariMatchAbi}__ and `functionName` set to `"closeMarket"`
+ */
+export const useFootballPariMatchSimulateCloseMarket =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: footballPariMatchAbi,
+    functionName: 'closeMarket',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link footballPariMatchAbi}__ and `functionName` set to `"closeMarketsBatch"`
+ */
+export const useFootballPariMatchSimulateCloseMarketsBatch =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: footballPariMatchAbi,
+    functionName: 'closeMarketsBatch',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link footballPariMatchAbi}__ and `functionName` set to `"emergencyPause"`
+ */
+export const useFootballPariMatchSimulateEmergencyPause =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: footballPariMatchAbi,
+    functionName: 'emergencyPause',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link footballPariMatchAbi}__ and `functionName` set to `"grantRole"`
+ */
+export const useFootballPariMatchSimulateGrantRole =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: footballPariMatchAbi,
+    functionName: 'grantRole',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link footballPariMatchAbi}__ and `functionName` set to `"initialize"`
+ */
+export const useFootballPariMatchSimulateInitialize =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: footballPariMatchAbi,
+    functionName: 'initialize',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link footballPariMatchAbi}__ and `functionName` set to `"openMarket"`
+ */
+export const useFootballPariMatchSimulateOpenMarket =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: footballPariMatchAbi,
+    functionName: 'openMarket',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link footballPariMatchAbi}__ and `functionName` set to `"openMarketsBatch"`
+ */
+export const useFootballPariMatchSimulateOpenMarketsBatch =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: footballPariMatchAbi,
+    functionName: 'openMarketsBatch',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link footballPariMatchAbi}__ and `functionName` set to `"placeBetUSDC"`
+ */
+export const useFootballPariMatchSimulatePlaceBetUsdc =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: footballPariMatchAbi,
+    functionName: 'placeBetUSDC',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link footballPariMatchAbi}__ and `functionName` set to `"placeBetUSDCFor"`
+ */
+export const useFootballPariMatchSimulatePlaceBetUsdcFor =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: footballPariMatchAbi,
+    functionName: 'placeBetUSDCFor',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link footballPariMatchAbi}__ and `functionName` set to `"renounceOwnership"`
+ */
+export const useFootballPariMatchSimulateRenounceOwnership =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: footballPariMatchAbi,
+    functionName: 'renounceOwnership',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link footballPariMatchAbi}__ and `functionName` set to `"renounceRole"`
+ */
+export const useFootballPariMatchSimulateRenounceRole =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: footballPariMatchAbi,
+    functionName: 'renounceRole',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link footballPariMatchAbi}__ and `functionName` set to `"resolveBatchByScore"`
+ */
+export const useFootballPariMatchSimulateResolveBatchByScore =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: footballPariMatchAbi,
+    functionName: 'resolveBatchByScore',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link footballPariMatchAbi}__ and `functionName` set to `"resolveByScore"`
+ */
+export const useFootballPariMatchSimulateResolveByScore =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: footballPariMatchAbi,
+    functionName: 'resolveByScore',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link footballPariMatchAbi}__ and `functionName` set to `"resolveMarket"`
+ */
+export const useFootballPariMatchSimulateResolveMarket =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: footballPariMatchAbi,
+    functionName: 'resolveMarket',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link footballPariMatchAbi}__ and `functionName` set to `"resolveMarketsBatch"`
+ */
+export const useFootballPariMatchSimulateResolveMarketsBatch =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: footballPariMatchAbi,
+    functionName: 'resolveMarketsBatch',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link footballPariMatchAbi}__ and `functionName` set to `"revokeRole"`
+ */
+export const useFootballPariMatchSimulateRevokeRole =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: footballPariMatchAbi,
+    functionName: 'revokeRole',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link footballPariMatchAbi}__ and `functionName` set to `"setFeeBps"`
+ */
+export const useFootballPariMatchSimulateSetFeeBps =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: footballPariMatchAbi,
+    functionName: 'setFeeBps',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link footballPariMatchAbi}__ and `functionName` set to `"setFeeRecipient"`
+ */
+export const useFootballPariMatchSimulateSetFeeRecipient =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: footballPariMatchAbi,
+    functionName: 'setFeeRecipient',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link footballPariMatchAbi}__ and `functionName` set to `"setLeaderboardFeeBps"`
+ */
+export const useFootballPariMatchSimulateSetLeaderboardFeeBps =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: footballPariMatchAbi,
+    functionName: 'setLeaderboardFeeBps',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link footballPariMatchAbi}__ and `functionName` set to `"setLeaderboardRecipient"`
+ */
+export const useFootballPariMatchSimulateSetLeaderboardRecipient =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: footballPariMatchAbi,
+    functionName: 'setLeaderboardRecipient',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link footballPariMatchAbi}__ and `functionName` set to `"setUSDCToken"`
+ */
+export const useFootballPariMatchSimulateSetUsdcToken =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: footballPariMatchAbi,
+    functionName: 'setUSDCToken',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link footballPariMatchAbi}__ and `functionName` set to `"suspendMarket"`
+ */
+export const useFootballPariMatchSimulateSuspendMarket =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: footballPariMatchAbi,
+    functionName: 'suspendMarket',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link footballPariMatchAbi}__ and `functionName` set to `"transferOwnership"`
+ */
+export const useFootballPariMatchSimulateTransferOwnership =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: footballPariMatchAbi,
+    functionName: 'transferOwnership',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link footballPariMatchAbi}__ and `functionName` set to `"unpause"`
+ */
+export const useFootballPariMatchSimulateUnpause =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: footballPariMatchAbi,
+    functionName: 'unpause',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link footballPariMatchAbi}__ and `functionName` set to `"upgradeToAndCall"`
+ */
+export const useFootballPariMatchSimulateUpgradeToAndCall =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: footballPariMatchAbi,
+    functionName: 'upgradeToAndCall',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link footballPariMatchAbi}__
+ */
+export const useFootballPariMatchWatchundefined =
+  /*#__PURE__*/ createUseWatchContractEvent({ abi: footballPariMatchAbi })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link footballPariMatchAbi}__ and `eventName` set to `"FeeBpsSet"`
+ */
+export const useFootballPariMatchWatchFeeBpsSet =
   /*#__PURE__*/ createUseWatchContractEvent({
-    abi: footballMatchAbi,
+    abi: footballPariMatchAbi,
+    eventName: 'FeeBpsSet',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link footballPariMatchAbi}__ and `eventName` set to `"FeeRecipientSet"`
+ */
+export const useFootballPariMatchWatchFeeRecipientSet =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: footballPariMatchAbi,
+    eventName: 'FeeRecipientSet',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link footballPariMatchAbi}__ and `eventName` set to `"Initialized"`
+ */
+export const useFootballPariMatchWatchInitialized =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: footballPariMatchAbi,
     eventName: 'Initialized',
   })
 
 /**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link footballMatchAbi}__ and `eventName` set to `"LiquidityPoolSet"`
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link footballPariMatchAbi}__ and `eventName` set to `"LeaderboardFeeBpsSet"`
  */
-export const useFootballMatchWatchLiquidityPoolSet =
+export const useFootballPariMatchWatchLeaderboardFeeBpsSet =
   /*#__PURE__*/ createUseWatchContractEvent({
-    abi: footballMatchAbi,
-    eventName: 'LiquidityPoolSet',
+    abi: footballPariMatchAbi,
+    eventName: 'LeaderboardFeeBpsSet',
   })
 
 /**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link footballMatchAbi}__ and `eventName` set to `"MarketCancelled"`
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link footballPariMatchAbi}__ and `eventName` set to `"LeaderboardRecipientSet"`
  */
-export const useFootballMatchWatchMarketCancelled =
+export const useFootballPariMatchWatchLeaderboardRecipientSet =
   /*#__PURE__*/ createUseWatchContractEvent({
-    abi: footballMatchAbi,
+    abi: footballPariMatchAbi,
+    eventName: 'LeaderboardRecipientSet',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link footballPariMatchAbi}__ and `eventName` set to `"LeaderboardRecordFailed"`
+ */
+export const useFootballPariMatchWatchLeaderboardRecordFailed =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: footballPariMatchAbi,
+    eventName: 'LeaderboardRecordFailed',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link footballPariMatchAbi}__ and `eventName` set to `"MarketCancelled"`
+ */
+export const useFootballPariMatchWatchMarketCancelled =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: footballPariMatchAbi,
     eventName: 'MarketCancelled',
   })
 
 /**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link footballMatchAbi}__ and `eventName` set to `"MarketCreated"`
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link footballPariMatchAbi}__ and `eventName` set to `"MarketCreated"`
  */
-export const useFootballMatchWatchMarketCreated =
+export const useFootballPariMatchWatchMarketCreated =
   /*#__PURE__*/ createUseWatchContractEvent({
-    abi: footballMatchAbi,
+    abi: footballPariMatchAbi,
     eventName: 'MarketCreated',
   })
 
 /**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link footballMatchAbi}__ and `eventName` set to `"MarketResolved"`
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link footballPariMatchAbi}__ and `eventName` set to `"MarketResolved"`
  */
-export const useFootballMatchWatchMarketResolved =
+export const useFootballPariMatchWatchMarketResolved =
   /*#__PURE__*/ createUseWatchContractEvent({
-    abi: footballMatchAbi,
+    abi: footballPariMatchAbi,
     eventName: 'MarketResolved',
   })
 
 /**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link footballMatchAbi}__ and `eventName` set to `"MarketStateChanged"`
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link footballPariMatchAbi}__ and `eventName` set to `"MarketStateChanged"`
  */
-export const useFootballMatchWatchMarketStateChanged =
+export const useFootballPariMatchWatchMarketStateChanged =
   /*#__PURE__*/ createUseWatchContractEvent({
-    abi: footballMatchAbi,
+    abi: footballPariMatchAbi,
     eventName: 'MarketStateChanged',
   })
 
 /**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link footballMatchAbi}__ and `eventName` set to `"MatchInitialized"`
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link footballPariMatchAbi}__ and `eventName` set to `"MatchInitialized"`
  */
-export const useFootballMatchWatchMatchInitialized =
+export const useFootballPariMatchWatchMatchInitialized =
   /*#__PURE__*/ createUseWatchContractEvent({
-    abi: footballMatchAbi,
+    abi: footballPariMatchAbi,
     eventName: 'MatchInitialized',
   })
 
 /**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link footballMatchAbi}__ and `eventName` set to `"MaxAllowedOddsSet"`
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link footballPariMatchAbi}__ and `eventName` set to `"MatchScoreResolved"`
  */
-export const useFootballMatchWatchMaxAllowedOddsSet =
+export const useFootballPariMatchWatchMatchScoreResolved =
   /*#__PURE__*/ createUseWatchContractEvent({
-    abi: footballMatchAbi,
-    eventName: 'MaxAllowedOddsSet',
+    abi: footballPariMatchAbi,
+    eventName: 'MatchScoreResolved',
   })
 
 /**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link footballMatchAbi}__ and `eventName` set to `"OddsUpdated"`
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link footballPariMatchAbi}__ and `eventName` set to `"OwnershipTransferred"`
  */
-export const useFootballMatchWatchOddsUpdated =
+export const useFootballPariMatchWatchOwnershipTransferred =
   /*#__PURE__*/ createUseWatchContractEvent({
-    abi: footballMatchAbi,
-    eventName: 'OddsUpdated',
-  })
-
-/**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link footballMatchAbi}__ and `eventName` set to `"OwnershipTransferred"`
- */
-export const useFootballMatchWatchOwnershipTransferred =
-  /*#__PURE__*/ createUseWatchContractEvent({
-    abi: footballMatchAbi,
+    abi: footballPariMatchAbi,
     eventName: 'OwnershipTransferred',
   })
 
 /**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link footballMatchAbi}__ and `eventName` set to `"Paused"`
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link footballPariMatchAbi}__ and `eventName` set to `"Paused"`
  */
-export const useFootballMatchWatchPaused =
+export const useFootballPariMatchWatchPaused =
   /*#__PURE__*/ createUseWatchContractEvent({
-    abi: footballMatchAbi,
+    abi: footballPariMatchAbi,
     eventName: 'Paused',
   })
 
 /**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link footballMatchAbi}__ and `eventName` set to `"Payout"`
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link footballPariMatchAbi}__ and `eventName` set to `"PositionClaimed"`
  */
-export const useFootballMatchWatchPayout =
+export const useFootballPariMatchWatchPositionClaimed =
   /*#__PURE__*/ createUseWatchContractEvent({
-    abi: footballMatchAbi,
-    eventName: 'Payout',
+    abi: footballPariMatchAbi,
+    eventName: 'PositionClaimed',
   })
 
 /**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link footballMatchAbi}__ and `eventName` set to `"Refund"`
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link footballPariMatchAbi}__ and `eventName` set to `"PositionTaken"`
  */
-export const useFootballMatchWatchRefund =
+export const useFootballPariMatchWatchPositionTaken =
   /*#__PURE__*/ createUseWatchContractEvent({
-    abi: footballMatchAbi,
-    eventName: 'Refund',
+    abi: footballPariMatchAbi,
+    eventName: 'PositionTaken',
   })
 
 /**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link footballMatchAbi}__ and `eventName` set to `"RoleAdminChanged"`
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link footballPariMatchAbi}__ and `eventName` set to `"RoleAdminChanged"`
  */
-export const useFootballMatchWatchRoleAdminChanged =
+export const useFootballPariMatchWatchRoleAdminChanged =
   /*#__PURE__*/ createUseWatchContractEvent({
-    abi: footballMatchAbi,
+    abi: footballPariMatchAbi,
     eventName: 'RoleAdminChanged',
   })
 
 /**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link footballMatchAbi}__ and `eventName` set to `"RoleGranted"`
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link footballPariMatchAbi}__ and `eventName` set to `"RoleGranted"`
  */
-export const useFootballMatchWatchRoleGranted =
+export const useFootballPariMatchWatchRoleGranted =
   /*#__PURE__*/ createUseWatchContractEvent({
-    abi: footballMatchAbi,
+    abi: footballPariMatchAbi,
     eventName: 'RoleGranted',
   })
 
 /**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link footballMatchAbi}__ and `eventName` set to `"RoleRevoked"`
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link footballPariMatchAbi}__ and `eventName` set to `"RoleRevoked"`
  */
-export const useFootballMatchWatchRoleRevoked =
+export const useFootballPariMatchWatchRoleRevoked =
   /*#__PURE__*/ createUseWatchContractEvent({
-    abi: footballMatchAbi,
+    abi: footballPariMatchAbi,
     eventName: 'RoleRevoked',
   })
 
 /**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link footballMatchAbi}__ and `eventName` set to `"USDCTokenSet"`
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link footballPariMatchAbi}__ and `eventName` set to `"StakeRefunded"`
  */
-export const useFootballMatchWatchUsdcTokenSet =
+export const useFootballPariMatchWatchStakeRefunded =
   /*#__PURE__*/ createUseWatchContractEvent({
-    abi: footballMatchAbi,
+    abi: footballPariMatchAbi,
+    eventName: 'StakeRefunded',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link footballPariMatchAbi}__ and `eventName` set to `"USDCTokenSet"`
+ */
+export const useFootballPariMatchWatchUsdcTokenSet =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: footballPariMatchAbi,
     eventName: 'USDCTokenSet',
   })
 
 /**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link footballMatchAbi}__ and `eventName` set to `"Unpaused"`
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link footballPariMatchAbi}__ and `eventName` set to `"Unpaused"`
  */
-export const useFootballMatchWatchUnpaused =
+export const useFootballPariMatchWatchUnpaused =
   /*#__PURE__*/ createUseWatchContractEvent({
-    abi: footballMatchAbi,
+    abi: footballPariMatchAbi,
     eventName: 'Unpaused',
   })
 
 /**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link footballMatchAbi}__ and `eventName` set to `"Upgraded"`
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link footballPariMatchAbi}__ and `eventName` set to `"Upgraded"`
  */
-export const useFootballMatchWatchUpgraded =
+export const useFootballPariMatchWatchUpgraded =
   /*#__PURE__*/ createUseWatchContractEvent({
-    abi: footballMatchAbi,
+    abi: footballPariMatchAbi,
     eventName: 'Upgraded',
   })
 
 /**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link liquidityPoolAbi}__
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link leaderboardRewardsAbi}__
  */
-export const useLiquidityPoolReadundefined =
-  /*#__PURE__*/ createUseReadContract({ abi: liquidityPoolAbi })
+export const useLeaderboardRewardsReadundefined =
+  /*#__PURE__*/ createUseReadContract({ abi: leaderboardRewardsAbi })
 
 /**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link liquidityPoolAbi}__ and `functionName` set to `"BPS_DENOMINATOR"`
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link leaderboardRewardsAbi}__ and `functionName` set to `"ADMIN_ROLE"`
  */
-export const useLiquidityPoolReadBpsDenominator =
+export const useLeaderboardRewardsReadAdminRole =
   /*#__PURE__*/ createUseReadContract({
-    abi: liquidityPoolAbi,
-    functionName: 'BPS_DENOMINATOR',
+    abi: leaderboardRewardsAbi,
+    functionName: 'ADMIN_ROLE',
   })
 
 /**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link liquidityPoolAbi}__ and `functionName` set to `"DEFAULT_ADMIN_ROLE"`
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link leaderboardRewardsAbi}__ and `functionName` set to `"DEFAULT_ADMIN_ROLE"`
  */
-export const useLiquidityPoolReadDefaultAdminRole =
+export const useLeaderboardRewardsReadDefaultAdminRole =
   /*#__PURE__*/ createUseReadContract({
-    abi: liquidityPoolAbi,
+    abi: leaderboardRewardsAbi,
     functionName: 'DEFAULT_ADMIN_ROLE',
   })
 
 /**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link liquidityPoolAbi}__ and `functionName` set to `"LP_WITHDRAWAL_FEE_BPS_MAX"`
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link leaderboardRewardsAbi}__ and `functionName` set to `"MAX_CLAIM_DURATION"`
  */
-export const useLiquidityPoolReadLpWithdrawalFeeBpsMax =
+export const useLeaderboardRewardsReadMaxClaimDuration =
   /*#__PURE__*/ createUseReadContract({
-    abi: liquidityPoolAbi,
-    functionName: 'LP_WITHDRAWAL_FEE_BPS_MAX',
+    abi: leaderboardRewardsAbi,
+    functionName: 'MAX_CLAIM_DURATION',
   })
 
 /**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link liquidityPoolAbi}__ and `functionName` set to `"MATCH_AUTHORIZER_ROLE"`
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link leaderboardRewardsAbi}__ and `functionName` set to `"ORACLE_ROLE"`
  */
-export const useLiquidityPoolReadMatchAuthorizerRole =
+export const useLeaderboardRewardsReadOracleRole =
   /*#__PURE__*/ createUseReadContract({
-    abi: liquidityPoolAbi,
-    functionName: 'MATCH_AUTHORIZER_ROLE',
+    abi: leaderboardRewardsAbi,
+    functionName: 'ORACLE_ROLE',
   })
 
 /**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link liquidityPoolAbi}__ and `functionName` set to `"MATCH_ROLE"`
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link leaderboardRewardsAbi}__ and `functionName` set to `"PAUSER_ROLE"`
  */
-export const useLiquidityPoolReadMatchRole =
+export const useLeaderboardRewardsReadPauserRole =
   /*#__PURE__*/ createUseReadContract({
-    abi: liquidityPoolAbi,
-    functionName: 'MATCH_ROLE',
-  })
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link liquidityPoolAbi}__ and `functionName` set to `"MAX_BPS_SETTABLE"`
- */
-export const useLiquidityPoolReadMaxBpsSettable =
-  /*#__PURE__*/ createUseReadContract({
-    abi: liquidityPoolAbi,
-    functionName: 'MAX_BPS_SETTABLE',
-  })
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link liquidityPoolAbi}__ and `functionName` set to `"PAUSER_ROLE"`
- */
-export const useLiquidityPoolReadPauserRole =
-  /*#__PURE__*/ createUseReadContract({
-    abi: liquidityPoolAbi,
+    abi: leaderboardRewardsAbi,
     functionName: 'PAUSER_ROLE',
   })
 
 /**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link liquidityPoolAbi}__ and `functionName` set to `"ROUTER_ROLE"`
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link leaderboardRewardsAbi}__ and `functionName` set to `"UPGRADE_INTERFACE_VERSION"`
  */
-export const useLiquidityPoolReadRouterRole =
+export const useLeaderboardRewardsReadUpgradeInterfaceVersion =
   /*#__PURE__*/ createUseReadContract({
-    abi: liquidityPoolAbi,
-    functionName: 'ROUTER_ROLE',
-  })
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link liquidityPoolAbi}__ and `functionName` set to `"TREASURY_SHARE_BPS_MAX"`
- */
-export const useLiquidityPoolReadTreasuryShareBpsMax =
-  /*#__PURE__*/ createUseReadContract({
-    abi: liquidityPoolAbi,
-    functionName: 'TREASURY_SHARE_BPS_MAX',
-  })
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link liquidityPoolAbi}__ and `functionName` set to `"UPGRADE_INTERFACE_VERSION"`
- */
-export const useLiquidityPoolReadUpgradeInterfaceVersion =
-  /*#__PURE__*/ createUseReadContract({
-    abi: liquidityPoolAbi,
+    abi: leaderboardRewardsAbi,
     functionName: 'UPGRADE_INTERFACE_VERSION',
   })
 
 /**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link liquidityPoolAbi}__ and `functionName` set to `"accruedTreasury"`
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link leaderboardRewardsAbi}__ and `functionName` set to `"epoch"`
  */
-export const useLiquidityPoolReadAccruedTreasury =
+export const useLeaderboardRewardsReadEpoch =
   /*#__PURE__*/ createUseReadContract({
-    abi: liquidityPoolAbi,
-    functionName: 'accruedTreasury',
+    abi: leaderboardRewardsAbi,
+    functionName: 'epoch',
   })
 
 /**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link liquidityPoolAbi}__ and `functionName` set to `"allowance"`
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link leaderboardRewardsAbi}__ and `functionName` set to `"epochIndex"`
  */
-export const useLiquidityPoolReadAllowance =
+export const useLeaderboardRewardsReadEpochIndex =
   /*#__PURE__*/ createUseReadContract({
-    abi: liquidityPoolAbi,
-    functionName: 'allowance',
+    abi: leaderboardRewardsAbi,
+    functionName: 'epochIndex',
   })
 
 /**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link liquidityPoolAbi}__ and `functionName` set to `"asset"`
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link leaderboardRewardsAbi}__ and `functionName` set to `"getRoleAdmin"`
  */
-export const useLiquidityPoolReadAsset = /*#__PURE__*/ createUseReadContract({
-  abi: liquidityPoolAbi,
-  functionName: 'asset',
-})
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link liquidityPoolAbi}__ and `functionName` set to `"balanceOf"`
- */
-export const useLiquidityPoolReadBalanceOf =
+export const useLeaderboardRewardsReadGetRoleAdmin =
   /*#__PURE__*/ createUseReadContract({
-    abi: liquidityPoolAbi,
-    functionName: 'balanceOf',
-  })
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link liquidityPoolAbi}__ and `functionName` set to `"convertToAssets"`
- */
-export const useLiquidityPoolReadConvertToAssets =
-  /*#__PURE__*/ createUseReadContract({
-    abi: liquidityPoolAbi,
-    functionName: 'convertToAssets',
-  })
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link liquidityPoolAbi}__ and `functionName` set to `"convertToShares"`
- */
-export const useLiquidityPoolReadConvertToShares =
-  /*#__PURE__*/ createUseReadContract({
-    abi: liquidityPoolAbi,
-    functionName: 'convertToShares',
-  })
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link liquidityPoolAbi}__ and `functionName` set to `"costBasis"`
- */
-export const useLiquidityPoolReadCostBasis =
-  /*#__PURE__*/ createUseReadContract({
-    abi: liquidityPoolAbi,
-    functionName: 'costBasis',
-  })
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link liquidityPoolAbi}__ and `functionName` set to `"decimals"`
- */
-export const useLiquidityPoolReadDecimals = /*#__PURE__*/ createUseReadContract(
-  { abi: liquidityPoolAbi, functionName: 'decimals' },
-)
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link liquidityPoolAbi}__ and `functionName` set to `"depositCooldownSeconds"`
- */
-export const useLiquidityPoolReadDepositCooldownSeconds =
-  /*#__PURE__*/ createUseReadContract({
-    abi: liquidityPoolAbi,
-    functionName: 'depositCooldownSeconds',
-  })
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link liquidityPoolAbi}__ and `functionName` set to `"freeBalance"`
- */
-export const useLiquidityPoolReadFreeBalance =
-  /*#__PURE__*/ createUseReadContract({
-    abi: liquidityPoolAbi,
-    functionName: 'freeBalance',
-  })
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link liquidityPoolAbi}__ and `functionName` set to `"getRoleAdmin"`
- */
-export const useLiquidityPoolReadGetRoleAdmin =
-  /*#__PURE__*/ createUseReadContract({
-    abi: liquidityPoolAbi,
+    abi: leaderboardRewardsAbi,
     functionName: 'getRoleAdmin',
   })
 
 /**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link liquidityPoolAbi}__ and `functionName` set to `"hasRole"`
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link leaderboardRewardsAbi}__ and `functionName` set to `"hasClaimed"`
  */
-export const useLiquidityPoolReadHasRole = /*#__PURE__*/ createUseReadContract({
-  abi: liquidityPoolAbi,
-  functionName: 'hasRole',
-})
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link liquidityPoolAbi}__ and `functionName` set to `"lastDepositAt"`
- */
-export const useLiquidityPoolReadLastDepositAt =
+export const useLeaderboardRewardsReadHasClaimed =
   /*#__PURE__*/ createUseReadContract({
-    abi: liquidityPoolAbi,
-    functionName: 'lastDepositAt',
+    abi: leaderboardRewardsAbi,
+    functionName: 'hasClaimed',
   })
 
 /**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link liquidityPoolAbi}__ and `functionName` set to `"lpWithdrawalFeeBps"`
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link leaderboardRewardsAbi}__ and `functionName` set to `"hasRole"`
  */
-export const useLiquidityPoolReadLpWithdrawalFeeBps =
+export const useLeaderboardRewardsReadHasRole =
   /*#__PURE__*/ createUseReadContract({
-    abi: liquidityPoolAbi,
-    functionName: 'lpWithdrawalFeeBps',
+    abi: leaderboardRewardsAbi,
+    functionName: 'hasRole',
   })
 
 /**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link liquidityPoolAbi}__ and `functionName` set to `"marketLiability"`
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link leaderboardRewardsAbi}__ and `functionName` set to `"lockedInClosedEpochs"`
  */
-export const useLiquidityPoolReadMarketLiability =
+export const useLeaderboardRewardsReadLockedInClosedEpochs =
   /*#__PURE__*/ createUseReadContract({
-    abi: liquidityPoolAbi,
-    functionName: 'marketLiability',
+    abi: leaderboardRewardsAbi,
+    functionName: 'lockedInClosedEpochs',
   })
 
 /**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link liquidityPoolAbi}__ and `functionName` set to `"matchLiability"`
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link leaderboardRewardsAbi}__ and `functionName` set to `"matchFactory"`
  */
-export const useLiquidityPoolReadMatchLiability =
+export const useLeaderboardRewardsReadMatchFactory =
   /*#__PURE__*/ createUseReadContract({
-    abi: liquidityPoolAbi,
-    functionName: 'matchLiability',
+    abi: leaderboardRewardsAbi,
+    functionName: 'matchFactory',
   })
 
 /**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link liquidityPoolAbi}__ and `functionName` set to `"maxBetAmount"`
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link leaderboardRewardsAbi}__ and `functionName` set to `"openPrizePool"`
  */
-export const useLiquidityPoolReadMaxBetAmount =
+export const useLeaderboardRewardsReadOpenPrizePool =
   /*#__PURE__*/ createUseReadContract({
-    abi: liquidityPoolAbi,
-    functionName: 'maxBetAmount',
+    abi: leaderboardRewardsAbi,
+    functionName: 'openPrizePool',
   })
 
 /**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link liquidityPoolAbi}__ and `functionName` set to `"maxDeposit"`
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link leaderboardRewardsAbi}__ and `functionName` set to `"paused"`
  */
-export const useLiquidityPoolReadMaxDeposit =
+export const useLeaderboardRewardsReadPaused =
   /*#__PURE__*/ createUseReadContract({
-    abi: liquidityPoolAbi,
-    functionName: 'maxDeposit',
+    abi: leaderboardRewardsAbi,
+    functionName: 'paused',
   })
 
 /**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link liquidityPoolAbi}__ and `functionName` set to `"maxLiabilityPerMarketBps"`
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link leaderboardRewardsAbi}__ and `functionName` set to `"proxiableUUID"`
  */
-export const useLiquidityPoolReadMaxLiabilityPerMarketBps =
+export const useLeaderboardRewardsReadProxiableUuid =
   /*#__PURE__*/ createUseReadContract({
-    abi: liquidityPoolAbi,
-    functionName: 'maxLiabilityPerMarketBps',
-  })
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link liquidityPoolAbi}__ and `functionName` set to `"maxLiabilityPerMatchBps"`
- */
-export const useLiquidityPoolReadMaxLiabilityPerMatchBps =
-  /*#__PURE__*/ createUseReadContract({
-    abi: liquidityPoolAbi,
-    functionName: 'maxLiabilityPerMatchBps',
-  })
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link liquidityPoolAbi}__ and `functionName` set to `"maxMint"`
- */
-export const useLiquidityPoolReadMaxMint = /*#__PURE__*/ createUseReadContract({
-  abi: liquidityPoolAbi,
-  functionName: 'maxMint',
-})
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link liquidityPoolAbi}__ and `functionName` set to `"maxRedeem"`
- */
-export const useLiquidityPoolReadMaxRedeem =
-  /*#__PURE__*/ createUseReadContract({
-    abi: liquidityPoolAbi,
-    functionName: 'maxRedeem',
-  })
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link liquidityPoolAbi}__ and `functionName` set to `"maxWithdraw"`
- */
-export const useLiquidityPoolReadMaxWithdraw =
-  /*#__PURE__*/ createUseReadContract({
-    abi: liquidityPoolAbi,
-    functionName: 'maxWithdraw',
-  })
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link liquidityPoolAbi}__ and `functionName` set to `"name"`
- */
-export const useLiquidityPoolReadName = /*#__PURE__*/ createUseReadContract({
-  abi: liquidityPoolAbi,
-  functionName: 'name',
-})
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link liquidityPoolAbi}__ and `functionName` set to `"paused"`
- */
-export const useLiquidityPoolReadPaused = /*#__PURE__*/ createUseReadContract({
-  abi: liquidityPoolAbi,
-  functionName: 'paused',
-})
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link liquidityPoolAbi}__ and `functionName` set to `"pendingTreasury"`
- */
-export const useLiquidityPoolReadPendingTreasury =
-  /*#__PURE__*/ createUseReadContract({
-    abi: liquidityPoolAbi,
-    functionName: 'pendingTreasury',
-  })
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link liquidityPoolAbi}__ and `functionName` set to `"previewDeposit"`
- */
-export const useLiquidityPoolReadPreviewDeposit =
-  /*#__PURE__*/ createUseReadContract({
-    abi: liquidityPoolAbi,
-    functionName: 'previewDeposit',
-  })
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link liquidityPoolAbi}__ and `functionName` set to `"previewMint"`
- */
-export const useLiquidityPoolReadPreviewMint =
-  /*#__PURE__*/ createUseReadContract({
-    abi: liquidityPoolAbi,
-    functionName: 'previewMint',
-  })
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link liquidityPoolAbi}__ and `functionName` set to `"previewRedeem"`
- */
-export const useLiquidityPoolReadPreviewRedeem =
-  /*#__PURE__*/ createUseReadContract({
-    abi: liquidityPoolAbi,
-    functionName: 'previewRedeem',
-  })
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link liquidityPoolAbi}__ and `functionName` set to `"previewWithdraw"`
- */
-export const useLiquidityPoolReadPreviewWithdraw =
-  /*#__PURE__*/ createUseReadContract({
-    abi: liquidityPoolAbi,
-    functionName: 'previewWithdraw',
-  })
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link liquidityPoolAbi}__ and `functionName` set to `"protocolFeeBps"`
- */
-export const useLiquidityPoolReadProtocolFeeBps =
-  /*#__PURE__*/ createUseReadContract({
-    abi: liquidityPoolAbi,
-    functionName: 'protocolFeeBps',
-  })
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link liquidityPoolAbi}__ and `functionName` set to `"proxiableUUID"`
- */
-export const useLiquidityPoolReadProxiableUuid =
-  /*#__PURE__*/ createUseReadContract({
-    abi: liquidityPoolAbi,
+    abi: leaderboardRewardsAbi,
     functionName: 'proxiableUUID',
   })
 
 /**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link liquidityPoolAbi}__ and `functionName` set to `"supportsInterface"`
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link leaderboardRewardsAbi}__ and `functionName` set to `"score"`
  */
-export const useLiquidityPoolReadSupportsInterface =
+export const useLeaderboardRewardsReadScore =
   /*#__PURE__*/ createUseReadContract({
-    abi: liquidityPoolAbi,
+    abi: leaderboardRewardsAbi,
+    functionName: 'score',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link leaderboardRewardsAbi}__ and `functionName` set to `"supportsInterface"`
+ */
+export const useLeaderboardRewardsReadSupportsInterface =
+  /*#__PURE__*/ createUseReadContract({
+    abi: leaderboardRewardsAbi,
     functionName: 'supportsInterface',
   })
 
 /**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link liquidityPoolAbi}__ and `functionName` set to `"symbol"`
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link leaderboardRewardsAbi}__ and `functionName` set to `"usdcToken"`
  */
-export const useLiquidityPoolReadSymbol = /*#__PURE__*/ createUseReadContract({
-  abi: liquidityPoolAbi,
-  functionName: 'symbol',
-})
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link liquidityPoolAbi}__ and `functionName` set to `"totalAssets"`
- */
-export const useLiquidityPoolReadTotalAssets =
+export const useLeaderboardRewardsReadUsdcToken =
   /*#__PURE__*/ createUseReadContract({
-    abi: liquidityPoolAbi,
-    functionName: 'totalAssets',
+    abi: leaderboardRewardsAbi,
+    functionName: 'usdcToken',
   })
 
 /**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link liquidityPoolAbi}__ and `functionName` set to `"totalLiabilities"`
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link leaderboardRewardsAbi}__
  */
-export const useLiquidityPoolReadTotalLiabilities =
-  /*#__PURE__*/ createUseReadContract({
-    abi: liquidityPoolAbi,
-    functionName: 'totalLiabilities',
-  })
+export const useLeaderboardRewardsWriteundefined =
+  /*#__PURE__*/ createUseWriteContract({ abi: leaderboardRewardsAbi })
 
 /**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link liquidityPoolAbi}__ and `functionName` set to `"totalSupply"`
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link leaderboardRewardsAbi}__ and `functionName` set to `"claim"`
  */
-export const useLiquidityPoolReadTotalSupply =
-  /*#__PURE__*/ createUseReadContract({
-    abi: liquidityPoolAbi,
-    functionName: 'totalSupply',
-  })
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link liquidityPoolAbi}__ and `functionName` set to `"treasury"`
- */
-export const useLiquidityPoolReadTreasury = /*#__PURE__*/ createUseReadContract(
-  { abi: liquidityPoolAbi, functionName: 'treasury' },
-)
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link liquidityPoolAbi}__ and `functionName` set to `"treasuryShareBps"`
- */
-export const useLiquidityPoolReadTreasuryShareBps =
-  /*#__PURE__*/ createUseReadContract({
-    abi: liquidityPoolAbi,
-    functionName: 'treasuryShareBps',
-  })
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link liquidityPoolAbi}__ and `functionName` set to `"treasuryWithdrawable"`
- */
-export const useLiquidityPoolReadTreasuryWithdrawable =
-  /*#__PURE__*/ createUseReadContract({
-    abi: liquidityPoolAbi,
-    functionName: 'treasuryWithdrawable',
-  })
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link liquidityPoolAbi}__ and `functionName` set to `"utilization"`
- */
-export const useLiquidityPoolReadUtilization =
-  /*#__PURE__*/ createUseReadContract({
-    abi: liquidityPoolAbi,
-    functionName: 'utilization',
-  })
-
-/**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link liquidityPoolAbi}__
- */
-export const useLiquidityPoolWriteundefined =
-  /*#__PURE__*/ createUseWriteContract({ abi: liquidityPoolAbi })
-
-/**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link liquidityPoolAbi}__ and `functionName` set to `"acceptTreasury"`
- */
-export const useLiquidityPoolWriteAcceptTreasury =
+export const useLeaderboardRewardsWriteClaim =
   /*#__PURE__*/ createUseWriteContract({
-    abi: liquidityPoolAbi,
-    functionName: 'acceptTreasury',
+    abi: leaderboardRewardsAbi,
+    functionName: 'claim',
   })
 
 /**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link liquidityPoolAbi}__ and `functionName` set to `"approve"`
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link leaderboardRewardsAbi}__ and `functionName` set to `"closeEpoch"`
  */
-export const useLiquidityPoolWriteApprove =
+export const useLeaderboardRewardsWriteCloseEpoch =
   /*#__PURE__*/ createUseWriteContract({
-    abi: liquidityPoolAbi,
-    functionName: 'approve',
+    abi: leaderboardRewardsAbi,
+    functionName: 'closeEpoch',
   })
 
 /**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link liquidityPoolAbi}__ and `functionName` set to `"authorizeMatch"`
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link leaderboardRewardsAbi}__ and `functionName` set to `"emergencyPause"`
  */
-export const useLiquidityPoolWriteAuthorizeMatch =
+export const useLeaderboardRewardsWriteEmergencyPause =
   /*#__PURE__*/ createUseWriteContract({
-    abi: liquidityPoolAbi,
-    functionName: 'authorizeMatch',
+    abi: leaderboardRewardsAbi,
+    functionName: 'emergencyPause',
   })
 
 /**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link liquidityPoolAbi}__ and `functionName` set to `"cancelTreasuryProposal"`
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link leaderboardRewardsAbi}__ and `functionName` set to `"grantRole"`
  */
-export const useLiquidityPoolWriteCancelTreasuryProposal =
+export const useLeaderboardRewardsWriteGrantRole =
   /*#__PURE__*/ createUseWriteContract({
-    abi: liquidityPoolAbi,
-    functionName: 'cancelTreasuryProposal',
-  })
-
-/**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link liquidityPoolAbi}__ and `functionName` set to `"deposit"`
- */
-export const useLiquidityPoolWriteDeposit =
-  /*#__PURE__*/ createUseWriteContract({
-    abi: liquidityPoolAbi,
-    functionName: 'deposit',
-  })
-
-/**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link liquidityPoolAbi}__ and `functionName` set to `"grantRole"`
- */
-export const useLiquidityPoolWriteGrantRole =
-  /*#__PURE__*/ createUseWriteContract({
-    abi: liquidityPoolAbi,
+    abi: leaderboardRewardsAbi,
     functionName: 'grantRole',
   })
 
 /**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link liquidityPoolAbi}__ and `functionName` set to `"initialize"`
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link leaderboardRewardsAbi}__ and `functionName` set to `"initialize"`
  */
-export const useLiquidityPoolWriteInitialize =
+export const useLeaderboardRewardsWriteInitialize =
   /*#__PURE__*/ createUseWriteContract({
-    abi: liquidityPoolAbi,
+    abi: leaderboardRewardsAbi,
     functionName: 'initialize',
   })
 
 /**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link liquidityPoolAbi}__ and `functionName` set to `"mint"`
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link leaderboardRewardsAbi}__ and `functionName` set to `"recordWin"`
  */
-export const useLiquidityPoolWriteMint = /*#__PURE__*/ createUseWriteContract({
-  abi: liquidityPoolAbi,
-  functionName: 'mint',
-})
-
-/**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link liquidityPoolAbi}__ and `functionName` set to `"pause"`
- */
-export const useLiquidityPoolWritePause = /*#__PURE__*/ createUseWriteContract({
-  abi: liquidityPoolAbi,
-  functionName: 'pause',
-})
-
-/**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link liquidityPoolAbi}__ and `functionName` set to `"payRefund"`
- */
-export const useLiquidityPoolWritePayRefund =
+export const useLeaderboardRewardsWriteRecordWin =
   /*#__PURE__*/ createUseWriteContract({
-    abi: liquidityPoolAbi,
-    functionName: 'payRefund',
+    abi: leaderboardRewardsAbi,
+    functionName: 'recordWin',
   })
 
 /**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link liquidityPoolAbi}__ and `functionName` set to `"payWinner"`
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link leaderboardRewardsAbi}__ and `functionName` set to `"renounceRole"`
  */
-export const useLiquidityPoolWritePayWinner =
+export const useLeaderboardRewardsWriteRenounceRole =
   /*#__PURE__*/ createUseWriteContract({
-    abi: liquidityPoolAbi,
-    functionName: 'payWinner',
-  })
-
-/**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link liquidityPoolAbi}__ and `functionName` set to `"proposeTreasury"`
- */
-export const useLiquidityPoolWriteProposeTreasury =
-  /*#__PURE__*/ createUseWriteContract({
-    abi: liquidityPoolAbi,
-    functionName: 'proposeTreasury',
-  })
-
-/**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link liquidityPoolAbi}__ and `functionName` set to `"recordBet"`
- */
-export const useLiquidityPoolWriteRecordBet =
-  /*#__PURE__*/ createUseWriteContract({
-    abi: liquidityPoolAbi,
-    functionName: 'recordBet',
-  })
-
-/**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link liquidityPoolAbi}__ and `functionName` set to `"redeem"`
- */
-export const useLiquidityPoolWriteRedeem = /*#__PURE__*/ createUseWriteContract(
-  { abi: liquidityPoolAbi, functionName: 'redeem' },
-)
-
-/**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link liquidityPoolAbi}__ and `functionName` set to `"renounceRole"`
- */
-export const useLiquidityPoolWriteRenounceRole =
-  /*#__PURE__*/ createUseWriteContract({
-    abi: liquidityPoolAbi,
+    abi: leaderboardRewardsAbi,
     functionName: 'renounceRole',
   })
 
 /**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link liquidityPoolAbi}__ and `functionName` set to `"revokeMatch"`
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link leaderboardRewardsAbi}__ and `functionName` set to `"revokeRole"`
  */
-export const useLiquidityPoolWriteRevokeMatch =
+export const useLeaderboardRewardsWriteRevokeRole =
   /*#__PURE__*/ createUseWriteContract({
-    abi: liquidityPoolAbi,
-    functionName: 'revokeMatch',
-  })
-
-/**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link liquidityPoolAbi}__ and `functionName` set to `"revokeRole"`
- */
-export const useLiquidityPoolWriteRevokeRole =
-  /*#__PURE__*/ createUseWriteContract({
-    abi: liquidityPoolAbi,
+    abi: leaderboardRewardsAbi,
     functionName: 'revokeRole',
   })
 
 /**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link liquidityPoolAbi}__ and `functionName` set to `"setDepositCooldownSeconds"`
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link leaderboardRewardsAbi}__ and `functionName` set to `"rolloverEpoch"`
  */
-export const useLiquidityPoolWriteSetDepositCooldownSeconds =
+export const useLeaderboardRewardsWriteRolloverEpoch =
   /*#__PURE__*/ createUseWriteContract({
-    abi: liquidityPoolAbi,
-    functionName: 'setDepositCooldownSeconds',
+    abi: leaderboardRewardsAbi,
+    functionName: 'rolloverEpoch',
   })
 
 /**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link liquidityPoolAbi}__ and `functionName` set to `"setLpWithdrawalFeeBps"`
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link leaderboardRewardsAbi}__ and `functionName` set to `"setMatchFactory"`
  */
-export const useLiquidityPoolWriteSetLpWithdrawalFeeBps =
+export const useLeaderboardRewardsWriteSetMatchFactory =
   /*#__PURE__*/ createUseWriteContract({
-    abi: liquidityPoolAbi,
-    functionName: 'setLpWithdrawalFeeBps',
+    abi: leaderboardRewardsAbi,
+    functionName: 'setMatchFactory',
   })
 
 /**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link liquidityPoolAbi}__ and `functionName` set to `"setMaxBetAmount"`
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link leaderboardRewardsAbi}__ and `functionName` set to `"setUSDCToken"`
  */
-export const useLiquidityPoolWriteSetMaxBetAmount =
+export const useLeaderboardRewardsWriteSetUsdcToken =
   /*#__PURE__*/ createUseWriteContract({
-    abi: liquidityPoolAbi,
-    functionName: 'setMaxBetAmount',
+    abi: leaderboardRewardsAbi,
+    functionName: 'setUSDCToken',
   })
 
 /**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link liquidityPoolAbi}__ and `functionName` set to `"setMaxLiabilityPerMarketBps"`
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link leaderboardRewardsAbi}__ and `functionName` set to `"unpause"`
  */
-export const useLiquidityPoolWriteSetMaxLiabilityPerMarketBps =
+export const useLeaderboardRewardsWriteUnpause =
   /*#__PURE__*/ createUseWriteContract({
-    abi: liquidityPoolAbi,
-    functionName: 'setMaxLiabilityPerMarketBps',
-  })
-
-/**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link liquidityPoolAbi}__ and `functionName` set to `"setMaxLiabilityPerMatchBps"`
- */
-export const useLiquidityPoolWriteSetMaxLiabilityPerMatchBps =
-  /*#__PURE__*/ createUseWriteContract({
-    abi: liquidityPoolAbi,
-    functionName: 'setMaxLiabilityPerMatchBps',
-  })
-
-/**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link liquidityPoolAbi}__ and `functionName` set to `"setProtocolFeeBps"`
- */
-export const useLiquidityPoolWriteSetProtocolFeeBps =
-  /*#__PURE__*/ createUseWriteContract({
-    abi: liquidityPoolAbi,
-    functionName: 'setProtocolFeeBps',
-  })
-
-/**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link liquidityPoolAbi}__ and `functionName` set to `"setTreasuryShareBps"`
- */
-export const useLiquidityPoolWriteSetTreasuryShareBps =
-  /*#__PURE__*/ createUseWriteContract({
-    abi: liquidityPoolAbi,
-    functionName: 'setTreasuryShareBps',
-  })
-
-/**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link liquidityPoolAbi}__ and `functionName` set to `"settleMarket"`
- */
-export const useLiquidityPoolWriteSettleMarket =
-  /*#__PURE__*/ createUseWriteContract({
-    abi: liquidityPoolAbi,
-    functionName: 'settleMarket',
-  })
-
-/**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link liquidityPoolAbi}__ and `functionName` set to `"transfer"`
- */
-export const useLiquidityPoolWriteTransfer =
-  /*#__PURE__*/ createUseWriteContract({
-    abi: liquidityPoolAbi,
-    functionName: 'transfer',
-  })
-
-/**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link liquidityPoolAbi}__ and `functionName` set to `"transferFrom"`
- */
-export const useLiquidityPoolWriteTransferFrom =
-  /*#__PURE__*/ createUseWriteContract({
-    abi: liquidityPoolAbi,
-    functionName: 'transferFrom',
-  })
-
-/**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link liquidityPoolAbi}__ and `functionName` set to `"unpause"`
- */
-export const useLiquidityPoolWriteUnpause =
-  /*#__PURE__*/ createUseWriteContract({
-    abi: liquidityPoolAbi,
+    abi: leaderboardRewardsAbi,
     functionName: 'unpause',
   })
 
 /**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link liquidityPoolAbi}__ and `functionName` set to `"upgradeToAndCall"`
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link leaderboardRewardsAbi}__ and `functionName` set to `"upgradeToAndCall"`
  */
-export const useLiquidityPoolWriteUpgradeToAndCall =
+export const useLeaderboardRewardsWriteUpgradeToAndCall =
   /*#__PURE__*/ createUseWriteContract({
-    abi: liquidityPoolAbi,
+    abi: leaderboardRewardsAbi,
     functionName: 'upgradeToAndCall',
   })
 
 /**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link liquidityPoolAbi}__ and `functionName` set to `"withdraw"`
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link leaderboardRewardsAbi}__
  */
-export const useLiquidityPoolWriteWithdraw =
-  /*#__PURE__*/ createUseWriteContract({
-    abi: liquidityPoolAbi,
-    functionName: 'withdraw',
-  })
+export const useLeaderboardRewardsSimulateundefined =
+  /*#__PURE__*/ createUseSimulateContract({ abi: leaderboardRewardsAbi })
 
 /**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link liquidityPoolAbi}__ and `functionName` set to `"withdrawTreasury"`
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link leaderboardRewardsAbi}__ and `functionName` set to `"claim"`
  */
-export const useLiquidityPoolWriteWithdrawTreasury =
-  /*#__PURE__*/ createUseWriteContract({
-    abi: liquidityPoolAbi,
-    functionName: 'withdrawTreasury',
-  })
-
-/**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link liquidityPoolAbi}__
- */
-export const useLiquidityPoolSimulateundefined =
-  /*#__PURE__*/ createUseSimulateContract({ abi: liquidityPoolAbi })
-
-/**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link liquidityPoolAbi}__ and `functionName` set to `"acceptTreasury"`
- */
-export const useLiquidityPoolSimulateAcceptTreasury =
+export const useLeaderboardRewardsSimulateClaim =
   /*#__PURE__*/ createUseSimulateContract({
-    abi: liquidityPoolAbi,
-    functionName: 'acceptTreasury',
+    abi: leaderboardRewardsAbi,
+    functionName: 'claim',
   })
 
 /**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link liquidityPoolAbi}__ and `functionName` set to `"approve"`
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link leaderboardRewardsAbi}__ and `functionName` set to `"closeEpoch"`
  */
-export const useLiquidityPoolSimulateApprove =
+export const useLeaderboardRewardsSimulateCloseEpoch =
   /*#__PURE__*/ createUseSimulateContract({
-    abi: liquidityPoolAbi,
-    functionName: 'approve',
+    abi: leaderboardRewardsAbi,
+    functionName: 'closeEpoch',
   })
 
 /**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link liquidityPoolAbi}__ and `functionName` set to `"authorizeMatch"`
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link leaderboardRewardsAbi}__ and `functionName` set to `"emergencyPause"`
  */
-export const useLiquidityPoolSimulateAuthorizeMatch =
+export const useLeaderboardRewardsSimulateEmergencyPause =
   /*#__PURE__*/ createUseSimulateContract({
-    abi: liquidityPoolAbi,
-    functionName: 'authorizeMatch',
+    abi: leaderboardRewardsAbi,
+    functionName: 'emergencyPause',
   })
 
 /**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link liquidityPoolAbi}__ and `functionName` set to `"cancelTreasuryProposal"`
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link leaderboardRewardsAbi}__ and `functionName` set to `"grantRole"`
  */
-export const useLiquidityPoolSimulateCancelTreasuryProposal =
+export const useLeaderboardRewardsSimulateGrantRole =
   /*#__PURE__*/ createUseSimulateContract({
-    abi: liquidityPoolAbi,
-    functionName: 'cancelTreasuryProposal',
-  })
-
-/**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link liquidityPoolAbi}__ and `functionName` set to `"deposit"`
- */
-export const useLiquidityPoolSimulateDeposit =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: liquidityPoolAbi,
-    functionName: 'deposit',
-  })
-
-/**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link liquidityPoolAbi}__ and `functionName` set to `"grantRole"`
- */
-export const useLiquidityPoolSimulateGrantRole =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: liquidityPoolAbi,
+    abi: leaderboardRewardsAbi,
     functionName: 'grantRole',
   })
 
 /**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link liquidityPoolAbi}__ and `functionName` set to `"initialize"`
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link leaderboardRewardsAbi}__ and `functionName` set to `"initialize"`
  */
-export const useLiquidityPoolSimulateInitialize =
+export const useLeaderboardRewardsSimulateInitialize =
   /*#__PURE__*/ createUseSimulateContract({
-    abi: liquidityPoolAbi,
+    abi: leaderboardRewardsAbi,
     functionName: 'initialize',
   })
 
 /**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link liquidityPoolAbi}__ and `functionName` set to `"mint"`
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link leaderboardRewardsAbi}__ and `functionName` set to `"recordWin"`
  */
-export const useLiquidityPoolSimulateMint =
+export const useLeaderboardRewardsSimulateRecordWin =
   /*#__PURE__*/ createUseSimulateContract({
-    abi: liquidityPoolAbi,
-    functionName: 'mint',
+    abi: leaderboardRewardsAbi,
+    functionName: 'recordWin',
   })
 
 /**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link liquidityPoolAbi}__ and `functionName` set to `"pause"`
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link leaderboardRewardsAbi}__ and `functionName` set to `"renounceRole"`
  */
-export const useLiquidityPoolSimulatePause =
+export const useLeaderboardRewardsSimulateRenounceRole =
   /*#__PURE__*/ createUseSimulateContract({
-    abi: liquidityPoolAbi,
-    functionName: 'pause',
-  })
-
-/**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link liquidityPoolAbi}__ and `functionName` set to `"payRefund"`
- */
-export const useLiquidityPoolSimulatePayRefund =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: liquidityPoolAbi,
-    functionName: 'payRefund',
-  })
-
-/**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link liquidityPoolAbi}__ and `functionName` set to `"payWinner"`
- */
-export const useLiquidityPoolSimulatePayWinner =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: liquidityPoolAbi,
-    functionName: 'payWinner',
-  })
-
-/**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link liquidityPoolAbi}__ and `functionName` set to `"proposeTreasury"`
- */
-export const useLiquidityPoolSimulateProposeTreasury =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: liquidityPoolAbi,
-    functionName: 'proposeTreasury',
-  })
-
-/**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link liquidityPoolAbi}__ and `functionName` set to `"recordBet"`
- */
-export const useLiquidityPoolSimulateRecordBet =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: liquidityPoolAbi,
-    functionName: 'recordBet',
-  })
-
-/**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link liquidityPoolAbi}__ and `functionName` set to `"redeem"`
- */
-export const useLiquidityPoolSimulateRedeem =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: liquidityPoolAbi,
-    functionName: 'redeem',
-  })
-
-/**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link liquidityPoolAbi}__ and `functionName` set to `"renounceRole"`
- */
-export const useLiquidityPoolSimulateRenounceRole =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: liquidityPoolAbi,
+    abi: leaderboardRewardsAbi,
     functionName: 'renounceRole',
   })
 
 /**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link liquidityPoolAbi}__ and `functionName` set to `"revokeMatch"`
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link leaderboardRewardsAbi}__ and `functionName` set to `"revokeRole"`
  */
-export const useLiquidityPoolSimulateRevokeMatch =
+export const useLeaderboardRewardsSimulateRevokeRole =
   /*#__PURE__*/ createUseSimulateContract({
-    abi: liquidityPoolAbi,
-    functionName: 'revokeMatch',
-  })
-
-/**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link liquidityPoolAbi}__ and `functionName` set to `"revokeRole"`
- */
-export const useLiquidityPoolSimulateRevokeRole =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: liquidityPoolAbi,
+    abi: leaderboardRewardsAbi,
     functionName: 'revokeRole',
   })
 
 /**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link liquidityPoolAbi}__ and `functionName` set to `"setDepositCooldownSeconds"`
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link leaderboardRewardsAbi}__ and `functionName` set to `"rolloverEpoch"`
  */
-export const useLiquidityPoolSimulateSetDepositCooldownSeconds =
+export const useLeaderboardRewardsSimulateRolloverEpoch =
   /*#__PURE__*/ createUseSimulateContract({
-    abi: liquidityPoolAbi,
-    functionName: 'setDepositCooldownSeconds',
+    abi: leaderboardRewardsAbi,
+    functionName: 'rolloverEpoch',
   })
 
 /**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link liquidityPoolAbi}__ and `functionName` set to `"setLpWithdrawalFeeBps"`
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link leaderboardRewardsAbi}__ and `functionName` set to `"setMatchFactory"`
  */
-export const useLiquidityPoolSimulateSetLpWithdrawalFeeBps =
+export const useLeaderboardRewardsSimulateSetMatchFactory =
   /*#__PURE__*/ createUseSimulateContract({
-    abi: liquidityPoolAbi,
-    functionName: 'setLpWithdrawalFeeBps',
+    abi: leaderboardRewardsAbi,
+    functionName: 'setMatchFactory',
   })
 
 /**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link liquidityPoolAbi}__ and `functionName` set to `"setMaxBetAmount"`
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link leaderboardRewardsAbi}__ and `functionName` set to `"setUSDCToken"`
  */
-export const useLiquidityPoolSimulateSetMaxBetAmount =
+export const useLeaderboardRewardsSimulateSetUsdcToken =
   /*#__PURE__*/ createUseSimulateContract({
-    abi: liquidityPoolAbi,
-    functionName: 'setMaxBetAmount',
+    abi: leaderboardRewardsAbi,
+    functionName: 'setUSDCToken',
   })
 
 /**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link liquidityPoolAbi}__ and `functionName` set to `"setMaxLiabilityPerMarketBps"`
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link leaderboardRewardsAbi}__ and `functionName` set to `"unpause"`
  */
-export const useLiquidityPoolSimulateSetMaxLiabilityPerMarketBps =
+export const useLeaderboardRewardsSimulateUnpause =
   /*#__PURE__*/ createUseSimulateContract({
-    abi: liquidityPoolAbi,
-    functionName: 'setMaxLiabilityPerMarketBps',
-  })
-
-/**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link liquidityPoolAbi}__ and `functionName` set to `"setMaxLiabilityPerMatchBps"`
- */
-export const useLiquidityPoolSimulateSetMaxLiabilityPerMatchBps =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: liquidityPoolAbi,
-    functionName: 'setMaxLiabilityPerMatchBps',
-  })
-
-/**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link liquidityPoolAbi}__ and `functionName` set to `"setProtocolFeeBps"`
- */
-export const useLiquidityPoolSimulateSetProtocolFeeBps =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: liquidityPoolAbi,
-    functionName: 'setProtocolFeeBps',
-  })
-
-/**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link liquidityPoolAbi}__ and `functionName` set to `"setTreasuryShareBps"`
- */
-export const useLiquidityPoolSimulateSetTreasuryShareBps =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: liquidityPoolAbi,
-    functionName: 'setTreasuryShareBps',
-  })
-
-/**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link liquidityPoolAbi}__ and `functionName` set to `"settleMarket"`
- */
-export const useLiquidityPoolSimulateSettleMarket =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: liquidityPoolAbi,
-    functionName: 'settleMarket',
-  })
-
-/**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link liquidityPoolAbi}__ and `functionName` set to `"transfer"`
- */
-export const useLiquidityPoolSimulateTransfer =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: liquidityPoolAbi,
-    functionName: 'transfer',
-  })
-
-/**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link liquidityPoolAbi}__ and `functionName` set to `"transferFrom"`
- */
-export const useLiquidityPoolSimulateTransferFrom =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: liquidityPoolAbi,
-    functionName: 'transferFrom',
-  })
-
-/**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link liquidityPoolAbi}__ and `functionName` set to `"unpause"`
- */
-export const useLiquidityPoolSimulateUnpause =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: liquidityPoolAbi,
+    abi: leaderboardRewardsAbi,
     functionName: 'unpause',
   })
 
 /**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link liquidityPoolAbi}__ and `functionName` set to `"upgradeToAndCall"`
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link leaderboardRewardsAbi}__ and `functionName` set to `"upgradeToAndCall"`
  */
-export const useLiquidityPoolSimulateUpgradeToAndCall =
+export const useLeaderboardRewardsSimulateUpgradeToAndCall =
   /*#__PURE__*/ createUseSimulateContract({
-    abi: liquidityPoolAbi,
+    abi: leaderboardRewardsAbi,
     functionName: 'upgradeToAndCall',
   })
 
 /**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link liquidityPoolAbi}__ and `functionName` set to `"withdraw"`
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link leaderboardRewardsAbi}__
  */
-export const useLiquidityPoolSimulateWithdraw =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: liquidityPoolAbi,
-    functionName: 'withdraw',
-  })
+export const useLeaderboardRewardsWatchundefined =
+  /*#__PURE__*/ createUseWatchContractEvent({ abi: leaderboardRewardsAbi })
 
 /**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link liquidityPoolAbi}__ and `functionName` set to `"withdrawTreasury"`
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link leaderboardRewardsAbi}__ and `eventName` set to `"EpochClosed"`
  */
-export const useLiquidityPoolSimulateWithdrawTreasury =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: liquidityPoolAbi,
-    functionName: 'withdrawTreasury',
-  })
-
-/**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link liquidityPoolAbi}__
- */
-export const useLiquidityPoolWatchundefined =
-  /*#__PURE__*/ createUseWatchContractEvent({ abi: liquidityPoolAbi })
-
-/**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link liquidityPoolAbi}__ and `eventName` set to `"Approval"`
- */
-export const useLiquidityPoolWatchApproval =
+export const useLeaderboardRewardsWatchEpochClosed =
   /*#__PURE__*/ createUseWatchContractEvent({
-    abi: liquidityPoolAbi,
-    eventName: 'Approval',
+    abi: leaderboardRewardsAbi,
+    eventName: 'EpochClosed',
   })
 
 /**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link liquidityPoolAbi}__ and `eventName` set to `"BetRecorded"`
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link leaderboardRewardsAbi}__ and `eventName` set to `"EpochRolledOver"`
  */
-export const useLiquidityPoolWatchBetRecorded =
+export const useLeaderboardRewardsWatchEpochRolledOver =
   /*#__PURE__*/ createUseWatchContractEvent({
-    abi: liquidityPoolAbi,
-    eventName: 'BetRecorded',
+    abi: leaderboardRewardsAbi,
+    eventName: 'EpochRolledOver',
   })
 
 /**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link liquidityPoolAbi}__ and `eventName` set to `"Deposit"`
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link leaderboardRewardsAbi}__ and `eventName` set to `"Initialized"`
  */
-export const useLiquidityPoolWatchDeposit =
+export const useLeaderboardRewardsWatchInitialized =
   /*#__PURE__*/ createUseWatchContractEvent({
-    abi: liquidityPoolAbi,
-    eventName: 'Deposit',
-  })
-
-/**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link liquidityPoolAbi}__ and `eventName` set to `"DepositCooldownSet"`
- */
-export const useLiquidityPoolWatchDepositCooldownSet =
-  /*#__PURE__*/ createUseWatchContractEvent({
-    abi: liquidityPoolAbi,
-    eventName: 'DepositCooldownSet',
-  })
-
-/**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link liquidityPoolAbi}__ and `eventName` set to `"Initialized"`
- */
-export const useLiquidityPoolWatchInitialized =
-  /*#__PURE__*/ createUseWatchContractEvent({
-    abi: liquidityPoolAbi,
+    abi: leaderboardRewardsAbi,
     eventName: 'Initialized',
   })
 
 /**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link liquidityPoolAbi}__ and `eventName` set to `"LpWithdrawalFeeAccrued"`
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link leaderboardRewardsAbi}__ and `eventName` set to `"MatchFactorySet"`
  */
-export const useLiquidityPoolWatchLpWithdrawalFeeAccrued =
+export const useLeaderboardRewardsWatchMatchFactorySet =
   /*#__PURE__*/ createUseWatchContractEvent({
-    abi: liquidityPoolAbi,
-    eventName: 'LpWithdrawalFeeAccrued',
+    abi: leaderboardRewardsAbi,
+    eventName: 'MatchFactorySet',
   })
 
 /**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link liquidityPoolAbi}__ and `eventName` set to `"LpWithdrawalFeeBpsSet"`
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link leaderboardRewardsAbi}__ and `eventName` set to `"Paused"`
  */
-export const useLiquidityPoolWatchLpWithdrawalFeeBpsSet =
+export const useLeaderboardRewardsWatchPaused =
   /*#__PURE__*/ createUseWatchContractEvent({
-    abi: liquidityPoolAbi,
-    eventName: 'LpWithdrawalFeeBpsSet',
-  })
-
-/**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link liquidityPoolAbi}__ and `eventName` set to `"MarketSettled"`
- */
-export const useLiquidityPoolWatchMarketSettled =
-  /*#__PURE__*/ createUseWatchContractEvent({
-    abi: liquidityPoolAbi,
-    eventName: 'MarketSettled',
-  })
-
-/**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link liquidityPoolAbi}__ and `eventName` set to `"MatchAuthorized"`
- */
-export const useLiquidityPoolWatchMatchAuthorized =
-  /*#__PURE__*/ createUseWatchContractEvent({
-    abi: liquidityPoolAbi,
-    eventName: 'MatchAuthorized',
-  })
-
-/**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link liquidityPoolAbi}__ and `eventName` set to `"MatchRevoked"`
- */
-export const useLiquidityPoolWatchMatchRevoked =
-  /*#__PURE__*/ createUseWatchContractEvent({
-    abi: liquidityPoolAbi,
-    eventName: 'MatchRevoked',
-  })
-
-/**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link liquidityPoolAbi}__ and `eventName` set to `"MaxBetAmountSet"`
- */
-export const useLiquidityPoolWatchMaxBetAmountSet =
-  /*#__PURE__*/ createUseWatchContractEvent({
-    abi: liquidityPoolAbi,
-    eventName: 'MaxBetAmountSet',
-  })
-
-/**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link liquidityPoolAbi}__ and `eventName` set to `"MaxLiabilityPerMarketSet"`
- */
-export const useLiquidityPoolWatchMaxLiabilityPerMarketSet =
-  /*#__PURE__*/ createUseWatchContractEvent({
-    abi: liquidityPoolAbi,
-    eventName: 'MaxLiabilityPerMarketSet',
-  })
-
-/**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link liquidityPoolAbi}__ and `eventName` set to `"MaxLiabilityPerMatchSet"`
- */
-export const useLiquidityPoolWatchMaxLiabilityPerMatchSet =
-  /*#__PURE__*/ createUseWatchContractEvent({
-    abi: liquidityPoolAbi,
-    eventName: 'MaxLiabilityPerMatchSet',
-  })
-
-/**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link liquidityPoolAbi}__ and `eventName` set to `"Paused"`
- */
-export const useLiquidityPoolWatchPaused =
-  /*#__PURE__*/ createUseWatchContractEvent({
-    abi: liquidityPoolAbi,
+    abi: leaderboardRewardsAbi,
     eventName: 'Paused',
   })
 
 /**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link liquidityPoolAbi}__ and `eventName` set to `"ProtocolFeeSet"`
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link leaderboardRewardsAbi}__ and `eventName` set to `"PrizeClaimed"`
  */
-export const useLiquidityPoolWatchProtocolFeeSet =
+export const useLeaderboardRewardsWatchPrizeClaimed =
   /*#__PURE__*/ createUseWatchContractEvent({
-    abi: liquidityPoolAbi,
-    eventName: 'ProtocolFeeSet',
+    abi: leaderboardRewardsAbi,
+    eventName: 'PrizeClaimed',
   })
 
 /**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link liquidityPoolAbi}__ and `eventName` set to `"RefundPaid"`
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link leaderboardRewardsAbi}__ and `eventName` set to `"RoleAdminChanged"`
  */
-export const useLiquidityPoolWatchRefundPaid =
+export const useLeaderboardRewardsWatchRoleAdminChanged =
   /*#__PURE__*/ createUseWatchContractEvent({
-    abi: liquidityPoolAbi,
-    eventName: 'RefundPaid',
-  })
-
-/**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link liquidityPoolAbi}__ and `eventName` set to `"RoleAdminChanged"`
- */
-export const useLiquidityPoolWatchRoleAdminChanged =
-  /*#__PURE__*/ createUseWatchContractEvent({
-    abi: liquidityPoolAbi,
+    abi: leaderboardRewardsAbi,
     eventName: 'RoleAdminChanged',
   })
 
 /**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link liquidityPoolAbi}__ and `eventName` set to `"RoleGranted"`
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link leaderboardRewardsAbi}__ and `eventName` set to `"RoleGranted"`
  */
-export const useLiquidityPoolWatchRoleGranted =
+export const useLeaderboardRewardsWatchRoleGranted =
   /*#__PURE__*/ createUseWatchContractEvent({
-    abi: liquidityPoolAbi,
+    abi: leaderboardRewardsAbi,
     eventName: 'RoleGranted',
   })
 
 /**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link liquidityPoolAbi}__ and `eventName` set to `"RoleRevoked"`
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link leaderboardRewardsAbi}__ and `eventName` set to `"RoleRevoked"`
  */
-export const useLiquidityPoolWatchRoleRevoked =
+export const useLeaderboardRewardsWatchRoleRevoked =
   /*#__PURE__*/ createUseWatchContractEvent({
-    abi: liquidityPoolAbi,
+    abi: leaderboardRewardsAbi,
     eventName: 'RoleRevoked',
   })
 
 /**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link liquidityPoolAbi}__ and `eventName` set to `"Transfer"`
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link leaderboardRewardsAbi}__ and `eventName` set to `"USDCTokenSet"`
  */
-export const useLiquidityPoolWatchTransfer =
+export const useLeaderboardRewardsWatchUsdcTokenSet =
   /*#__PURE__*/ createUseWatchContractEvent({
-    abi: liquidityPoolAbi,
-    eventName: 'Transfer',
+    abi: leaderboardRewardsAbi,
+    eventName: 'USDCTokenSet',
   })
 
 /**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link liquidityPoolAbi}__ and `eventName` set to `"TreasuryAccepted"`
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link leaderboardRewardsAbi}__ and `eventName` set to `"Unpaused"`
  */
-export const useLiquidityPoolWatchTreasuryAccepted =
+export const useLeaderboardRewardsWatchUnpaused =
   /*#__PURE__*/ createUseWatchContractEvent({
-    abi: liquidityPoolAbi,
-    eventName: 'TreasuryAccepted',
-  })
-
-/**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link liquidityPoolAbi}__ and `eventName` set to `"TreasuryAccrued"`
- */
-export const useLiquidityPoolWatchTreasuryAccrued =
-  /*#__PURE__*/ createUseWatchContractEvent({
-    abi: liquidityPoolAbi,
-    eventName: 'TreasuryAccrued',
-  })
-
-/**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link liquidityPoolAbi}__ and `eventName` set to `"TreasuryProposalCancelled"`
- */
-export const useLiquidityPoolWatchTreasuryProposalCancelled =
-  /*#__PURE__*/ createUseWatchContractEvent({
-    abi: liquidityPoolAbi,
-    eventName: 'TreasuryProposalCancelled',
-  })
-
-/**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link liquidityPoolAbi}__ and `eventName` set to `"TreasuryProposed"`
- */
-export const useLiquidityPoolWatchTreasuryProposed =
-  /*#__PURE__*/ createUseWatchContractEvent({
-    abi: liquidityPoolAbi,
-    eventName: 'TreasuryProposed',
-  })
-
-/**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link liquidityPoolAbi}__ and `eventName` set to `"TreasuryShareBpsSet"`
- */
-export const useLiquidityPoolWatchTreasuryShareBpsSet =
-  /*#__PURE__*/ createUseWatchContractEvent({
-    abi: liquidityPoolAbi,
-    eventName: 'TreasuryShareBpsSet',
-  })
-
-/**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link liquidityPoolAbi}__ and `eventName` set to `"TreasuryWithdrawn"`
- */
-export const useLiquidityPoolWatchTreasuryWithdrawn =
-  /*#__PURE__*/ createUseWatchContractEvent({
-    abi: liquidityPoolAbi,
-    eventName: 'TreasuryWithdrawn',
-  })
-
-/**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link liquidityPoolAbi}__ and `eventName` set to `"Unpaused"`
- */
-export const useLiquidityPoolWatchUnpaused =
-  /*#__PURE__*/ createUseWatchContractEvent({
-    abi: liquidityPoolAbi,
+    abi: leaderboardRewardsAbi,
     eventName: 'Unpaused',
   })
 
 /**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link liquidityPoolAbi}__ and `eventName` set to `"Upgraded"`
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link leaderboardRewardsAbi}__ and `eventName` set to `"Upgraded"`
  */
-export const useLiquidityPoolWatchUpgraded =
+export const useLeaderboardRewardsWatchUpgraded =
   /*#__PURE__*/ createUseWatchContractEvent({
-    abi: liquidityPoolAbi,
+    abi: leaderboardRewardsAbi,
     eventName: 'Upgraded',
   })
 
 /**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link liquidityPoolAbi}__ and `eventName` set to `"WinnerPaid"`
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link leaderboardRewardsAbi}__ and `eventName` set to `"WinRecorded"`
  */
-export const useLiquidityPoolWatchWinnerPaid =
+export const useLeaderboardRewardsWatchWinRecorded =
   /*#__PURE__*/ createUseWatchContractEvent({
-    abi: liquidityPoolAbi,
-    eventName: 'WinnerPaid',
+    abi: leaderboardRewardsAbi,
+    eventName: 'WinRecorded',
   })
 
 /**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link liquidityPoolAbi}__ and `eventName` set to `"Withdraw"`
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link pariMatchBaseAbi}__
  */
-export const useLiquidityPoolWatchWithdraw =
+export const usePariMatchBaseReadundefined =
+  /*#__PURE__*/ createUseReadContract({ abi: pariMatchBaseAbi })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link pariMatchBaseAbi}__ and `functionName` set to `"ADMIN_ROLE"`
+ */
+export const usePariMatchBaseReadAdminRole =
+  /*#__PURE__*/ createUseReadContract({
+    abi: pariMatchBaseAbi,
+    functionName: 'ADMIN_ROLE',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link pariMatchBaseAbi}__ and `functionName` set to `"BPS_DENOM"`
+ */
+export const usePariMatchBaseReadBpsDenom = /*#__PURE__*/ createUseReadContract(
+  { abi: pariMatchBaseAbi, functionName: 'BPS_DENOM' },
+)
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link pariMatchBaseAbi}__ and `functionName` set to `"DEFAULT_ADMIN_ROLE"`
+ */
+export const usePariMatchBaseReadDefaultAdminRole =
+  /*#__PURE__*/ createUseReadContract({
+    abi: pariMatchBaseAbi,
+    functionName: 'DEFAULT_ADMIN_ROLE',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link pariMatchBaseAbi}__ and `functionName` set to `"MAX_FEE_BPS"`
+ */
+export const usePariMatchBaseReadMaxFeeBps =
+  /*#__PURE__*/ createUseReadContract({
+    abi: pariMatchBaseAbi,
+    functionName: 'MAX_FEE_BPS',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link pariMatchBaseAbi}__ and `functionName` set to `"MIN_STAKE"`
+ */
+export const usePariMatchBaseReadMinStake = /*#__PURE__*/ createUseReadContract(
+  { abi: pariMatchBaseAbi, functionName: 'MIN_STAKE' },
+)
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link pariMatchBaseAbi}__ and `functionName` set to `"PAUSER_ROLE"`
+ */
+export const usePariMatchBaseReadPauserRole =
+  /*#__PURE__*/ createUseReadContract({
+    abi: pariMatchBaseAbi,
+    functionName: 'PAUSER_ROLE',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link pariMatchBaseAbi}__ and `functionName` set to `"RESOLVER_ROLE"`
+ */
+export const usePariMatchBaseReadResolverRole =
+  /*#__PURE__*/ createUseReadContract({
+    abi: pariMatchBaseAbi,
+    functionName: 'RESOLVER_ROLE',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link pariMatchBaseAbi}__ and `functionName` set to `"SWAP_ROUTER_ROLE"`
+ */
+export const usePariMatchBaseReadSwapRouterRole =
+  /*#__PURE__*/ createUseReadContract({
+    abi: pariMatchBaseAbi,
+    functionName: 'SWAP_ROUTER_ROLE',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link pariMatchBaseAbi}__ and `functionName` set to `"UPGRADE_INTERFACE_VERSION"`
+ */
+export const usePariMatchBaseReadUpgradeInterfaceVersion =
+  /*#__PURE__*/ createUseReadContract({
+    abi: pariMatchBaseAbi,
+    functionName: 'UPGRADE_INTERFACE_VERSION',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link pariMatchBaseAbi}__ and `functionName` set to `"feeBps"`
+ */
+export const usePariMatchBaseReadFeeBps = /*#__PURE__*/ createUseReadContract({
+  abi: pariMatchBaseAbi,
+  functionName: 'feeBps',
+})
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link pariMatchBaseAbi}__ and `functionName` set to `"feeRecipient"`
+ */
+export const usePariMatchBaseReadFeeRecipient =
+  /*#__PURE__*/ createUseReadContract({
+    abi: pariMatchBaseAbi,
+    functionName: 'feeRecipient',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link pariMatchBaseAbi}__ and `functionName` set to `"getImpliedProbabilityBps"`
+ */
+export const usePariMatchBaseReadGetImpliedProbabilityBps =
+  /*#__PURE__*/ createUseReadContract({
+    abi: pariMatchBaseAbi,
+    functionName: 'getImpliedProbabilityBps',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link pariMatchBaseAbi}__ and `functionName` set to `"getMarketCore"`
+ */
+export const usePariMatchBaseReadGetMarketCore =
+  /*#__PURE__*/ createUseReadContract({
+    abi: pariMatchBaseAbi,
+    functionName: 'getMarketCore',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link pariMatchBaseAbi}__ and `functionName` set to `"getMarketInfo"`
+ */
+export const usePariMatchBaseReadGetMarketInfo =
+  /*#__PURE__*/ createUseReadContract({
+    abi: pariMatchBaseAbi,
+    functionName: 'getMarketInfo',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link pariMatchBaseAbi}__ and `functionName` set to `"getMarketSpec"`
+ */
+export const usePariMatchBaseReadGetMarketSpec =
+  /*#__PURE__*/ createUseReadContract({
+    abi: pariMatchBaseAbi,
+    functionName: 'getMarketSpec',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link pariMatchBaseAbi}__ and `functionName` set to `"getOutcomePool"`
+ */
+export const usePariMatchBaseReadGetOutcomePool =
+  /*#__PURE__*/ createUseReadContract({
+    abi: pariMatchBaseAbi,
+    functionName: 'getOutcomePool',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link pariMatchBaseAbi}__ and `functionName` set to `"getRoleAdmin"`
+ */
+export const usePariMatchBaseReadGetRoleAdmin =
+  /*#__PURE__*/ createUseReadContract({
+    abi: pariMatchBaseAbi,
+    functionName: 'getRoleAdmin',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link pariMatchBaseAbi}__ and `functionName` set to `"getTotalPool"`
+ */
+export const usePariMatchBaseReadGetTotalPool =
+  /*#__PURE__*/ createUseReadContract({
+    abi: pariMatchBaseAbi,
+    functionName: 'getTotalPool',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link pariMatchBaseAbi}__ and `functionName` set to `"getUserStake"`
+ */
+export const usePariMatchBaseReadGetUserStake =
+  /*#__PURE__*/ createUseReadContract({
+    abi: pariMatchBaseAbi,
+    functionName: 'getUserStake',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link pariMatchBaseAbi}__ and `functionName` set to `"getUserTotalStake"`
+ */
+export const usePariMatchBaseReadGetUserTotalStake =
+  /*#__PURE__*/ createUseReadContract({
+    abi: pariMatchBaseAbi,
+    functionName: 'getUserTotalStake',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link pariMatchBaseAbi}__ and `functionName` set to `"hasClaimed"`
+ */
+export const usePariMatchBaseReadHasClaimed =
+  /*#__PURE__*/ createUseReadContract({
+    abi: pariMatchBaseAbi,
+    functionName: 'hasClaimed',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link pariMatchBaseAbi}__ and `functionName` set to `"hasRole"`
+ */
+export const usePariMatchBaseReadHasRole = /*#__PURE__*/ createUseReadContract({
+  abi: pariMatchBaseAbi,
+  functionName: 'hasRole',
+})
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link pariMatchBaseAbi}__ and `functionName` set to `"leaderboardFeeBps"`
+ */
+export const usePariMatchBaseReadLeaderboardFeeBps =
+  /*#__PURE__*/ createUseReadContract({
+    abi: pariMatchBaseAbi,
+    functionName: 'leaderboardFeeBps',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link pariMatchBaseAbi}__ and `functionName` set to `"leaderboardRecipient"`
+ */
+export const usePariMatchBaseReadLeaderboardRecipient =
+  /*#__PURE__*/ createUseReadContract({
+    abi: pariMatchBaseAbi,
+    functionName: 'leaderboardRecipient',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link pariMatchBaseAbi}__ and `functionName` set to `"marketCount"`
+ */
+export const usePariMatchBaseReadMarketCount =
+  /*#__PURE__*/ createUseReadContract({
+    abi: pariMatchBaseAbi,
+    functionName: 'marketCount',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link pariMatchBaseAbi}__ and `functionName` set to `"matchName"`
+ */
+export const usePariMatchBaseReadMatchName =
+  /*#__PURE__*/ createUseReadContract({
+    abi: pariMatchBaseAbi,
+    functionName: 'matchName',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link pariMatchBaseAbi}__ and `functionName` set to `"owner"`
+ */
+export const usePariMatchBaseReadOwner = /*#__PURE__*/ createUseReadContract({
+  abi: pariMatchBaseAbi,
+  functionName: 'owner',
+})
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link pariMatchBaseAbi}__ and `functionName` set to `"paused"`
+ */
+export const usePariMatchBaseReadPaused = /*#__PURE__*/ createUseReadContract({
+  abi: pariMatchBaseAbi,
+  functionName: 'paused',
+})
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link pariMatchBaseAbi}__ and `functionName` set to `"proxiableUUID"`
+ */
+export const usePariMatchBaseReadProxiableUuid =
+  /*#__PURE__*/ createUseReadContract({
+    abi: pariMatchBaseAbi,
+    functionName: 'proxiableUUID',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link pariMatchBaseAbi}__ and `functionName` set to `"sportType"`
+ */
+export const usePariMatchBaseReadSportType =
+  /*#__PURE__*/ createUseReadContract({
+    abi: pariMatchBaseAbi,
+    functionName: 'sportType',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link pariMatchBaseAbi}__ and `functionName` set to `"supportsInterface"`
+ */
+export const usePariMatchBaseReadSupportsInterface =
+  /*#__PURE__*/ createUseReadContract({
+    abi: pariMatchBaseAbi,
+    functionName: 'supportsInterface',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link pariMatchBaseAbi}__ and `functionName` set to `"usdcToken"`
+ */
+export const usePariMatchBaseReadUsdcToken =
+  /*#__PURE__*/ createUseReadContract({
+    abi: pariMatchBaseAbi,
+    functionName: 'usdcToken',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link pariMatchBaseAbi}__
+ */
+export const usePariMatchBaseWriteundefined =
+  /*#__PURE__*/ createUseWriteContract({ abi: pariMatchBaseAbi })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link pariMatchBaseAbi}__ and `functionName` set to `"addMarketAdvanced"`
+ */
+export const usePariMatchBaseWriteAddMarketAdvanced =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: pariMatchBaseAbi,
+    functionName: 'addMarketAdvanced',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link pariMatchBaseAbi}__ and `functionName` set to `"addMarketWithLine"`
+ */
+export const usePariMatchBaseWriteAddMarketWithLine =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: pariMatchBaseAbi,
+    functionName: 'addMarketWithLine',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link pariMatchBaseAbi}__ and `functionName` set to `"addMarketsBatch"`
+ */
+export const usePariMatchBaseWriteAddMarketsBatch =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: pariMatchBaseAbi,
+    functionName: 'addMarketsBatch',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link pariMatchBaseAbi}__ and `functionName` set to `"addMarketsBatchAdvanced"`
+ */
+export const usePariMatchBaseWriteAddMarketsBatchAdvanced =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: pariMatchBaseAbi,
+    functionName: 'addMarketsBatchAdvanced',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link pariMatchBaseAbi}__ and `functionName` set to `"cancelMarket"`
+ */
+export const usePariMatchBaseWriteCancelMarket =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: pariMatchBaseAbi,
+    functionName: 'cancelMarket',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link pariMatchBaseAbi}__ and `functionName` set to `"claim"`
+ */
+export const usePariMatchBaseWriteClaim = /*#__PURE__*/ createUseWriteContract({
+  abi: pariMatchBaseAbi,
+  functionName: 'claim',
+})
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link pariMatchBaseAbi}__ and `functionName` set to `"claimBatch"`
+ */
+export const usePariMatchBaseWriteClaimBatch =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: pariMatchBaseAbi,
+    functionName: 'claimBatch',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link pariMatchBaseAbi}__ and `functionName` set to `"claimRefund"`
+ */
+export const usePariMatchBaseWriteClaimRefund =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: pariMatchBaseAbi,
+    functionName: 'claimRefund',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link pariMatchBaseAbi}__ and `functionName` set to `"claimRefundBatch"`
+ */
+export const usePariMatchBaseWriteClaimRefundBatch =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: pariMatchBaseAbi,
+    functionName: 'claimRefundBatch',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link pariMatchBaseAbi}__ and `functionName` set to `"closeMarket"`
+ */
+export const usePariMatchBaseWriteCloseMarket =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: pariMatchBaseAbi,
+    functionName: 'closeMarket',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link pariMatchBaseAbi}__ and `functionName` set to `"closeMarketsBatch"`
+ */
+export const usePariMatchBaseWriteCloseMarketsBatch =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: pariMatchBaseAbi,
+    functionName: 'closeMarketsBatch',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link pariMatchBaseAbi}__ and `functionName` set to `"emergencyPause"`
+ */
+export const usePariMatchBaseWriteEmergencyPause =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: pariMatchBaseAbi,
+    functionName: 'emergencyPause',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link pariMatchBaseAbi}__ and `functionName` set to `"grantRole"`
+ */
+export const usePariMatchBaseWriteGrantRole =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: pariMatchBaseAbi,
+    functionName: 'grantRole',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link pariMatchBaseAbi}__ and `functionName` set to `"openMarket"`
+ */
+export const usePariMatchBaseWriteOpenMarket =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: pariMatchBaseAbi,
+    functionName: 'openMarket',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link pariMatchBaseAbi}__ and `functionName` set to `"openMarketsBatch"`
+ */
+export const usePariMatchBaseWriteOpenMarketsBatch =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: pariMatchBaseAbi,
+    functionName: 'openMarketsBatch',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link pariMatchBaseAbi}__ and `functionName` set to `"placeBetUSDC"`
+ */
+export const usePariMatchBaseWritePlaceBetUsdc =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: pariMatchBaseAbi,
+    functionName: 'placeBetUSDC',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link pariMatchBaseAbi}__ and `functionName` set to `"placeBetUSDCFor"`
+ */
+export const usePariMatchBaseWritePlaceBetUsdcFor =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: pariMatchBaseAbi,
+    functionName: 'placeBetUSDCFor',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link pariMatchBaseAbi}__ and `functionName` set to `"renounceOwnership"`
+ */
+export const usePariMatchBaseWriteRenounceOwnership =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: pariMatchBaseAbi,
+    functionName: 'renounceOwnership',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link pariMatchBaseAbi}__ and `functionName` set to `"renounceRole"`
+ */
+export const usePariMatchBaseWriteRenounceRole =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: pariMatchBaseAbi,
+    functionName: 'renounceRole',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link pariMatchBaseAbi}__ and `functionName` set to `"resolveMarket"`
+ */
+export const usePariMatchBaseWriteResolveMarket =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: pariMatchBaseAbi,
+    functionName: 'resolveMarket',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link pariMatchBaseAbi}__ and `functionName` set to `"resolveMarketsBatch"`
+ */
+export const usePariMatchBaseWriteResolveMarketsBatch =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: pariMatchBaseAbi,
+    functionName: 'resolveMarketsBatch',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link pariMatchBaseAbi}__ and `functionName` set to `"revokeRole"`
+ */
+export const usePariMatchBaseWriteRevokeRole =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: pariMatchBaseAbi,
+    functionName: 'revokeRole',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link pariMatchBaseAbi}__ and `functionName` set to `"setFeeBps"`
+ */
+export const usePariMatchBaseWriteSetFeeBps =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: pariMatchBaseAbi,
+    functionName: 'setFeeBps',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link pariMatchBaseAbi}__ and `functionName` set to `"setFeeRecipient"`
+ */
+export const usePariMatchBaseWriteSetFeeRecipient =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: pariMatchBaseAbi,
+    functionName: 'setFeeRecipient',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link pariMatchBaseAbi}__ and `functionName` set to `"setLeaderboardFeeBps"`
+ */
+export const usePariMatchBaseWriteSetLeaderboardFeeBps =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: pariMatchBaseAbi,
+    functionName: 'setLeaderboardFeeBps',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link pariMatchBaseAbi}__ and `functionName` set to `"setLeaderboardRecipient"`
+ */
+export const usePariMatchBaseWriteSetLeaderboardRecipient =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: pariMatchBaseAbi,
+    functionName: 'setLeaderboardRecipient',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link pariMatchBaseAbi}__ and `functionName` set to `"setUSDCToken"`
+ */
+export const usePariMatchBaseWriteSetUsdcToken =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: pariMatchBaseAbi,
+    functionName: 'setUSDCToken',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link pariMatchBaseAbi}__ and `functionName` set to `"suspendMarket"`
+ */
+export const usePariMatchBaseWriteSuspendMarket =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: pariMatchBaseAbi,
+    functionName: 'suspendMarket',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link pariMatchBaseAbi}__ and `functionName` set to `"transferOwnership"`
+ */
+export const usePariMatchBaseWriteTransferOwnership =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: pariMatchBaseAbi,
+    functionName: 'transferOwnership',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link pariMatchBaseAbi}__ and `functionName` set to `"unpause"`
+ */
+export const usePariMatchBaseWriteUnpause =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: pariMatchBaseAbi,
+    functionName: 'unpause',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link pariMatchBaseAbi}__ and `functionName` set to `"upgradeToAndCall"`
+ */
+export const usePariMatchBaseWriteUpgradeToAndCall =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: pariMatchBaseAbi,
+    functionName: 'upgradeToAndCall',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link pariMatchBaseAbi}__
+ */
+export const usePariMatchBaseSimulateundefined =
+  /*#__PURE__*/ createUseSimulateContract({ abi: pariMatchBaseAbi })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link pariMatchBaseAbi}__ and `functionName` set to `"addMarketAdvanced"`
+ */
+export const usePariMatchBaseSimulateAddMarketAdvanced =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: pariMatchBaseAbi,
+    functionName: 'addMarketAdvanced',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link pariMatchBaseAbi}__ and `functionName` set to `"addMarketWithLine"`
+ */
+export const usePariMatchBaseSimulateAddMarketWithLine =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: pariMatchBaseAbi,
+    functionName: 'addMarketWithLine',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link pariMatchBaseAbi}__ and `functionName` set to `"addMarketsBatch"`
+ */
+export const usePariMatchBaseSimulateAddMarketsBatch =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: pariMatchBaseAbi,
+    functionName: 'addMarketsBatch',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link pariMatchBaseAbi}__ and `functionName` set to `"addMarketsBatchAdvanced"`
+ */
+export const usePariMatchBaseSimulateAddMarketsBatchAdvanced =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: pariMatchBaseAbi,
+    functionName: 'addMarketsBatchAdvanced',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link pariMatchBaseAbi}__ and `functionName` set to `"cancelMarket"`
+ */
+export const usePariMatchBaseSimulateCancelMarket =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: pariMatchBaseAbi,
+    functionName: 'cancelMarket',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link pariMatchBaseAbi}__ and `functionName` set to `"claim"`
+ */
+export const usePariMatchBaseSimulateClaim =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: pariMatchBaseAbi,
+    functionName: 'claim',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link pariMatchBaseAbi}__ and `functionName` set to `"claimBatch"`
+ */
+export const usePariMatchBaseSimulateClaimBatch =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: pariMatchBaseAbi,
+    functionName: 'claimBatch',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link pariMatchBaseAbi}__ and `functionName` set to `"claimRefund"`
+ */
+export const usePariMatchBaseSimulateClaimRefund =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: pariMatchBaseAbi,
+    functionName: 'claimRefund',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link pariMatchBaseAbi}__ and `functionName` set to `"claimRefundBatch"`
+ */
+export const usePariMatchBaseSimulateClaimRefundBatch =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: pariMatchBaseAbi,
+    functionName: 'claimRefundBatch',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link pariMatchBaseAbi}__ and `functionName` set to `"closeMarket"`
+ */
+export const usePariMatchBaseSimulateCloseMarket =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: pariMatchBaseAbi,
+    functionName: 'closeMarket',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link pariMatchBaseAbi}__ and `functionName` set to `"closeMarketsBatch"`
+ */
+export const usePariMatchBaseSimulateCloseMarketsBatch =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: pariMatchBaseAbi,
+    functionName: 'closeMarketsBatch',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link pariMatchBaseAbi}__ and `functionName` set to `"emergencyPause"`
+ */
+export const usePariMatchBaseSimulateEmergencyPause =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: pariMatchBaseAbi,
+    functionName: 'emergencyPause',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link pariMatchBaseAbi}__ and `functionName` set to `"grantRole"`
+ */
+export const usePariMatchBaseSimulateGrantRole =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: pariMatchBaseAbi,
+    functionName: 'grantRole',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link pariMatchBaseAbi}__ and `functionName` set to `"openMarket"`
+ */
+export const usePariMatchBaseSimulateOpenMarket =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: pariMatchBaseAbi,
+    functionName: 'openMarket',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link pariMatchBaseAbi}__ and `functionName` set to `"openMarketsBatch"`
+ */
+export const usePariMatchBaseSimulateOpenMarketsBatch =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: pariMatchBaseAbi,
+    functionName: 'openMarketsBatch',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link pariMatchBaseAbi}__ and `functionName` set to `"placeBetUSDC"`
+ */
+export const usePariMatchBaseSimulatePlaceBetUsdc =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: pariMatchBaseAbi,
+    functionName: 'placeBetUSDC',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link pariMatchBaseAbi}__ and `functionName` set to `"placeBetUSDCFor"`
+ */
+export const usePariMatchBaseSimulatePlaceBetUsdcFor =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: pariMatchBaseAbi,
+    functionName: 'placeBetUSDCFor',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link pariMatchBaseAbi}__ and `functionName` set to `"renounceOwnership"`
+ */
+export const usePariMatchBaseSimulateRenounceOwnership =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: pariMatchBaseAbi,
+    functionName: 'renounceOwnership',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link pariMatchBaseAbi}__ and `functionName` set to `"renounceRole"`
+ */
+export const usePariMatchBaseSimulateRenounceRole =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: pariMatchBaseAbi,
+    functionName: 'renounceRole',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link pariMatchBaseAbi}__ and `functionName` set to `"resolveMarket"`
+ */
+export const usePariMatchBaseSimulateResolveMarket =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: pariMatchBaseAbi,
+    functionName: 'resolveMarket',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link pariMatchBaseAbi}__ and `functionName` set to `"resolveMarketsBatch"`
+ */
+export const usePariMatchBaseSimulateResolveMarketsBatch =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: pariMatchBaseAbi,
+    functionName: 'resolveMarketsBatch',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link pariMatchBaseAbi}__ and `functionName` set to `"revokeRole"`
+ */
+export const usePariMatchBaseSimulateRevokeRole =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: pariMatchBaseAbi,
+    functionName: 'revokeRole',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link pariMatchBaseAbi}__ and `functionName` set to `"setFeeBps"`
+ */
+export const usePariMatchBaseSimulateSetFeeBps =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: pariMatchBaseAbi,
+    functionName: 'setFeeBps',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link pariMatchBaseAbi}__ and `functionName` set to `"setFeeRecipient"`
+ */
+export const usePariMatchBaseSimulateSetFeeRecipient =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: pariMatchBaseAbi,
+    functionName: 'setFeeRecipient',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link pariMatchBaseAbi}__ and `functionName` set to `"setLeaderboardFeeBps"`
+ */
+export const usePariMatchBaseSimulateSetLeaderboardFeeBps =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: pariMatchBaseAbi,
+    functionName: 'setLeaderboardFeeBps',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link pariMatchBaseAbi}__ and `functionName` set to `"setLeaderboardRecipient"`
+ */
+export const usePariMatchBaseSimulateSetLeaderboardRecipient =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: pariMatchBaseAbi,
+    functionName: 'setLeaderboardRecipient',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link pariMatchBaseAbi}__ and `functionName` set to `"setUSDCToken"`
+ */
+export const usePariMatchBaseSimulateSetUsdcToken =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: pariMatchBaseAbi,
+    functionName: 'setUSDCToken',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link pariMatchBaseAbi}__ and `functionName` set to `"suspendMarket"`
+ */
+export const usePariMatchBaseSimulateSuspendMarket =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: pariMatchBaseAbi,
+    functionName: 'suspendMarket',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link pariMatchBaseAbi}__ and `functionName` set to `"transferOwnership"`
+ */
+export const usePariMatchBaseSimulateTransferOwnership =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: pariMatchBaseAbi,
+    functionName: 'transferOwnership',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link pariMatchBaseAbi}__ and `functionName` set to `"unpause"`
+ */
+export const usePariMatchBaseSimulateUnpause =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: pariMatchBaseAbi,
+    functionName: 'unpause',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link pariMatchBaseAbi}__ and `functionName` set to `"upgradeToAndCall"`
+ */
+export const usePariMatchBaseSimulateUpgradeToAndCall =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: pariMatchBaseAbi,
+    functionName: 'upgradeToAndCall',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link pariMatchBaseAbi}__
+ */
+export const usePariMatchBaseWatchundefined =
+  /*#__PURE__*/ createUseWatchContractEvent({ abi: pariMatchBaseAbi })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link pariMatchBaseAbi}__ and `eventName` set to `"FeeBpsSet"`
+ */
+export const usePariMatchBaseWatchFeeBpsSet =
   /*#__PURE__*/ createUseWatchContractEvent({
-    abi: liquidityPoolAbi,
-    eventName: 'Withdraw',
+    abi: pariMatchBaseAbi,
+    eventName: 'FeeBpsSet',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link pariMatchBaseAbi}__ and `eventName` set to `"FeeRecipientSet"`
+ */
+export const usePariMatchBaseWatchFeeRecipientSet =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: pariMatchBaseAbi,
+    eventName: 'FeeRecipientSet',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link pariMatchBaseAbi}__ and `eventName` set to `"Initialized"`
+ */
+export const usePariMatchBaseWatchInitialized =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: pariMatchBaseAbi,
+    eventName: 'Initialized',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link pariMatchBaseAbi}__ and `eventName` set to `"LeaderboardFeeBpsSet"`
+ */
+export const usePariMatchBaseWatchLeaderboardFeeBpsSet =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: pariMatchBaseAbi,
+    eventName: 'LeaderboardFeeBpsSet',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link pariMatchBaseAbi}__ and `eventName` set to `"LeaderboardRecipientSet"`
+ */
+export const usePariMatchBaseWatchLeaderboardRecipientSet =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: pariMatchBaseAbi,
+    eventName: 'LeaderboardRecipientSet',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link pariMatchBaseAbi}__ and `eventName` set to `"LeaderboardRecordFailed"`
+ */
+export const usePariMatchBaseWatchLeaderboardRecordFailed =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: pariMatchBaseAbi,
+    eventName: 'LeaderboardRecordFailed',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link pariMatchBaseAbi}__ and `eventName` set to `"MarketCancelled"`
+ */
+export const usePariMatchBaseWatchMarketCancelled =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: pariMatchBaseAbi,
+    eventName: 'MarketCancelled',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link pariMatchBaseAbi}__ and `eventName` set to `"MarketCreated"`
+ */
+export const usePariMatchBaseWatchMarketCreated =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: pariMatchBaseAbi,
+    eventName: 'MarketCreated',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link pariMatchBaseAbi}__ and `eventName` set to `"MarketResolved"`
+ */
+export const usePariMatchBaseWatchMarketResolved =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: pariMatchBaseAbi,
+    eventName: 'MarketResolved',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link pariMatchBaseAbi}__ and `eventName` set to `"MarketStateChanged"`
+ */
+export const usePariMatchBaseWatchMarketStateChanged =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: pariMatchBaseAbi,
+    eventName: 'MarketStateChanged',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link pariMatchBaseAbi}__ and `eventName` set to `"MatchInitialized"`
+ */
+export const usePariMatchBaseWatchMatchInitialized =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: pariMatchBaseAbi,
+    eventName: 'MatchInitialized',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link pariMatchBaseAbi}__ and `eventName` set to `"OwnershipTransferred"`
+ */
+export const usePariMatchBaseWatchOwnershipTransferred =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: pariMatchBaseAbi,
+    eventName: 'OwnershipTransferred',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link pariMatchBaseAbi}__ and `eventName` set to `"Paused"`
+ */
+export const usePariMatchBaseWatchPaused =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: pariMatchBaseAbi,
+    eventName: 'Paused',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link pariMatchBaseAbi}__ and `eventName` set to `"PositionClaimed"`
+ */
+export const usePariMatchBaseWatchPositionClaimed =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: pariMatchBaseAbi,
+    eventName: 'PositionClaimed',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link pariMatchBaseAbi}__ and `eventName` set to `"PositionTaken"`
+ */
+export const usePariMatchBaseWatchPositionTaken =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: pariMatchBaseAbi,
+    eventName: 'PositionTaken',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link pariMatchBaseAbi}__ and `eventName` set to `"RoleAdminChanged"`
+ */
+export const usePariMatchBaseWatchRoleAdminChanged =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: pariMatchBaseAbi,
+    eventName: 'RoleAdminChanged',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link pariMatchBaseAbi}__ and `eventName` set to `"RoleGranted"`
+ */
+export const usePariMatchBaseWatchRoleGranted =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: pariMatchBaseAbi,
+    eventName: 'RoleGranted',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link pariMatchBaseAbi}__ and `eventName` set to `"RoleRevoked"`
+ */
+export const usePariMatchBaseWatchRoleRevoked =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: pariMatchBaseAbi,
+    eventName: 'RoleRevoked',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link pariMatchBaseAbi}__ and `eventName` set to `"StakeRefunded"`
+ */
+export const usePariMatchBaseWatchStakeRefunded =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: pariMatchBaseAbi,
+    eventName: 'StakeRefunded',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link pariMatchBaseAbi}__ and `eventName` set to `"USDCTokenSet"`
+ */
+export const usePariMatchBaseWatchUsdcTokenSet =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: pariMatchBaseAbi,
+    eventName: 'USDCTokenSet',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link pariMatchBaseAbi}__ and `eventName` set to `"Unpaused"`
+ */
+export const usePariMatchBaseWatchUnpaused =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: pariMatchBaseAbi,
+    eventName: 'Unpaused',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link pariMatchBaseAbi}__ and `eventName` set to `"Upgraded"`
+ */
+export const usePariMatchBaseWatchUpgraded =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: pariMatchBaseAbi,
+    eventName: 'Upgraded',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link pariMatchFactoryAbi}__
+ */
+export const usePariMatchFactoryReadundefined =
+  /*#__PURE__*/ createUseReadContract({ abi: pariMatchFactoryAbi })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link pariMatchFactoryAbi}__ and `functionName` set to `"BASKETBALL"`
+ */
+export const usePariMatchFactoryReadBasketball =
+  /*#__PURE__*/ createUseReadContract({
+    abi: pariMatchFactoryAbi,
+    functionName: 'BASKETBALL',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link pariMatchFactoryAbi}__ and `functionName` set to `"FOOTBALL"`
+ */
+export const usePariMatchFactoryReadFootball =
+  /*#__PURE__*/ createUseReadContract({
+    abi: pariMatchFactoryAbi,
+    functionName: 'FOOTBALL',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link pariMatchFactoryAbi}__ and `functionName` set to `"allMatches"`
+ */
+export const usePariMatchFactoryReadAllMatches =
+  /*#__PURE__*/ createUseReadContract({
+    abi: pariMatchFactoryAbi,
+    functionName: 'allMatches',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link pariMatchFactoryAbi}__ and `functionName` set to `"basketballImplementation"`
+ */
+export const usePariMatchFactoryReadBasketballImplementation =
+  /*#__PURE__*/ createUseReadContract({
+    abi: pariMatchFactoryAbi,
+    functionName: 'basketballImplementation',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link pariMatchFactoryAbi}__ and `functionName` set to `"feeRecipient"`
+ */
+export const usePariMatchFactoryReadFeeRecipient =
+  /*#__PURE__*/ createUseReadContract({
+    abi: pariMatchFactoryAbi,
+    functionName: 'feeRecipient',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link pariMatchFactoryAbi}__ and `functionName` set to `"footballImplementation"`
+ */
+export const usePariMatchFactoryReadFootballImplementation =
+  /*#__PURE__*/ createUseReadContract({
+    abi: pariMatchFactoryAbi,
+    functionName: 'footballImplementation',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link pariMatchFactoryAbi}__ and `functionName` set to `"getAllMatches"`
+ */
+export const usePariMatchFactoryReadGetAllMatches =
+  /*#__PURE__*/ createUseReadContract({
+    abi: pariMatchFactoryAbi,
+    functionName: 'getAllMatches',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link pariMatchFactoryAbi}__ and `functionName` set to `"getSportType"`
+ */
+export const usePariMatchFactoryReadGetSportType =
+  /*#__PURE__*/ createUseReadContract({
+    abi: pariMatchFactoryAbi,
+    functionName: 'getSportType',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link pariMatchFactoryAbi}__ and `functionName` set to `"implementations"`
+ */
+export const usePariMatchFactoryReadImplementations =
+  /*#__PURE__*/ createUseReadContract({
+    abi: pariMatchFactoryAbi,
+    functionName: 'implementations',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link pariMatchFactoryAbi}__ and `functionName` set to `"isMatch"`
+ */
+export const usePariMatchFactoryReadIsMatch =
+  /*#__PURE__*/ createUseReadContract({
+    abi: pariMatchFactoryAbi,
+    functionName: 'isMatch',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link pariMatchFactoryAbi}__ and `functionName` set to `"leaderboardFeeBps"`
+ */
+export const usePariMatchFactoryReadLeaderboardFeeBps =
+  /*#__PURE__*/ createUseReadContract({
+    abi: pariMatchFactoryAbi,
+    functionName: 'leaderboardFeeBps',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link pariMatchFactoryAbi}__ and `functionName` set to `"leaderboardRewards"`
+ */
+export const usePariMatchFactoryReadLeaderboardRewards =
+  /*#__PURE__*/ createUseReadContract({
+    abi: pariMatchFactoryAbi,
+    functionName: 'leaderboardRewards',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link pariMatchFactoryAbi}__ and `functionName` set to `"matchSportType"`
+ */
+export const usePariMatchFactoryReadMatchSportType =
+  /*#__PURE__*/ createUseReadContract({
+    abi: pariMatchFactoryAbi,
+    functionName: 'matchSportType',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link pariMatchFactoryAbi}__ and `functionName` set to `"owner"`
+ */
+export const usePariMatchFactoryReadOwner = /*#__PURE__*/ createUseReadContract(
+  { abi: pariMatchFactoryAbi, functionName: 'owner' },
+)
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link pariMatchFactoryAbi}__ and `functionName` set to `"swapRouter"`
+ */
+export const usePariMatchFactoryReadSwapRouter =
+  /*#__PURE__*/ createUseReadContract({
+    abi: pariMatchFactoryAbi,
+    functionName: 'swapRouter',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link pariMatchFactoryAbi}__ and `functionName` set to `"usdcToken"`
+ */
+export const usePariMatchFactoryReadUsdcToken =
+  /*#__PURE__*/ createUseReadContract({
+    abi: pariMatchFactoryAbi,
+    functionName: 'usdcToken',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link pariMatchFactoryAbi}__
+ */
+export const usePariMatchFactoryWriteundefined =
+  /*#__PURE__*/ createUseWriteContract({ abi: pariMatchFactoryAbi })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link pariMatchFactoryAbi}__ and `functionName` set to `"createBasketballMatch"`
+ */
+export const usePariMatchFactoryWriteCreateBasketballMatch =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: pariMatchFactoryAbi,
+    functionName: 'createBasketballMatch',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link pariMatchFactoryAbi}__ and `functionName` set to `"createFootballMatch"`
+ */
+export const usePariMatchFactoryWriteCreateFootballMatch =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: pariMatchFactoryAbi,
+    functionName: 'createFootballMatch',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link pariMatchFactoryAbi}__ and `functionName` set to `"renounceOwnership"`
+ */
+export const usePariMatchFactoryWriteRenounceOwnership =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: pariMatchFactoryAbi,
+    functionName: 'renounceOwnership',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link pariMatchFactoryAbi}__ and `functionName` set to `"setBasketballImplementation"`
+ */
+export const usePariMatchFactoryWriteSetBasketballImplementation =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: pariMatchFactoryAbi,
+    functionName: 'setBasketballImplementation',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link pariMatchFactoryAbi}__ and `functionName` set to `"setFootballImplementation"`
+ */
+export const usePariMatchFactoryWriteSetFootballImplementation =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: pariMatchFactoryAbi,
+    functionName: 'setFootballImplementation',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link pariMatchFactoryAbi}__ and `functionName` set to `"setLeaderboardWiring"`
+ */
+export const usePariMatchFactoryWriteSetLeaderboardWiring =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: pariMatchFactoryAbi,
+    functionName: 'setLeaderboardWiring',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link pariMatchFactoryAbi}__ and `functionName` set to `"setWiring"`
+ */
+export const usePariMatchFactoryWriteSetWiring =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: pariMatchFactoryAbi,
+    functionName: 'setWiring',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link pariMatchFactoryAbi}__ and `functionName` set to `"transferOwnership"`
+ */
+export const usePariMatchFactoryWriteTransferOwnership =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: pariMatchFactoryAbi,
+    functionName: 'transferOwnership',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link pariMatchFactoryAbi}__
+ */
+export const usePariMatchFactorySimulateundefined =
+  /*#__PURE__*/ createUseSimulateContract({ abi: pariMatchFactoryAbi })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link pariMatchFactoryAbi}__ and `functionName` set to `"createBasketballMatch"`
+ */
+export const usePariMatchFactorySimulateCreateBasketballMatch =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: pariMatchFactoryAbi,
+    functionName: 'createBasketballMatch',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link pariMatchFactoryAbi}__ and `functionName` set to `"createFootballMatch"`
+ */
+export const usePariMatchFactorySimulateCreateFootballMatch =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: pariMatchFactoryAbi,
+    functionName: 'createFootballMatch',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link pariMatchFactoryAbi}__ and `functionName` set to `"renounceOwnership"`
+ */
+export const usePariMatchFactorySimulateRenounceOwnership =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: pariMatchFactoryAbi,
+    functionName: 'renounceOwnership',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link pariMatchFactoryAbi}__ and `functionName` set to `"setBasketballImplementation"`
+ */
+export const usePariMatchFactorySimulateSetBasketballImplementation =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: pariMatchFactoryAbi,
+    functionName: 'setBasketballImplementation',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link pariMatchFactoryAbi}__ and `functionName` set to `"setFootballImplementation"`
+ */
+export const usePariMatchFactorySimulateSetFootballImplementation =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: pariMatchFactoryAbi,
+    functionName: 'setFootballImplementation',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link pariMatchFactoryAbi}__ and `functionName` set to `"setLeaderboardWiring"`
+ */
+export const usePariMatchFactorySimulateSetLeaderboardWiring =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: pariMatchFactoryAbi,
+    functionName: 'setLeaderboardWiring',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link pariMatchFactoryAbi}__ and `functionName` set to `"setWiring"`
+ */
+export const usePariMatchFactorySimulateSetWiring =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: pariMatchFactoryAbi,
+    functionName: 'setWiring',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link pariMatchFactoryAbi}__ and `functionName` set to `"transferOwnership"`
+ */
+export const usePariMatchFactorySimulateTransferOwnership =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: pariMatchFactoryAbi,
+    functionName: 'transferOwnership',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link pariMatchFactoryAbi}__
+ */
+export const usePariMatchFactoryWatchundefined =
+  /*#__PURE__*/ createUseWatchContractEvent({ abi: pariMatchFactoryAbi })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link pariMatchFactoryAbi}__ and `eventName` set to `"BasketballImplementationUpdated"`
+ */
+export const usePariMatchFactoryWatchBasketballImplementationUpdated =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: pariMatchFactoryAbi,
+    eventName: 'BasketballImplementationUpdated',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link pariMatchFactoryAbi}__ and `eventName` set to `"FootballImplementationUpdated"`
+ */
+export const usePariMatchFactoryWatchFootballImplementationUpdated =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: pariMatchFactoryAbi,
+    eventName: 'FootballImplementationUpdated',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link pariMatchFactoryAbi}__ and `eventName` set to `"LeaderboardWiringSet"`
+ */
+export const usePariMatchFactoryWatchLeaderboardWiringSet =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: pariMatchFactoryAbi,
+    eventName: 'LeaderboardWiringSet',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link pariMatchFactoryAbi}__ and `eventName` set to `"MatchCreated"`
+ */
+export const usePariMatchFactoryWatchMatchCreated =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: pariMatchFactoryAbi,
+    eventName: 'MatchCreated',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link pariMatchFactoryAbi}__ and `eventName` set to `"OwnershipTransferred"`
+ */
+export const usePariMatchFactoryWatchOwnershipTransferred =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: pariMatchFactoryAbi,
+    eventName: 'OwnershipTransferred',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link pariMatchFactoryAbi}__ and `eventName` set to `"WiringSet"`
+ */
+export const usePariMatchFactoryWatchWiringSet =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: pariMatchFactoryAbi,
+    eventName: 'WiringSet',
   })
 
 /**

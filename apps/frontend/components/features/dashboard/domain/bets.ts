@@ -1,4 +1,9 @@
-/** On-chain bet shape served by `GET /bets`, with the embedded `match` join. */
+/**
+ * On-chain bet shape served by `GET /bets`. Pari-mutuel: one row per
+ * `PositionTaken` event. Status transitions are driven by the indexer on
+ * MarketResolved/Cancelled (status flip) and PositionClaimed/StakeRefunded
+ * (claimed_at + payoutAmount).
+ */
 
 import {
     fmtSelectionByMarket,
@@ -13,25 +18,26 @@ export interface MyBet {
     readonly logIndex: number;
     readonly contractAddress: `0x${string}`;
     readonly marketId: string;
-    readonly betIndex: string;
     readonly userAddress: string;
-    readonly selection: string;
-    readonly netStake: string;
-    readonly grossStake: string | null;
-    readonly oddsX10000: number;
-    readonly oddsIndex: number | null;
+    /** uint64 outcome index (0..maxOutcome). */
+    readonly outcome: string;
+    /** USDC raw — amount staked at this event. */
+    readonly stakeAmount: string;
+    /** Outcome pool snapshot post-stake (for historical implied probability). */
+    readonly newOutcomePool: string;
+    /** Total market pool snapshot post-stake. */
+    readonly newTotalPool: string;
     readonly status: BetStatus;
-    readonly payout: string | null;
-    readonly refundAmount: string | null;
+    /** USDC raw payout — filled at claim time (WON) or refund time (REFUNDED). */
+    readonly payoutAmount: string | null;
     readonly blockNumber: string;
     readonly blockTimestamp: string;
     readonly placedAt: string;
-    readonly resolvedAt: string | null;
+    /** Single timestamp for either claim or refund (parimutuel collapses both). */
     readonly claimedAt: string | null;
-    readonly refundedAt: string | null;
-    /** Lot 5 — short-name string from MarketCreated payload ("WINNER", "GOALS_TOTAL"…). */
+    /** Short-name market type ("WINNER", "GOALS_TOTAL"…) from MarketCreated. */
     readonly marketType: string | null;
-    /** Lot 5 — int16 line from FootballMarket (tenths of goal — 25 = 2.5). */
+    /** int16 line from FootballMarket (tenths of goal — 25 = 2.5). */
     readonly line: number | null;
     readonly match: {
         readonly apiFootballId: number;
@@ -42,20 +48,17 @@ export interface MyBet {
     } | null;
 }
 
-/** Map a short-name market type ("WINNER") to its bytes32 hash for catalog lookup. */
 function marketTypeHashFor(marketType: string | null | undefined): string | null {
     if (!marketType) return null;
     const key = marketType as keyof typeof MARKET_TYPE_HASHES;
     return MARKET_TYPE_HASHES[key] ?? null;
 }
 
-/** True for bets posted on a market the front silently filters (CORRECT_SCORE today). */
 export function isBetOnHiddenMarket(bet: Pick<MyBet, 'marketType'>): boolean {
     const hash = marketTypeHashFor(bet.marketType);
     return isHiddenMarketByHash(hash ?? undefined);
 }
 
-/** Filter chips — `claimable` / `refundable` are derived (status + null timestamp). */
 export type BetFilter = 'all' | 'pending' | 'won' | 'lost' | 'refunded' | 'claimable' | 'refundable';
 
 export interface BetCounts {
@@ -71,72 +74,71 @@ export interface BetCounts {
 export interface MyBetsResponse {
     readonly success: boolean;
     readonly bets: ReadonlyArray<MyBet>;
-    /** Total rows matching the active filter — independent of limit/offset. */
     readonly total: number;
-    /** Counts per `BetFilter` bucket — feeds the tab badges. */
     readonly statusCounts: BetCounts;
     readonly limit: number;
     readonly offset: number;
     readonly timestamp: number;
 }
 
-/** WON bet whose payout hasn't been collected (server-only check). */
+/** WON bet whose payout hasn't been collected. */
 export function isClaimable(bet: MyBet): boolean {
     return bet.status === 'WON' && bet.claimedAt === null;
 }
 
-/** REFUNDED bet whose stake hasn't been pulled back (server-only check). */
+/** REFUNDED bet (cancelled market) whose stake hasn't been pulled back. */
 export function isRefundable(bet: MyBet): boolean {
-    return bet.status === 'REFUNDED' && bet.refundedAt === null;
+    return bet.status === 'REFUNDED' && bet.claimedAt === null;
 }
 
-/**
- * Lightweight overlay shape passed to UI helpers — typically the snapshot
- * from the locally-claimed pub/sub store. We keep this domain layer free
- * of React APIs by accepting a plain `Map`-shaped object.
- */
 export interface ClaimOverlay {
     has(key: string): boolean;
     get(key: string): { kind: 'claimed' | 'refunded' } | undefined;
 }
 
-/** Build the overlay key for a bet — must match the store's `localClaimKey`. */
-export function betOverlayKey(bet: Pick<MyBet, 'contractAddress' | 'marketId' | 'betIndex'>): string {
-    return `${bet.contractAddress.toLowerCase()}:${String(bet.marketId)}:${String(bet.betIndex)}`;
+/**
+ * Overlay key — in parimutuel `claim(marketId)` settles every stake the user
+ * has on the winning outcome, so the natural key is (contract, marketId).
+ */
+export function betOverlayKey(bet: Pick<MyBet, 'contractAddress' | 'marketId'>): string {
+    return `${bet.contractAddress.toLowerCase()}:${String(bet.marketId)}`;
 }
 
-/** True when the user has just claimed/refunded this bet (overlay says so). */
 export function isLocallyClaimed(bet: MyBet, overlay: ClaimOverlay | undefined): boolean {
     if (!overlay) return false;
     return overlay.has(betOverlayKey(bet));
 }
 
-/** Overlay-aware claimable check — flips to false the instant we stamp it. */
 export function isClaimableNow(bet: MyBet, overlay: ClaimOverlay | undefined): boolean {
     return isClaimable(bet) && !isLocallyClaimed(bet, overlay);
 }
 
-/** Overlay-aware refundable check — flips to false the instant we stamp it. */
 export function isRefundableNow(bet: MyBet, overlay: ClaimOverlay | undefined): boolean {
     return isRefundable(bet) && !isLocallyClaimed(bet, overlay);
 }
 
-export function decodeOdds(oddsX10000: number): number {
-    return oddsX10000 / 10_000;
-}
-
-export function fmtOdds(oddsX10000: number): string {
-    return `×${decodeOdds(oddsX10000).toFixed(2)}`;
+/**
+ * Implied probability AT placement time, derived from the on-chain pool
+ * snapshot embedded in the PositionTaken event. Returns null when the
+ * snapshot is missing (degenerate row).
+ */
+export function placementImpliedProb(
+    bet: Pick<MyBet, 'newOutcomePool' | 'newTotalPool'>,
+): number | null {
+    const total = Number(bet.newTotalPool);
+    if (!Number.isFinite(total) || total <= 0) return null;
+    const outcome = Number(bet.newOutcomePool);
+    if (!Number.isFinite(outcome) || outcome < 0) return null;
+    return outcome / total;
 }
 
 /**
- * Selection label. When `marketType` is known (Lot 5 enrichment), defer to
- * the football catalog for accurate per-market labels (Over 2.5 goals,
- * Both score: Yes, etc.). Falls back to legacy 0/1/2 → Home/Draw/Away when
- * the API didn't populate marketType (predates the indexer enrichment).
+ * Outcome label. When `marketType` is known, defer to the football catalog
+ * for accurate per-market labels (Over 2.5, Both score: Yes, etc.). Falls
+ * back to the legacy 0/1/2 → Home/Draw/Away guess.
  */
 export function fmtSelection(
-    selection: string,
+    outcome: string,
     homeTeamName?: string | null,
     awayTeamName?: string | null,
     marketType?: string | null,
@@ -145,14 +147,14 @@ export function fmtSelection(
     const hash = marketTypeHashFor(marketType);
     if (hash) {
         return fmtSelectionByMarket(
-            Number(selection),
+            Number(outcome),
             hash,
             line ?? 0,
             homeTeamName ?? undefined,
             awayTeamName ?? undefined,
         );
     }
-    switch (selection) {
+    switch (outcome) {
         case '0':
             return homeTeamName ? `${homeTeamName} (Home)` : 'Home';
         case '1':
@@ -160,11 +162,10 @@ export function fmtSelection(
         case '2':
             return awayTeamName ? `${awayTeamName} (Away)` : 'Away';
         default:
-            return `Selection #${selection}`;
+            return `Outcome #${outcome}`;
     }
 }
 
-/** Format a raw USDC integer using `decimals`. */
 export function fmtStake(rawAmount: string, decimals: number | undefined, fractionDigits = 2): string {
     if (decimals === undefined) return '—';
     const value = Number(rawAmount) / 10 ** decimals;
@@ -174,12 +175,7 @@ export function fmtStake(rawAmount: string, decimals: number | undefined, fracti
     });
 }
 
-/**
- * Client-side bet counts for fully-loaded slices (e.g. `MyBetsOnMatch` —
- * one match's bets fit in a single fetch). For the paginated My Bets feed,
- * use `statusCounts` returned by the `/bets` endpoint instead — the page
- * doesn't have the global view.
- */
+/** Client-side bet counts for fully-loaded slices. */
 export function computeBetCounts(
     bets: ReadonlyArray<MyBet>,
     overlay?: ClaimOverlay,
@@ -196,11 +192,11 @@ export function computeBetCounts(
 }
 
 /**
- * Sum of unclaimed payouts (feeds ClaimAllBanner). Excludes bets the user
- * has already locally-claimed so the banner total ticks down immediately.
- * Falls back to `stake × odds` when `payout` is null — the Payout event only
- * fires at claim time, but a WON bet's expected payout is deterministic from
- * `netStake × oddsX10000` (mirror of BetRow's "$0.28 Won" display).
+ * Sum of unclaimed payouts (feeds the claim banner). For WON-not-yet-claimed
+ * rows the server hasn't filled `payoutAmount` yet, so we fall back to the
+ * stake — conservative lower bound (real payout is `stake × netPool /
+ * winningPool` and ≥ stake when the user is on the winning side). Refundable
+ * rows always get exactly the stake back.
  */
 export function sumClaimablePayouts(
     bets: ReadonlyArray<MyBet>,
@@ -209,10 +205,9 @@ export function sumClaimablePayouts(
 ): number {
     if (decimals === undefined) return 0;
     return bets
-        .filter((b) => isClaimableNow(b, overlay))
+        .filter((b) => isClaimableNow(b, overlay) || isRefundableNow(b, overlay))
         .reduce((acc, b) => {
-            if (b.payout) return acc + Number(b.payout) / 10 ** decimals;
-            const stake = Number(b.netStake) / 10 ** decimals;
-            return acc + stake * (b.oddsX10000 / 10_000);
+            if (b.payoutAmount) return acc + Number(b.payoutAmount) / 10 ** decimals;
+            return acc + Number(b.stakeAmount) / 10 ** decimals;
         }, 0);
 }

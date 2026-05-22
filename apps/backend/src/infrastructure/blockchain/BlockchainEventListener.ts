@@ -1,19 +1,19 @@
 import { injectable } from 'tsyringe';
-import { BettingMatchFactoryIndexer } from './indexers/BettingMatchFactoryIndexer';
-import { BettingMatchEventIndexer } from './indexers/BettingMatchEventIndexer';
-import { LiquidityPoolIndexer } from './indexers/LiquidityPoolIndexer';
+import { PariMatchFactoryIndexer } from './indexers/PariMatchFactoryIndexer';
+import { PariMatchEventIndexer } from './indexers/PariMatchEventIndexer';
 import { ChilizSwapRouterIndexer } from './indexers/ChilizSwapRouterIndexer';
 import { StreamWalletIndexer } from './indexers/StreamWalletIndexer';
+import { LeaderboardIndexer } from './indexers/LeaderboardIndexer';
 import { logger } from '../logging/logger';
 
 /**
- * Lifecycle orchestrator for the five blockchain event indexers.
+ * Lifecycle orchestrator for the blockchain event indexers.
  *
- *  - BettingMatchFactory : MatchCreated discovery + post-deploy wiring validation
- *  - BettingMatchEvent   : per-match BetPlaced / Payout / Refund / market state
- *  - LiquidityPool       : Deposit / Withdraw / BetRecorded / MarketSettled / fees
- *  - ChilizSwapRouter    : multi-asset entrypoints (audit only)
- *  - StreamWallet        : factory discovery + per-wallet donations / subs
+ *  - PariMatchFactory : MatchCreated discovery + post-deploy wiring validation
+ *  - PariMatchEvent   : per-match PositionTaken / Claimed / Refunded / state
+ *  - ChilizSwapRouter : multi-asset entrypoints (audit-only)
+ *  - StreamWallet     : factory discovery + per-wallet donations / subs
+ *  - Leaderboard      : WinRecorded / EpochClosed / PrizeClaimed / RolledOver
  *
  * Each indexer manages its own checkpoint and idempotent writes; they can be
  * restarted independently without producing duplicates.
@@ -21,22 +21,22 @@ import { logger } from '../logging/logger';
 @injectable()
 export class BlockchainEventListener {
     constructor(
-        private readonly bettingFactoryIndexer: BettingMatchFactoryIndexer,
-        private readonly bettingMatchEventIndexer: BettingMatchEventIndexer,
-        private readonly liquidityPoolIndexer: LiquidityPoolIndexer,
+        private readonly pariMatchFactoryIndexer: PariMatchFactoryIndexer,
+        private readonly pariMatchEventIndexer: PariMatchEventIndexer,
         private readonly chilizSwapRouterIndexer: ChilizSwapRouterIndexer,
         private readonly streamWalletIndexer: StreamWalletIndexer,
+        private readonly leaderboardIndexer: LeaderboardIndexer,
     ) {}
 
     async start(): Promise<void> {
         logger.info('Starting blockchain event listeners (5 indexers)');
         try {
             await Promise.all([
-                this.bettingFactoryIndexer.start(),
-                this.bettingMatchEventIndexer.start(),
-                this.liquidityPoolIndexer.start(),
+                this.pariMatchFactoryIndexer.start(),
+                this.pariMatchEventIndexer.start(),
                 this.chilizSwapRouterIndexer.start(),
                 this.streamWalletIndexer.start(),
+                this.leaderboardIndexer.start(),
             ]);
             logger.info('All blockchain event listeners started');
         } catch (error) {
@@ -49,11 +49,11 @@ export class BlockchainEventListener {
 
     stop(): void {
         logger.info('Stopping blockchain event listeners');
-        this.bettingFactoryIndexer.stop();
-        this.bettingMatchEventIndexer.stop();
-        this.liquidityPoolIndexer.stop();
+        this.pariMatchFactoryIndexer.stop();
+        this.pariMatchEventIndexer.stop();
         this.chilizSwapRouterIndexer.stop();
         this.streamWalletIndexer.stop();
+        this.leaderboardIndexer.stop();
         logger.info('All blockchain event listeners stopped');
     }
 }

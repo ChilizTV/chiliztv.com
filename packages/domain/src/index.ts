@@ -66,3 +66,11 @@ export * from './waitlist/repositories/IWaitlistRepository';
 
 // Access gate
 export * from './access/ports/IAccessCodeVerifier';
+
+// Leaderboard
+export * from './leaderboard/entities/LeaderboardScore';
+export * from './leaderboard/entities/LeaderboardEpoch';
+export * from './leaderboard/entities/LeaderboardClaim';
+export * from './leaderboard/repositories/ILeaderboardScoreRepository';
+export * from './leaderboard/repositories/ILeaderboardEpochRepository';
+export * from './leaderboard/repositories/ILeaderboardClaimRepository';

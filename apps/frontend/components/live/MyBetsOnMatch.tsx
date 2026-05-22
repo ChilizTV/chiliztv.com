@@ -4,9 +4,9 @@ import { useMemo } from 'react';
 import type { Address } from 'viem';
 import { useQueryClient } from '@tanstack/react-query';
 import {
-    useBettingMatchWatchPayout,
-    useBettingMatchWatchRefund,
-    useBettingMatchWatchBetPlaced,
+    usePariMatchBaseWatchPositionClaimed,
+    usePariMatchBaseWatchStakeRefunded,
+    usePariMatchBaseWatchPositionTaken,
 } from '@/lib/contracts/generated';
 import { usePoolDecimals } from '@/hooks/usePoolDecimals';
 import { useMyBetsOnMatch } from '@/components/features/dashboard/hooks/useMyBetsOnMatch';
@@ -48,22 +48,23 @@ export function MyBetsOnMatch({ contractAddress, walletAddress, onPickMarket }: 
         void qc.invalidateQueries({ queryKey: ['my-bets'] });
     };
 
-    // Live invalidation — when *this* user's bets settle, refetch the feed.
-    useBettingMatchWatchPayout({
+    // Live invalidation — refetch when this user takes, claims or refunds a
+    // position on the watched contract.
+    usePariMatchBaseWatchPositionClaimed({
         address: contractAddress,
         chainId: BETTING_CHAIN_ID,
         args: walletAddress ? { user: walletAddress as Address } : undefined,
         enabled: !!contractAddress && !!walletAddress,
         onLogs: invalidate,
     });
-    useBettingMatchWatchRefund({
+    usePariMatchBaseWatchStakeRefunded({
         address: contractAddress,
         chainId: BETTING_CHAIN_ID,
         args: walletAddress ? { user: walletAddress as Address } : undefined,
         enabled: !!contractAddress && !!walletAddress,
         onLogs: invalidate,
     });
-    useBettingMatchWatchBetPlaced({
+    usePariMatchBaseWatchPositionTaken({
         address: contractAddress,
         chainId: BETTING_CHAIN_ID,
         args: walletAddress ? { user: walletAddress as Address } : undefined,

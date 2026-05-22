@@ -55,30 +55,28 @@ export function useDashboardStats({ wallet }: UseDashboardStatsArgs): UseDashboa
     const data: DashboardStats = useMemo(() => {
         const rows: ReadonlyArray<MyBet> = bets.data?.bets ?? [];
         const settled = rows.filter((b) => b.status !== 'PENDING');
-        const wagered = settled.reduce((acc, b) => acc + rawToUsd(b.netStake, assetDecimals), 0);
+        const wagered = settled.reduce((acc, b) => acc + rawToUsd(b.stakeAmount, assetDecimals), 0);
         const won = settled.reduce(
-            (acc, b) => acc + (b.status === 'WON' ? rawToUsd(b.payout, assetDecimals) : 0),
+            (acc, b) => acc + (b.status === 'WON' ? rawToUsd(b.payoutAmount, assetDecimals) : 0),
             0,
         );
         const wins = settled.filter((b) => b.status === 'WON').length;
         const open = rows.filter((b) => b.status === 'PENDING').length;
-        const totalOdds = settled.reduce((acc, b) => acc + b.oddsX10000 / 10_000, 0);
-        const avgOdds = settled.length > 0 ? totalOdds / settled.length : 0;
 
         const netPnlUSD = won - wagered;
         const netPnlPct = wagered > 0 ? (netPnlUSD / wagered) * 100 : 0;
         const winRatePct = settled.length > 0 ? (wins / settled.length) * 100 : 0;
 
-        // Build the cumulative-PnL series from settled bets ordered by placedAt.
-        // Each settled bet shifts the running total by (payout − stake). Lost
-        // bets count as `−stake`, refunded as 0, won as `+(payout − stake)`.
+        // Cumulative-PnL series ordered by placedAt — each settled bet shifts
+        // running by (payout − stake). Pari-mutuel has no fixed odds, so the
+        // "average odds" stat is no longer meaningful; kept at 0 for shape compat.
         const ordered = [...settled].sort(
             (a, b) => new Date(a.placedAt).getTime() - new Date(b.placedAt).getTime(),
         );
         let running = 0;
         const series = ordered.map((b) => {
-            const stake = rawToUsd(b.netStake, assetDecimals);
-            if (b.status === 'WON') running += rawToUsd(b.payout, assetDecimals) - stake;
+            const stake = rawToUsd(b.stakeAmount, assetDecimals);
+            if (b.status === 'WON') running += rawToUsd(b.payoutAmount, assetDecimals) - stake;
             else if (b.status === 'LOST') running -= stake;
             return running;
         });
@@ -92,7 +90,7 @@ export function useDashboardStats({ wallet }: UseDashboardStatsArgs): UseDashboa
             totalWageredUSD: wagered,
             totalWonUSD: won,
             winRatePct,
-            avgOdds,
+            avgOdds: 0,
             openBets: open,
             totalBets: rows.length,
         };

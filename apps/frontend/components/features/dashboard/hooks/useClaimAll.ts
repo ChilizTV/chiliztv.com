@@ -4,7 +4,7 @@ import { useCallback, useState } from 'react';
 import type { Address } from 'viem';
 import { usePublicClient, useWalletClient } from 'wagmi';
 import { toast } from 'sonner';
-import { bettingMatchAbi } from '@/lib/contracts/generated';
+import { pariMatchBaseAbi } from '@/lib/contracts/generated';
 import { chilizConfig } from '@/config/chiliz.config';
 import { describeError } from '@/lib/contracts/errors';
 import { isClaimableNow, type ClaimOverlay, type MyBet } from '../domain/bets';
@@ -92,10 +92,13 @@ export function useClaimAll(bets: ReadonlyArray<MyBet>): UseClaimAllResult {
         for (let i = 0; i < groups.length; i++) {
             const g = groups[i];
             try {
+                // In parimutuel `claim(marketId)` settles the user's whole
+                // accumulated stake on that market — equivalent to the old
+                // `claimAll(marketId)` in a single tx.
                 const hash = await walletClient.writeContract({
-                    abi: bettingMatchAbi,
+                    abi: pariMatchBaseAbi,
                     address: g.contractAddress,
-                    functionName: 'claimAll',
+                    functionName: 'claim',
                     args: [g.marketId],
                 });
                 await publicClient.waitForTransactionReceipt({ hash });

@@ -9,6 +9,15 @@ import type { IClock } from '@chiliztv/domain/shared/ports/IClock';
 import type { ICacheService } from '@chiliztv/domain/shared/ports/ICacheService';
 import { FIXED_LIST_KEYS, MatchCacheKeys } from '../MatchCacheKeys';
 
+/**
+ * API-Football still provides the implied odds line we display as a hint on
+ * the UI before a market has any volume — the parimutuel contract itself
+ * carries no odds, but a brand-new market with empty pools needs *some*
+ * displayable initial probability for the bettor's UX. We persist these
+ * cosmetic odds on the `matches.odds` JSONB column and never push them
+ * on-chain (no more setMarketOdds in parimutuel).
+ */
+
 export interface SyncMatchesResult {
     matchesFetched: number;
     matchesStored: number;
@@ -158,24 +167,16 @@ export class SyncMatchesUseCase {
         });
 
         await this.matchRepository.update(updated);
-
-        // Sync odds to blockchain if contract exists
-        const contractAddress = existing.getBettingContractAddress();
-        if (contractAddress && extendedOdds) {
-            try {
-                await this.blockchainService.syncOdds(contractAddress, extendedOdds);
-            } catch {
-                // Non-fatal: odds sync failure does not fail the use case
-            }
-        }
-
+        // Note: in the parimutuel model the contract carries no odds — the
+        // displayable hint is persisted via `matchOdds` above; nothing is
+        // pushed on-chain (no more setMarketOdds).
         return mutated;
     }
 
     private async createNewMatch(
         raw: RawMatch,
         matchOdds: MatchOdds | undefined,
-        extendedOdds: ExtendedOdds | null
+        _extendedOdds: ExtendedOdds | null
     ): Promise<boolean> {
         const newMatch = Match.create({
             id:            raw.apiFootballId,
@@ -201,8 +202,6 @@ export class SyncMatchesUseCase {
 
         const saved = await this.matchRepository.save(newMatch);
 
-        if (!extendedOdds) return false;
-
         try {
             const matchName     = `${raw.homeTeamName} vs ${raw.awayTeamName}`;
             const ownerAddress  = this.blockchainService.getAdminAddress();
@@ -211,7 +210,9 @@ export class SyncMatchesUseCase {
                 ownerAddress
             );
 
-            await this.blockchainService.setupMarkets(contractAddress, extendedOdds);
+            // Seed the 3 default markets (WINNER + GOALS_TOTAL + BOTH_SCORE).
+            // No odds are pushed on-chain — parimutuel derives them from pools.
+            await this.blockchainService.setupDefaultMarkets(contractAddress);
 
             const matchWithContract = Match.reconstitute({
                 ...saved.toJSON(),

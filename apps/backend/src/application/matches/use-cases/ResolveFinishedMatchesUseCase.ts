@@ -52,10 +52,19 @@ export class ResolveFinishedMatchesUseCase {
             if (this.inFlight.has(addr)) continue;
             this.inFlight.add(addr);
             try {
-                const count = await this.blockchainService.resolveMarkets(
+                const count = await this.blockchainService.resolveMarketsByScore(
                     json.bettingContractAddress!,
-                    json.score!.home!,
-                    json.score!.away!
+                    {
+                        homeGoals: json.score!.home!,
+                        awayGoals: json.score!.away!,
+                        // Halftime + first-scorer not exposed by API-Football's
+                        // basic fixture endpoint; HALFTIME / FIRST_SCORER
+                        // markets either stay Closed or auto-cancel via
+                        // PariMatchBase's void protection.
+                        htHomeGoals: 0,
+                        htAwayGoals: 0,
+                        firstScorerId: 0,
+                    },
                 );
                 marketsResolved += count;
                 matchesProcessed += 1;

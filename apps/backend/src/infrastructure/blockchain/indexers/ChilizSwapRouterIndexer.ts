@@ -6,7 +6,7 @@ import { logger } from '../../logging/logger';
 import { TOKENS } from '@chiliztv/domain/shared/tokens';
 import { INetworkConfig } from '@chiliztv/domain/shared/ports/INetworkConfig';
 import { IIndexerCheckpointRepository } from '@chiliztv/domain/blockchain-indexing/repositories/IIndexerCheckpointRepository';
-import { IPoolEventRepository } from '@chiliztv/domain/blockchain-indexing/repositories/IPoolEventRepository';
+import { IMarketEventRepository } from '@chiliztv/domain/blockchain-indexing/repositories/IMarketEventRepository';
 import type { ILockService } from '@chiliztv/domain/shared/ports/ILockService';
 import { BaseIndexer } from './BaseIndexer';
 
@@ -37,21 +37,12 @@ const SUBSCRIPTION_WITH_TOKEN = parseAbiItem(
 const SUBSCRIPTION_WITH_USDC = parseAbiItem(
     'event SubscriptionWithUSDCEvent(address indexed subscriber, address indexed streamer, uint256 amount, uint256 platformFee, uint256 duration)',
 );
-const LIQUIDITY_DEPOSITED_WITH_CHZ = parseAbiItem(
-    'event LiquidityDepositedWithCHZ(address indexed depositor, address indexed receiver, uint256 chzSpent, uint256 usdcReceived, uint256 sharesMinted)',
-);
-const LIQUIDITY_DEPOSITED_WITH_TOKEN = parseAbiItem(
-    'event LiquidityDepositedWithToken(address indexed depositor, address indexed receiver, address indexed token, uint256 tokenSpent, uint256 usdcReceived, uint256 sharesMinted)',
-);
-const LIQUIDITY_DEPOSITED_WITH_USDC = parseAbiItem(
-    'event LiquidityDepositedWithUSDC(address indexed depositor, address indexed receiver, uint256 amount, uint256 sharesMinted)',
-);
-const TREASURY_SET = parseAbiItem('event TreasurySet(address indexed oldTreasury, address indexed newTreasury)');
-const PLATFORM_FEE_SET = parseAbiItem('event PlatformFeeBpsSet(uint16 oldFeeBps, uint16 newFeeBps)');
-const MATCH_FACTORY_SET = parseAbiItem('event MatchFactorySet(address indexed oldFactory, address indexed newFactory)');
-const STREAM_WALLET_FACTORY_SET = parseAbiItem('event StreamWalletFactorySet(address indexed oldFactory, address indexed newFactory)');
-const ROUTER_LIQUIDITY_POOL_SET = parseAbiItem('event LiquidityPoolSet(address indexed oldPool, address indexed newPool)');
 
+// Bet events carry a marketId in their payload; persisting them in
+// `market_events` keeps the audit colocated with the PariMatch events.
+// Donations/subscriptions are emitted twice (once here, once on StreamWallet)
+// — keeping the router emission lets analytics attribute volume by asset
+// path (CHZ vs token vs USDC) without joining wallet→router on-the-fly.
 const ALL_EVENTS = [
     BET_PLACED_VIA_CHZ,
     BET_PLACED_VIA_TOKEN,
@@ -62,24 +53,14 @@ const ALL_EVENTS = [
     SUBSCRIPTION_WITH_CHZ,
     SUBSCRIPTION_WITH_TOKEN,
     SUBSCRIPTION_WITH_USDC,
-    LIQUIDITY_DEPOSITED_WITH_CHZ,
-    LIQUIDITY_DEPOSITED_WITH_TOKEN,
-    LIQUIDITY_DEPOSITED_WITH_USDC,
-    TREASURY_SET,
-    PLATFORM_FEE_SET,
-    MATCH_FACTORY_SET,
-    STREAM_WALLET_FACTORY_SET,
-    ROUTER_LIQUIDITY_POOL_SET,
 ];
 
 /**
- * Audit-only indexer for the unified ChilizSwapRouter. Every multi-asset
- * entrypoint (bet/donate/subscribe/depositLiquidity via CHZ / token / USDC)
- * lands in `pool_events` so analytics can attribute volume by asset path.
- *
- * The pool-side accounting (BetRecorded, Deposit, etc.) is captured by the
- * LiquidityPoolIndexer; this one is purely about *how* each user reached
- * the pool.
+ * Audit-only indexer for the unified ChilizSwapRouter. Captures every
+ * multi-asset entrypoint (bet/donate/subscribe via CHZ / token / USDC) so
+ * analytics can attribute volume by asset path. Writes to `market_events`
+ * with `event_name` carrying the router-side event identifier; `market_id`
+ * is null for donations/subscriptions.
  */
 @injectable()
 export class ChilizSwapRouterIndexer extends BaseIndexer {
@@ -88,8 +69,8 @@ export class ChilizSwapRouterIndexer extends BaseIndexer {
     constructor(
         @inject(TOKENS.IIndexerCheckpointRepository)
         checkpoints: IIndexerCheckpointRepository,
-        @inject(TOKENS.IPoolEventRepository)
-        private readonly poolEvents: IPoolEventRepository,
+        @inject(TOKENS.IMarketEventRepository)
+        private readonly marketEvents: IMarketEventRepository,
         @inject(TOKENS.INetworkConfig)
         private readonly network: INetworkConfig,
         @inject(TOKENS.ILockService)
@@ -144,16 +125,24 @@ export class ChilizSwapRouterIndexer extends BaseIndexer {
         if (!eventName || !args || !log.transactionHash || log.logIndex == null || log.blockNumber == null) {
             return;
         }
-        // eslint-disable-next-line no-restricted-syntax -- indexer block timestamp fallback
+        // eslint-disable-next-line no-restricted-syntax -- block timestamp fallback
         const blockTimestamp = blockTimestamps.get(log.blockNumber) ?? new Date();
-        await this.poolEvents.insertIfAbsent({
+        // Bet events have a marketId; everything else (donation/subscription) doesn't.
+        const marketIdRaw = (args as { marketId?: bigint }).marketId;
+        const marketId = typeof marketIdRaw === 'bigint' ? marketIdRaw : null;
+        // For bet events, contract_address should be the bettingMatch proxy
+        // so the audit is colocated with PariMatch events on the same market.
+        const bettingMatch = (args as { bettingMatch?: string }).bettingMatch;
+        const contractAddress = (bettingMatch ?? this.routerAddress).toString().toLowerCase();
+        await this.marketEvents.insertIfAbsent({
             coordinates: {
                 transactionHash: log.transactionHash as `0x${string}`,
                 logIndex: log.logIndex,
                 blockNumber: log.blockNumber,
                 blockTimestamp,
             },
-            contractAddress: this.routerAddress,
+            contractAddress,
+            marketId,
             eventName,
             payload: serialize(args),
         });

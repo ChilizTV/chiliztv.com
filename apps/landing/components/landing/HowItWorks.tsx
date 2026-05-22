@@ -5,7 +5,7 @@ const STEPS = [
   {
     num: "▸ 01",
     title: "Connect",
-    body: "Any EVM wallet. Hold fan tokens or CHZ? You qualify for pool LP tier 1 instantly.",
+    body: "Any EVM wallet. Hold CHZ or a supported fan token? Bet directly — the router swaps to USDC at submit time.",
     icon: (
       <svg
         width="22"
@@ -41,7 +41,7 @@ const STEPS = [
   {
     num: "▸ 03",
     title: "Predict",
-    body: "1X2, Over/Under, BTTS — click an odd, sign once. Settled by smart contract on Chiliz.",
+    body: "1X2, Over/Under, BTTS — pick an outcome, stake USDC into its pool. Sign once. Settled on Chiliz.",
     icon: (
       <svg
         width="22"
@@ -59,7 +59,7 @@ const STEPS = [
   {
     num: "▸ 04",
     title: "Earn",
-    body: "Win your predictions — or stake the pool to bookmake against the predictors and split every loss.",
+    body: "Winners share the pool pro-rata. Climb the leaderboard — 1% of every market funds monthly rewards split among the top predictors.",
     icon: (
       <svg
         width="22"
@@ -87,7 +87,7 @@ export function HowItWorks() {
             in <span className="text-[#E8001D]">60 seconds.</span>
           </>
         }
-        lead="Four steps from refresh-tab spectator to pool-funding LP. No KYC, no custody, no hidden cuts — your wallet is the only credential."
+        lead="Four steps from refresh-tab spectator to on-chain predictor. No KYC, no custody, no hidden cuts — your wallet is the only credential."
       />
 
       <div

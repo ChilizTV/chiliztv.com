@@ -20,18 +20,18 @@ const envSchema = z.object({
 
   // Testnet contract addresses (required when NETWORK=testnet, validated at construction time
   // by NetworkConfigService — Zod requires them unconditionally so misconfigs fail fast).
-  BETTING_MATCH_FACTORY_ADDRESS: z.string().regex(addressRegex),
+  PARI_MATCH_FACTORY_ADDRESS: z.string().regex(addressRegex),
   STREAM_WALLET_FACTORY_ADDRESS: z.string().regex(addressRegex),
   CHILIZ_SWAP_ROUTER_ADDRESS: z.string().regex(addressRegex),
-  LIQUIDITY_POOL_PROXY: z.string().regex(addressRegex),
+  LEADERBOARD_REWARDS_ADDRESS: z.string().regex(addressRegex),
   USDC_ADDRESS: z.string().regex(addressRegex),
   WCHZ_ADDRESS: z.string().regex(addressRegex),
 
   // Mainnet variants — optional until deployment.
-  BETTING_MATCH_FACTORY_ADDRESS_MAINNET: optionalAddress,
+  PARI_MATCH_FACTORY_ADDRESS_MAINNET: optionalAddress,
   STREAM_WALLET_FACTORY_ADDRESS_MAINNET: optionalAddress,
   CHILIZ_SWAP_ROUTER_ADDRESS_MAINNET: optionalAddress,
-  LIQUIDITY_POOL_PROXY_MAINNET: optionalAddress,
+  LEADERBOARD_REWARDS_ADDRESS_MAINNET: optionalAddress,
   USDC_ADDRESS_MAINNET: optionalAddress,
   WCHZ_ADDRESS_MAINNET: optionalAddress,
 

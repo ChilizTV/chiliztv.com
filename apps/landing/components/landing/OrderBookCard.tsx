@@ -2,9 +2,9 @@ type Row = {
   name: string;
   crestBg: string;
   crestLabel: string;
-  odd: string;
-  oddTrend?: "up" | "down";
-  vol: string;
+  prob: string;
+  probTrend?: "up" | "down";
+  pool: string;
   share: number;
 };
 
@@ -13,26 +13,26 @@ const PRIMARY: Row[] = [
     name: "PSG win",
     crestBg: "linear-gradient(135deg,#004170,#001a2e)",
     crestLabel: "P",
-    odd: "1.42 ▲",
-    oddTrend: "up",
-    vol: "$84.2K",
+    prob: "62% ▲",
+    probTrend: "up",
+    pool: "$84.2K",
     share: 62,
   },
   {
     name: "Draw",
     crestBg: "#444",
     crestLabel: "=",
-    odd: "4.10",
-    vol: "$12.5K",
+    prob: "9%",
+    pool: "$12.5K",
     share: 9,
   },
   {
     name: "BAR win",
     crestBg: "linear-gradient(135deg,#a50044,#4a001f)",
     crestLabel: "B",
-    odd: "5.80 ▼",
-    oddTrend: "down",
-    vol: "$31.8K",
+    prob: "29% ▼",
+    probTrend: "down",
+    pool: "$31.8K",
     share: 23,
   },
 ];
@@ -42,35 +42,35 @@ const SECONDARY: Row[] = [
     name: "Over 2.5",
     crestBg: "#E8001D",
     crestLabel: "⌃",
-    odd: "1.65",
-    oddTrend: "up",
-    vol: "$56.0K",
+    prob: "54% ▲",
+    probTrend: "up",
+    pool: "$56.0K",
     share: 54,
   },
   {
     name: "Under 2.5",
     crestBg: "#2A2A2A",
     crestLabel: "⌄",
-    odd: "2.30",
-    vol: "$18.4K",
+    prob: "25%",
+    pool: "$18.4K",
     share: 25,
   },
   {
     name: "BTTS · Yes",
     crestBg: "linear-gradient(135deg,#E8001D,#7a0010)",
     crestLabel: "★",
-    odd: "1.55",
-    oddTrend: "up",
-    vol: "$42.1K",
+    prob: "48% ▲",
+    probTrend: "up",
+    pool: "$42.1K",
     share: 48,
   },
 ];
 
 function BookRow({ row, dashedTop }: { row: Row; dashedTop?: boolean }) {
-  const oddColor =
-    row.oddTrend === "up"
+  const probColor =
+    row.probTrend === "up"
       ? "#2dd4a4"
-      : row.oddTrend === "down"
+      : row.probTrend === "down"
         ? "#FF1737"
         : "#fff";
   return (
@@ -94,11 +94,11 @@ function BookRow({ row, dashedTop }: { row: Row; dashedTop?: boolean }) {
       </div>
       <div
         className="text-right text-[13px]"
-        style={{ color: oddColor }}
+        style={{ color: probColor }}
       >
-        {row.odd}
+        {row.prob}
       </div>
-      <div className="text-right text-[11px] text-white/45">{row.vol}</div>
+      <div className="text-right text-[11px] text-white/45">{row.pool}</div>
       <div className="pl-2 text-right">
         <span className="relative inline-block h-[4px] w-full overflow-hidden rounded-sm bg-[#1E1E1E]">
           <span
@@ -204,8 +204,8 @@ export function OrderBookCard() {
           style={{ gridTemplateColumns: "1.4fr 1fr 1fr 1fr" }}
         >
           <span>Outcome</span>
-          <span className="text-right">Odds</span>
-          <span className="text-right">Vol 24h</span>
+          <span className="text-right">Implied %</span>
+          <span className="text-right">Pool</span>
           <span className="text-right">Share</span>
         </div>
 
@@ -218,7 +218,7 @@ export function OrderBookCard() {
 
         {/* Footer */}
         <div className="font-mono-ctv mt-[14px] flex items-center justify-between border-t border-[#1E1E1E] pt-3 text-[10px] text-white/45">
-          <span>$245.0K total volume · 3 markets</span>
+          <span>$245.0K staked · 3 markets</span>
           <span className="flex items-center gap-[6px]">
             <span className="ctv-pulse-dot inline-block h-[6px] w-[6px] rounded-full bg-[#E8001D]" />
             <span className="text-[#2dd4a4]">block 8,492,134</span>

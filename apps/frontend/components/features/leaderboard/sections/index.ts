@@ -5,3 +5,5 @@ export { StatsStrip } from './StatsStrip';
 export { PreviewTable } from './PreviewTable';
 export { PrizeBreakdown } from './PrizeBreakdown';
 export { NotifyCTA } from './NotifyCTA';
+export { MyPosition } from './MyPosition';
+export { ClaimBanner } from './ClaimBanner';

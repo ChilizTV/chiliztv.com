@@ -2,9 +2,9 @@
 const TOKEN_COUNT = 35;
 
 const STATS = [
-  { label: "Pool TVL",            value: "Beta", delta: "Live on Spicy testnet",  live: false },
-  { label: "Predictions settled", value: "Beta", delta: "Accumulating on-chain",  live: false },
-  { label: "LP yield",            value: "Beta", delta: "Rewards active soon",    live: false },
+  { label: "Volume staked",       value: "Beta", delta: "Live on Spicy testnet",   live: false },
+  { label: "Markets resolved",    value: "Beta", delta: "Accumulating on-chain",   live: false },
+  { label: "Leaderboard prizes",  value: "Beta", delta: "Funded by every market",  live: false },
   { label: "Tokens supported",    value: String(TOKEN_COUNT), delta: "+ Chiliz Chain", live: true },
 ];
 

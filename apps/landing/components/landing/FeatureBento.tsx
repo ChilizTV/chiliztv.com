@@ -78,9 +78,9 @@ function Body({
 }
 
 const POOL_STATS = [
-  { l: "$PSG pool", v: "$1.24M", red: true },
-  { l: "LP yield 30d", v: "22.1%" },
-  { l: "Stakers", v: "1,840" },
+  { l: "Winning pool", v: "$1.24M", red: true },
+  { l: "Protocol fee", v: "5%" },
+  { l: "→ Leaderboard", v: "1%" },
 ];
 
 const LB_ROWS = [
@@ -101,7 +101,7 @@ export function FeatureBento() {
             <span className="text-[#E8001D]">primitives.</span>
           </>
         }
-        lead="A protocol, not a product. Every match drops a FootballMatch contract with three transparent markets. The Factory deploys, the pool funds, the chain settles."
+        lead="A protocol, not a product. Every match drops a FootballPariMatch contract with six on-chain markets. The Factory deploys, the crowd sets the odds, the chain settles."
       />
 
       <div
@@ -112,12 +112,12 @@ export function FeatureBento() {
           variant="primary"
           className="lg:col-span-4 lg:row-span-2 sm:col-span-2"
         >
-          <Label>Liquidity pools</Label>
-          <Title large>Your fan tokens become the bookmaker.</Title>
+          <Label>Pari-mutuel markets</Label>
+          <Title large>The crowd is the bookmaker.</Title>
           <Body large>
-            Stake $PSG, $BAR, $ACM in the pool. You bookmake predictions against your
-            team. Every CHZ a predictor loses, you split with the pool —
-            proportional to your share.
+            No fixed odds, no house. Pick an outcome, stake USDC into its pool.
+            When the match settles, winners share the total pool pro-rata —
+            minus a 5% protocol fee that funds the leaderboard and treasury.
           </Body>
           <div className="mt-9 flex flex-wrap gap-4">
             {POOL_STATS.map(({ l, v, red }) => (
@@ -144,7 +144,7 @@ export function FeatureBento() {
         <Card className="lg:col-span-2 lg:row-span-1 sm:col-span-1">
           <Label>On-chain markets</Label>
           <Title>1X2 · O/U · BTTS</Title>
-          <Body>Three markets per match. Smart-contract settled. No book.</Body>
+          <Body>Six markets per match. Smart-contract settled. Void-protected if a winning outcome has no takers.</Body>
         </Card>
 
         {/* B3 — Streamer wallets (2×1) */}

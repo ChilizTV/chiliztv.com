@@ -7,10 +7,10 @@ import { env } from './environment';
 export class NetworkConfigService implements INetworkConfig {
     readonly rpcUrl: string;
     readonly chainId: number;
-    readonly bettingFactoryAddress: string;
+    readonly pariMatchFactoryAddress: string;
     readonly streamWalletFactoryAddress: string;
-    readonly liquidityPoolAddress: string;
     readonly swapRouterAddress: string;
+    readonly leaderboardRewardsAddress: string;
     readonly usdcAddress: string;
     readonly wchzAddress: string;
     readonly adminPrivateKey: string;
@@ -20,10 +20,10 @@ export class NetworkConfigService implements INetworkConfig {
         const chain = isMainnet ? chilizMainnet : chilizSpicy;
         this.rpcUrl = env.CHILIZ_RPC_URL ?? chain.rpcUrls.default.http[0];
         this.chainId = chain.id;
-        this.bettingFactoryAddress      = isMainnet ? (env.BETTING_MATCH_FACTORY_ADDRESS_MAINNET ?? '') : env.BETTING_MATCH_FACTORY_ADDRESS;
+        this.pariMatchFactoryAddress    = isMainnet ? (env.PARI_MATCH_FACTORY_ADDRESS_MAINNET ?? '') : env.PARI_MATCH_FACTORY_ADDRESS;
         this.streamWalletFactoryAddress = isMainnet ? (env.STREAM_WALLET_FACTORY_ADDRESS_MAINNET ?? '') : env.STREAM_WALLET_FACTORY_ADDRESS;
-        this.liquidityPoolAddress       = isMainnet ? (env.LIQUIDITY_POOL_PROXY_MAINNET ?? '') : env.LIQUIDITY_POOL_PROXY;
         this.swapRouterAddress          = isMainnet ? (env.CHILIZ_SWAP_ROUTER_ADDRESS_MAINNET ?? '') : env.CHILIZ_SWAP_ROUTER_ADDRESS;
+        this.leaderboardRewardsAddress  = isMainnet ? (env.LEADERBOARD_REWARDS_ADDRESS_MAINNET ?? '') : env.LEADERBOARD_REWARDS_ADDRESS;
         this.usdcAddress                = isMainnet ? (env.USDC_ADDRESS_MAINNET ?? '') : env.USDC_ADDRESS;
         this.wchzAddress                = isMainnet ? (env.WCHZ_ADDRESS_MAINNET ?? '') : env.WCHZ_ADDRESS;
         this.adminPrivateKey            = env.ADMIN_PRIVATE_KEY;

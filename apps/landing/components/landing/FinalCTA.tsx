@@ -22,9 +22,9 @@ export function FinalCTA() {
             lineHeight: 0.92,
           }}
         >
-          The book is open.
+          The pools are open.
           <br />
-          <span className="text-[#E8001D]">Take a seat.</span>
+          <span className="text-[#E8001D]">Take your side.</span>
         </h2>
         <p className="mx-auto mb-10 max-w-[520px] text-[18px] font-light leading-[1.5] text-white/65">
           Join the waitlist or enter your access code to get in.

@@ -5,7 +5,6 @@ import DynamicProviderWrapper from "@/components/providers/DynamicProviderWrappe
 import { AuthProvider } from "@/providers/auth-provider";
 import { QueryProvider } from "@/providers/query-provider";
 import { Toaster } from "@chiliztv/ui";
-import { PoolStatusBanner } from "@/components/system/PoolStatusBanner";
 
 const lexend = Lexend({
   subsets: ["latin"],
@@ -49,7 +48,6 @@ export default function RootLayout({
         <DynamicProviderWrapper>
           <AuthProvider>
             <QueryProvider>
-              <PoolStatusBanner />
               {children}
               <Toaster position="top-right" richColors />
             </QueryProvider>

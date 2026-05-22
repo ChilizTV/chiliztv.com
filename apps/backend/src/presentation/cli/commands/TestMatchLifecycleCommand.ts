@@ -4,7 +4,7 @@ import { TOKENS } from '@chiliztv/domain/shared/tokens';
 import { IMatchRepository } from '@chiliztv/domain/matches/repositories/IMatchRepository';
 import { Match } from '@chiliztv/domain/matches/entities/Match';
 import type { IClock } from '@chiliztv/domain/shared/ports/IClock';
-import { BettingContractDeploymentAdapter } from '../../../infrastructure/blockchain/adapters/BettingContractDeploymentAdapter';
+import { PariMatchDeploymentAdapter } from '../../../infrastructure/blockchain/adapters/PariMatchDeploymentAdapter';
 import { matchFixture } from '../../../testing/fixtures/match.fixtures';
 import { logger } from '../../../infrastructure/logging/logger';
 
@@ -23,19 +23,10 @@ import { logger } from '../../../infrastructure/logging/logger';
 @injectable()
 export class TestMatchLifecycleCommand {
     private readonly TEST_MATCH_ID = 999004;
-    private readonly DEFAULT_ODDS = {
-        homeWin: 2.1,
-        draw: 3.2,
-        awayWin: 3.5,
-        over25: 1.85,
-        under25: 1.95,
-        bttsYes: 1.7,
-        bttsNo: 2.1,
-    };
 
     constructor(
         @inject(TOKENS.IMatchRepository) private readonly matchRepository: IMatchRepository,
-        @inject(BettingContractDeploymentAdapter) private readonly deploymentAdapter: BettingContractDeploymentAdapter,
+        @inject(PariMatchDeploymentAdapter) private readonly deploymentAdapter: PariMatchDeploymentAdapter,
         @inject(TOKENS.IClock) private readonly clock: IClock,
     ) {}
 
@@ -77,7 +68,7 @@ export class TestMatchLifecycleCommand {
         const ownerAddress = this.deploymentAdapter.getAdminAddress();
         logger.info('Deploying FootballMatch contract');
         const contractAddress = await this.deploymentAdapter.deployFootballMatch(matchName, ownerAddress);
-        await this.deploymentAdapter.setupDefaultMarkets(contractAddress, this.DEFAULT_ODDS);
+        await this.deploymentAdapter.setupDefaultMarkets(contractAddress);
 
         const updated = this.cloneWith(match, { bettingContractAddress: contractAddress });
         await this.matchRepository.update(updated);

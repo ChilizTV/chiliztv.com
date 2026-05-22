@@ -1,9 +1,11 @@
 import { keccak256, toBytes } from 'viem';
 import type { MarketSpec, MarketOutcome } from './types';
 
-// Hashes are computed once at module load — viem's keccak256 is deterministic
-// and the strings match the `bytes32 public constant` declarations in
-// FootballMatch.sol. The unit tests assert these match the on-chain values.
+// Hashes are computed once at module load. The strings match the
+// `bytes32 public constant` declarations in FootballPariMatch.sol (lines
+// 40-46) and BasketballPariMatch.sol (lines 45-51) — `keccak256("WINNER")`
+// with no prefix or padding. Unit tests assert byte-equality against the
+// on-chain constants via the generated wagmi hooks.
 export const MARKET_TYPE_HASHES = {
     WINNER: keccak256(toBytes('WINNER')),
     GOALS_TOTAL: keccak256(toBytes('GOALS_TOTAL')),
@@ -11,6 +13,13 @@ export const MARKET_TYPE_HASHES = {
     HALFTIME: keccak256(toBytes('HALFTIME')),
     FIRST_SCORER: keccak256(toBytes('FIRST_SCORER')),
     CORRECT_SCORE: keccak256(toBytes('CORRECT_SCORE')),
+    GOALS_EXACT: keccak256(toBytes('GOALS_EXACT')),
+    TOTAL_POINTS: keccak256(toBytes('TOTAL_POINTS')),
+    SPREAD: keccak256(toBytes('SPREAD')),
+    QUARTER_WINNER: keccak256(toBytes('QUARTER_WINNER')),
+    FIRST_TO_SCORE: keccak256(toBytes('FIRST_TO_SCORE')),
+    HIGHEST_QUARTER: keccak256(toBytes('HIGHEST_QUARTER')),
+    POINTS_EXACT: keccak256(toBytes('POINTS_EXACT')),
 } as const;
 
 /** Markets that exist on-chain but the front silently filters out. */
@@ -93,10 +102,75 @@ export const FOOTBALL_MARKETS: Readonly<Record<string, MarketSpec>> = {
             { selection: 2, label: 'No goal', hint: '0-0 at full time' },
         ],
     },
+    // New in parimutuel: bucketed total goals (line = max bucket index).
+    // Outcomes 0..line are rendered with generic numeric labels — UI fallback
+    // until a dedicated bucket picker ships.
+    [MARKET_TYPE_HASHES.GOALS_EXACT.toLowerCase()]: {
+        key: 'goalsexact',
+        label: 'Goals Exact',
+        hint: 'Bucket par tranche',
+        hasLine: true,
+        supportsBetting: true,
+        getOutcomes: (line) => {
+            const maxBucket = Math.max(0, Math.min(line, 99));
+            return Array.from({ length: maxBucket + 1 }, (_v, idx) => ({
+                selection: idx,
+                label: idx === maxBucket ? `${idx}+` : `${idx}`,
+                hint: idx === maxBucket ? `${idx} or more goals` : `Exactly ${idx} goals`,
+            }));
+        },
+    },
 };
 
-/** Returns the spec or `null` for unknown / hidden / basketball markets. */
+export const BASKETBALL_MARKETS: Readonly<Record<string, MarketSpec>> = {
+    [MARKET_TYPE_HASHES.WINNER.toLowerCase()]: {
+        key: 'bb-winner',
+        label: 'Winner',
+        hint: 'Home / Away',
+        hasLine: false,
+        supportsBetting: true,
+        getOutcomes: (_line, homeTeam, awayTeam) => [
+            { selection: 0, label: homeTeam ?? 'Home', hint: 'Home win' },
+            { selection: 1, label: awayTeam ?? 'Away', hint: 'Away win' },
+        ],
+    },
+    [MARKET_TYPE_HASHES.TOTAL_POINTS.toLowerCase()]: {
+        key: 'totalpoints',
+        label: 'Total Points',
+        hint: 'Over / Under',
+        hasLine: true,
+        supportsBetting: true,
+        getOutcomes: (line) => {
+            const ln = (line / 10).toFixed(1);
+            return [
+                { selection: 0, label: `Under ${ln}`, hint: 'Fewer points' },
+                { selection: 1, label: `Over ${ln}`, hint: 'More points' },
+            ];
+        },
+    },
+    [MARKET_TYPE_HASHES.SPREAD.toLowerCase()]: {
+        key: 'spread',
+        label: 'Spread',
+        hint: 'Home covers / Away covers',
+        hasLine: true,
+        supportsBetting: true,
+        getOutcomes: (line, homeTeam, awayTeam) => {
+            const ln = (line / 10).toFixed(1);
+            return [
+                { selection: 0, label: `${homeTeam ?? 'Home'} ${ln}`, hint: 'Home covers spread' },
+                { selection: 1, label: `${awayTeam ?? 'Away'} -${ln}`, hint: 'Away covers spread' },
+            ];
+        },
+    },
+};
+
+/**
+ * Returns the spec for a known football OR basketball market. Falls back to
+ * `null` for hidden markets (CORRECT_SCORE) or genuinely unknown types — the
+ * caller is expected to render `GenericOutcomePicks` in the latter case.
+ */
 export function getMarketSpec(marketTypeHash: string | undefined): MarketSpec | null {
     if (!marketTypeHash) return null;
-    return FOOTBALL_MARKETS[marketTypeHash.toLowerCase()] ?? null;
+    const key = marketTypeHash.toLowerCase();
+    return FOOTBALL_MARKETS[key] ?? BASKETBALL_MARKETS[key] ?? null;
 }

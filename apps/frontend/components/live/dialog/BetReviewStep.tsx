@@ -9,12 +9,15 @@ interface BetReviewStepProps {
     readonly marketBadge: string;
     readonly marketLabel: string;
     readonly selectionLabel: string;
-    readonly oddsDecimal: number | null;
     readonly stakeLabel: string;
     readonly stakeUsdcEquiv: string | null;
     readonly slippageBps: number | null;
-    readonly grossPayoutUsdc: number | null;
+    /** Net payout if pick wins — already post-fee, mirrors PariMatchBase payout(). */
+    readonly netPayoutUsdc: number | null;
+    /** Protocol fee in bps (informational). */
     readonly feeBps: number;
+    /** Slice of fee re-routed to the leaderboard pool (informational). */
+    readonly leaderboardFeeBps?: number;
 }
 
 function fmtUsd(n: number, dp = 2) {
@@ -59,15 +62,16 @@ export function BetReviewStep({
     marketBadge,
     marketLabel,
     selectionLabel,
-    oddsDecimal,
     stakeLabel,
     stakeUsdcEquiv,
     slippageBps,
-    grossPayoutUsdc,
+    netPayoutUsdc,
     feeBps,
+    leaderboardFeeBps = 100,
 }: BetReviewStepProps) {
-    const fee = grossPayoutUsdc !== null ? grossPayoutUsdc * (feeBps / 10_000) : null;
-    const netPayout = grossPayoutUsdc !== null && fee !== null ? grossPayoutUsdc - fee : null;
+    const totalFeePct = feeBps / 100;
+    const lbPct = leaderboardFeeBps / 100;
+    const treasuryPct = totalFeePct - lbPct;
 
     return (
         <div>
@@ -101,7 +105,6 @@ export function BetReviewStep({
             <div className="mt-4 rounded-xl border border-[#1E1E1E] bg-[#0d0d0d] px-5 py-2">
                 <Row label="Market" value={`${marketBadge} · ${marketLabel}`} />
                 <Row label="Selection" value={selectionLabel} />
-                <Row label="Odds" value={oddsDecimal !== null ? oddsDecimal.toFixed(2) : '—'} mono />
                 <Row
                     label="Stake"
                     value={
@@ -116,10 +119,14 @@ export function BetReviewStep({
                     mono
                 />
                 {slippageBps !== null && <Row label="Swap slippage" value={`${(slippageBps / 100).toFixed(2)}%`} mono />}
-                <Row label="Protocol fee" value={`${(feeBps / 100).toFixed(1)}% on win`} mono />
+                <Row
+                    label="Protocol fee"
+                    value={`${totalFeePct.toFixed(1)}% (${treasuryPct.toFixed(1)}% treasury · ${lbPct.toFixed(1)}% leaderboard)`}
+                    mono
+                />
             </div>
 
-            {netPayout !== null && (
+            {netPayoutUsdc !== null && (
                 <div
                     className="mt-4 flex items-center justify-between rounded-xl border p-5"
                     style={{ borderColor: 'rgba(45,212,164,0.4)', background: 'rgba(45,212,164,0.06)' }}
@@ -129,20 +136,20 @@ export function BetReviewStep({
                             If your pick wins
                         </div>
                         <div className="font-mono-ctv mt-1 text-[10px] uppercase tracking-[0.16em] text-white/45">
-                            Net payout, after fee
+                            Estimated payout · final amount depends on the closing pool
                         </div>
                     </div>
                     <div
                         className="font-display tabular-nums text-[#2dd4a4]"
                         style={{ fontSize: 28, fontWeight: 800, letterSpacing: '-0.01em' }}
                     >
-                        {fmtUsd(netPayout)}
+                        {fmtUsd(netPayoutUsdc)}
                     </div>
                 </div>
             )}
 
             <div className="font-mono-ctv mt-3 text-[10px] uppercase tracking-[0.16em] text-white/35">
-                Settles via BettingMatch · Chiliz Spicy · gas paid in CHZ
+                Pari-mutuel · Chiliz Spicy · gas paid in CHZ
             </div>
         </div>
     );

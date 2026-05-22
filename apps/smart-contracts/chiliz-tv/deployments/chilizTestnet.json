@@ -1,49 +1,27 @@
 {
   "network": "chilizTestnet",
   "chainId": 88882,
-  "timestamp": "2026-05-09T00:00:00Z",
+  "timestamp": "2026-05-16T21:14:18Z",
   "contracts": [
     {
-      "name": "BettingMatchFactory",
-      "address": "0x881ae75ec8cb5280e5227453241dfe2c18ddee54"
+      "name": "PariMatchFactory",
+      "address": "0xbba7f5d1ae23ec476d71d24521a39536b9ec8a2f"
     },
     {
       "name": "StreamWalletFactory",
-      "address": "0xc30b1493ef233b8e0caeff7e2d59c38cbaa0dfb8"
+      "address": "0xc8647bd4ce332a6a923c66ddd6b5a2f757599399"
     },
     {
       "name": "ChilizSwapRouter",
-      "address": "0xca7cb6a79cb9c93534c54ba3769a286153f0a55e"
+      "address": "0x0c772b744e69bd71b1647b0367a00eb89b0b075d"
     },
     {
-      "name": "LiquidityPool",
-      "address": "0xd04831d5f58c6246988c3ecc02345ee65499aab3"
+      "name": "LeaderboardRewards",
+      "address": "0xae845c1035f9abca03f63cc8fdabba94db500981"
     },
     {
       "name": "ERC1967Proxy",
-      "address": "0x75fa6ab55d9301229ba907239203acff85b83c3a"
-    }
-  ],
-  "externalContracts": [
-    {
-      "name": "USDC",
-      "description": "Spicy testnet USDC (6 dp). Used as the LP underlying asset and the swap router's settlement currency.",
-      "address": "0x66f3ee96a0185216f8cb427d2bc4e53947cef60c"
-    },
-    {
-      "name": "WCHZ",
-      "description": "Wrapped CHZ (18 dp). Used by the Kayen router for native-CHZ swap paths.",
-      "address": "0x678c34581db0a7808d0ac669d7025f1408c9a3c6"
-    },
-    {
-      "name": "KayenMasterRouter",
-      "description": "Kayen V2 router used by ChilizSwapRouter for multi-token → USDC swaps.",
-      "address": "0xb82b0e988a1FcA39602c5079382D360C870b44c8"
-    },
-    {
-      "name": "WCHZ_USDC_Pair",
-      "description": "Kayen pair (WCHZ/USDC) backing the CHZ → USDC swap path.",
-      "address": "0xb93dc0d6e6d589b6bb4017bf7ebe69b47c9f4338"
+      "address": "0xd538e1f362c7c91fff1822e2b29eaa6591548577"
     }
   ]
 }

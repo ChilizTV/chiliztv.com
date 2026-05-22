@@ -168,9 +168,8 @@ function StepsList({ items }: { items: Step[] }) {
 
 function ChapterProduct() {
   const tiles = [
-    { n: "// 01", title: "Predict", body: "On-chain prediction markets. Settled in USDC. Zero placement fees." },
+    { n: "// 01", title: "Predict", body: "On-chain pari-mutuel markets. Stake USDC, share the winning pool." },
     { n: "// 02", title: "Stream", body: "Broadcast with OBS. Earn USDC tips paid straight to your wallet." },
-    { n: "// 03", title: "LP", body: "Deposit USDC. Earn 60% of every losing prediction, auto-compounded." },
   ];
   return (
     <ChapterShell num="01" metaTop="The product" metaBottom="What it is">
@@ -178,9 +177,9 @@ function ChapterProduct() {
         Sports meet <span className="text-[#E8001D]">on-chain economics.</span>
       </ChapterHeading>
       <ChapterLead>
-        ChilizTV is a fan-first SocialFi platform on Chiliz Chain. Three primitives any user can pick up in minutes.
+        ChilizTV is a fan-first SocialFi platform on Chiliz Chain. Two primitives any user can pick up in minutes.
       </ChapterLead>
-      <div className="grid grid-cols-1 border-t border-l border-[#1E1E1E] sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid grid-cols-1 border-t border-l border-[#1E1E1E] lg:grid-cols-2">
         {tiles.map(({ n, title, body }) => (
           <div
             key={n}
@@ -232,7 +231,7 @@ function ChapterPredict() {
       title: "Choose side and amount",
       body: (
         <p className="m-0">
-          Pick an outcome. Stake in USDC, or any supported token — the router converts automatically via Kayen DEX. Dialog shows live odds, payout, net winnings, slippage tolerance.
+          Pick an outcome. Stake in USDC, or any supported token — the router converts automatically via Kayen DEX. Dialog shows the live pool, your implied probability and an estimated payout.
         </p>
       ),
     },
@@ -241,7 +240,7 @@ function ChapterPredict() {
       title: "Confirm on-chain",
       body: (
         <p className="m-0">
-          One signature. Position locks at the odds the moment your transaction mines — not when you opened the dialog. Immutable until settlement.
+          One signature. Your stake joins the outcome&apos;s pool the moment the tx mines — immutable until settlement. Final payout depends on the closing pool distribution.
         </p>
       ),
     },
@@ -261,7 +260,7 @@ function ChapterPredict() {
         Predict what <span className="text-[#E8001D]">you know.</span>
       </ChapterHeading>
       <ChapterLead>
-        On-chain markets per match. Odds blended from five sharp bookmakers via oracle. Predictors pay zero fees — the edge is in the pool, not the spread.
+        On-chain markets per match. No bookmaker — the crowd&apos;s positions set the implied probability. 5% fee on the winning pool — 1% funds the leaderboard.
       </ChapterLead>
       <StepsList items={steps} />
     </ChapterShell>
@@ -303,152 +302,57 @@ function Aside({
   );
 }
 
-function PoolFlowSvg() {
-  return (
-    <div
-      role="img"
-      aria-label="Pool flow: losing predictions split 40% treasury / 60% LP NAV; winning predictions paid 100% by the pool with no treasury share."
-      className="my-12 border-y border-[#1E1E1E] py-9"
-    >
-      <div className="font-mono-ctv mb-7 flex items-center gap-3.5 text-[10px] font-bold uppercase tracking-[0.22em] text-[#E8001D]">
-        <span aria-hidden className="block h-px w-6 bg-[#E8001D]" />
-        // The flow — losing predictions / winning predictions
-      </div>
-      <svg viewBox="0 0 640 300" xmlns="http://www.w3.org/2000/svg" className="block h-auto w-full max-w-190">
-        <defs>
-          <marker id="v3-arr-red" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
-            <path d="M0,0 L10,5 L0,10 z" fill="#E8001D" />
-          </marker>
-          <marker id="v3-arr-green" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
-            <path d="M0,0 L10,5 L0,10 z" fill="#2dd4a4" />
-          </marker>
-          <marker id="v3-arr-mute" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
-            <path d="M0,0 L10,5 L0,10 z" fill="rgba(255,255,255,0.4)" />
-          </marker>
-        </defs>
-        <g style={{ fontFamily: "'JetBrains Mono', monospace", textTransform: "uppercase" }}>
-          <rect x="20" y="40" width="140" height="56" fill="#0A0A0A" stroke="#1E1E1E" />
-          <text x="90" y="66" textAnchor="middle" fill="#fff" fontSize="11" fontWeight="700" letterSpacing="0.14em">Predictors</text>
-          <text x="90" y="84" textAnchor="middle" fill="#E8001D" fontSize="11" fontWeight="700" letterSpacing="0.14em">lose</text>
-
-          <rect x="250" y="32" width="140" height="72" fill="#0A0A0A" stroke="#E8001D" strokeWidth="1.5" />
-          <text x="320" y="62" textAnchor="middle" fill="#fff" fontSize="11" fontWeight="700" letterSpacing="0.14em">Pool</text>
-          <text x="320" y="82" textAnchor="middle" fill="rgba(255,255,255,0.45)" fontSize="10" fontWeight="500" letterSpacing="0.16em">USDC vault</text>
-
-          <rect x="480" y="10" width="140" height="56" fill="#0A0A0A" stroke="#1E1E1E" />
-          <text x="550" y="36" textAnchor="middle" fill="#fff" fontSize="11" fontWeight="700" letterSpacing="0.14em">Treasury</text>
-          <text x="550" y="54" textAnchor="middle" fill="rgba(255,255,255,0.45)" fontSize="10" fontWeight="500" letterSpacing="0.16em">protocol reserve</text>
-
-          <rect x="480" y="80" width="140" height="56" fill="#0A0A0A" stroke="#1E1E1E" />
-          <text x="550" y="106" textAnchor="middle" fill="#fff" fontSize="11" fontWeight="700" letterSpacing="0.14em">LP NAV</text>
-          <text x="550" y="124" textAnchor="middle" fill="#2dd4a4" fontSize="11" fontWeight="700" letterSpacing="0.14em">↑ compounds</text>
-
-          <line x1="160" y1="68" x2="246" y2="68" stroke="#E8001D" strokeWidth="2" markerEnd="url(#v3-arr-red)" />
-          <path d="M390 56 C 430 48, 450 40, 476 38" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="2" markerEnd="url(#v3-arr-mute)" />
-          <text x="432" y="32" textAnchor="middle" fill="rgba(255,255,255,0.45)" fontSize="10" fontWeight="500" letterSpacing="0.16em">40%</text>
-          <path d="M390 80 C 430 90, 450 100, 476 108" fill="none" stroke="#2dd4a4" strokeWidth="2" markerEnd="url(#v3-arr-green)" />
-          <text x="432" y="108" textAnchor="middle" fill="#2dd4a4" fontSize="11" fontWeight="700" letterSpacing="0.14em">60%</text>
-
-          <line x1="20" y1="180" x2="620" y2="180" stroke="#1E1E1E" strokeDasharray="3 4" />
-
-          <rect x="20" y="220" width="140" height="56" fill="#0A0A0A" stroke="#1E1E1E" />
-          <text x="90" y="246" textAnchor="middle" fill="#fff" fontSize="11" fontWeight="700" letterSpacing="0.14em">Predictors</text>
-          <text x="90" y="264" textAnchor="middle" fill="#2dd4a4" fontSize="11" fontWeight="700" letterSpacing="0.14em">win</text>
-
-          <rect x="250" y="220" width="140" height="56" fill="#0A0A0A" stroke="#E8001D" strokeWidth="1.5" />
-          <text x="320" y="246" textAnchor="middle" fill="#fff" fontSize="11" fontWeight="700" letterSpacing="0.14em">Pool</text>
-          <text x="320" y="264" textAnchor="middle" fill="rgba(255,255,255,0.45)" fontSize="10" fontWeight="500" letterSpacing="0.16em">full payout</text>
-
-          <line x1="246" y1="248" x2="164" y2="248" stroke="#2dd4a4" strokeWidth="2" markerEnd="url(#v3-arr-green)" />
-          <text x="205" y="240" textAnchor="middle" fill="rgba(255,255,255,0.45)" fontSize="10" fontWeight="500" letterSpacing="0.16em">100%</text>
-
-          <text x="420" y="244" textAnchor="start" fill="rgba(255,255,255,0.45)" fontSize="10" fontWeight="500" letterSpacing="0.16em">No treasury share</text>
-          <text x="420" y="264" textAnchor="start" fill="rgba(255,255,255,0.45)" fontSize="10" fontWeight="500" letterSpacing="0.16em">LP carries the loss</text>
-        </g>
-      </svg>
-    </div>
-  );
-}
-
-function ChapterLiquidity() {
-  const stats = [
-    { v: "60", label: "Your share", b: "Of every losing prediction" },
-    { v: "40", label: "Treasury share", b: "Protocol reserve" },
-    { v: "05", label: "Performance fee", b: "On gain only" },
-  ];
+function ChapterParimutuel() {
   const steps: Step[] = [
     {
       n: "01 →",
-      title: "Open the pool tab",
+      title: "Pick an outcome",
       body: (
         <p className="m-0">
-          Head to <strong className="font-medium text-white">Discover → Pool</strong>. The pool is global — it backs every match. Live: TVL, liabilities, utilization, free balance, APY.
+          Each market has 2-3 outcomes (Home / Draw / Away, Over / Under, etc.). Pick one — your stake joins that outcome&apos;s pool.
         </p>
       ),
     },
     {
       n: "02 →",
-      title: "Deposit USDC",
+      title: "Stake USDC",
       body: (
         <p className="m-0">
-          You receive <strong className="font-medium text-white">ctvLP</strong> shares — an ERC-4626 vault token. No lock-up. Brief cooldown after deposit prevents flash-NAV manipulation.
+          Your stake is locked in the match contract until full-time. Stake in USDC directly, or any supported token — the router converts via Kayen DEX in the same tx.
         </p>
       ),
     },
     {
       n: "03 →",
-      title: "Compound automatically",
+      title: "Match resolves",
       body: (
         <p className="m-0">
-          Every losing prediction flows back into the pool. 40% to treasury, 60% into your share NAV. Share price rises silently — no claim needed.
+          When the score is final, the resolver reads it on-chain and identifies the winning outcome. The contract closes the market — no manual settlement.
         </p>
       ),
     },
     {
       n: "04 →",
-      title: "Withdraw on your schedule",
+      title: "Claim your share",
       body: (
         <p className="m-0">
-          Redeem anytime after the cooldown. 5% performance fee applies only to the gain above your cost basis. Loss-only exits are fee-free.
+          Winners split <strong className="font-medium text-white">95%</strong> of the total pool, pro-rata to their stake on the winning outcome. <strong className="font-medium text-white">5%</strong> protocol fee — <strong className="font-medium text-white">1%</strong> funds the leaderboard rewards, <strong className="font-medium text-white">4%</strong> goes to treasury.
         </p>
       ),
     },
   ];
   return (
-    <ChapterShell num="03" metaTop="The other side" metaBottom="Provide liquidity">
+    <ChapterShell num="03" metaTop="The economics" metaBottom="How the pool pays out">
       <ChapterHeading>
-        Be the house. <span className="text-[#E8001D]">Earn the edge.</span>
+        Winners split the pool. <span className="text-[#E8001D]">Pari-mutuel.</span>
       </ChapterHeading>
       <ChapterLead>
-        Don&apos;t pick a winner — take the other side of every prediction on the platform. Deposit USDC, receive ctvLP, earn from losing predictions. No active management.
+        No bookmaker. No odds set in advance. The crowd&apos;s positions set the implied probability — winners share what losers staked, minus a small fee.
       </ChapterLead>
-
-      <div className="grid grid-cols-1 border-t border-l border-[#1E1E1E] lg:grid-cols-3">
-        {stats.map(({ v, label, b }) => (
-          <div key={label} className="border-r border-b border-[#1E1E1E] px-8 pt-10 pb-12">
-            <div
-              className="font-display font-black text-[#E8001D]"
-              style={{
-                fontSize: "clamp(80px, 9vw, 140px)",
-                lineHeight: 0.9,
-                letterSpacing: "-0.035em",
-                marginBottom: "14px",
-              }}
-            >
-              {v}
-              <span style={{ fontSize: "0.5em", color: "#fff" }}>%</span>
-            </div>
-            <div className="font-mono-ctv text-[11px] font-bold uppercase tracking-[0.16em] text-white/40">
-              {label}
-              <b className="mt-1 block font-bold text-white">{b}</b>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      <PoolFlowSvg />
-
       <StepsList items={steps} />
+      <p className="mt-10 max-w-200 text-[14px] font-light leading-[1.65] text-white/55">
+        <strong className="font-medium text-white">Void protection.</strong> If no one staked on the winning outcome, the market is auto-cancelled and every stake is refunded — no orphan winners, no lost USDC.
+      </p>
     </ChapterShell>
   );
 }
@@ -497,13 +401,10 @@ export function HowItWorksPage() {
       <Hero />
       <ChapterProduct />
       <ChapterPredict />
-      <Aside label="// Aside — Where the odds come from">
-        Five sharp books — <span className="text-[#E8001D]">Pinnacle, Betfair, Bet365, 1xBet, Marathonbet</span> — blended on-chain via an API. ~4% house margin. The pool quotes; <span className="text-[#E8001D]">predictors take it or leave it.</span>
+      <Aside label="// Aside — Where the probability comes from">
+        Each outcome&apos;s implied probability is the share of total USDC staked on it. <span className="text-[#E8001D]">The crowd sets the odds.</span> Sharp-book references are shown only as a hint when no positions have been taken yet.
       </Aside>
-      <ChapterLiquidity />
-      <Aside label="// Critical — LP is not risk-free" tinted>
-        When predictors win, the pool pays in full. <span className="text-[#E8001D]">Your ctvLP shares can be worth less</span> than what you deposited. The treasury shares the upside, <span className="text-[#E8001D]">not the downside.</span> Size your position accordingly.
-      </Aside>
+      <ChapterParimutuel />
       <EndCTA />
     </section>
   );

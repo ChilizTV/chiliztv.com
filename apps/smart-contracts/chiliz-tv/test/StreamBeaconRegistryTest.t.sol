@@ -286,9 +286,19 @@ contract StreamBeaconRegistryTest is Test {
         uint256 amount = 100 ether;
         uint256 duration = 30 days;
 
+        // Use `type(uint256).max` for the deadline — `block.timestamp + 1 hours`
+        // is mis-hoisted by solc 0.8.24's `via_ir = true` pipeline (the
+        // optimizer treats `block.timestamp` as side-effect-free and reuses
+        // the pre-`vm.warp` value across two calls in the same function),
+        // which made the renewal revert with `DeadlinePassed` in CI. The test
+        // is checking renewal flow, not deadline-expiry semantics, so an
+        // infinite deadline keeps the assertion meaningful without fighting
+        // the IR optimizer.
+        uint256 deadline = type(uint256).max;
+
         // First subscription
         vm.prank(viewer1);
-        address wallet = factory.subscribeToStream(streamer1, duration, amount, 0, block.timestamp + 1 hours, address(fanToken));
+        address wallet = factory.subscribeToStream(streamer1, duration, amount, 0, deadline, address(fanToken));
 
         StreamWallet streamWallet = StreamWallet(payable(wallet));
 
@@ -298,7 +308,7 @@ contract StreamBeaconRegistryTest is Test {
 
         // Renew subscription
         vm.prank(viewer1);
-        factory.subscribeToStream(streamer1, duration, amount, 0, block.timestamp + 1 hours, address(fanToken));
+        factory.subscribeToStream(streamer1, duration, amount, 0, deadline, address(fanToken));
 
         // Should be subscribed again
         assertTrue(streamWallet.isSubscribed(viewer1));

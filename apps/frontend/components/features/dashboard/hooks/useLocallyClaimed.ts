@@ -11,9 +11,9 @@ import type { MyBet } from '../domain/bets';
  */
 export function useLocallyClaimed(): {
     readonly map: ReadonlyMap<string, LocalClaimEntry>;
-    readonly lookup: (bet: Pick<MyBet, 'contractAddress' | 'marketId' | 'betIndex'>) => LocalClaimEntry | undefined;
-    readonly mark: (bet: Pick<MyBet, 'contractAddress' | 'marketId' | 'betIndex'>, kind: LocalClaimKind, txHash?: string) => void;
-    readonly markMany: (bets: ReadonlyArray<Pick<MyBet, 'contractAddress' | 'marketId' | 'betIndex'>>, kind: LocalClaimKind, txHash?: string) => void;
+    readonly lookup: (bet: Pick<MyBet, 'contractAddress' | 'marketId'>) => LocalClaimEntry | undefined;
+    readonly mark: (bet: Pick<MyBet, 'contractAddress' | 'marketId'>, kind: LocalClaimKind, txHash?: string) => void;
+    readonly markMany: (bets: ReadonlyArray<Pick<MyBet, 'contractAddress' | 'marketId'>>, kind: LocalClaimKind, txHash?: string) => void;
 } {
     const map = useSyncExternalStore(
         claimedBetsStore.subscribe,

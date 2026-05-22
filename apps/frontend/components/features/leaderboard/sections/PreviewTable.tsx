@@ -1,40 +1,64 @@
+'use client';
+
+import { formatUnits } from 'viem';
 import { Eyebrow } from '../primitives';
-import { MOCK_BLURRED_ROWS, MOCK_TOP_10 } from '../domain';
+import { useLeaderboardTop } from '@/hooks/api';
+import type { MedalKind } from '../domain/medals';
 import { PREVIEW_COLS, PreviewRow } from './PreviewRow';
+import type { PreviewRow as PreviewRowData } from '../domain/data';
 
-const COLUMNS = ['#', 'Predictor', 'PnL', 'Win', 'Vol', 'Tier'] as const;
+const COLUMNS = ['#', 'Predictor', 'Payouts', 'Rank', 'Vol', 'Tier'] as const;
+const USDC_DECIMALS = 6;
 
-/** Pixel blur applied to rows 11+ to suggest a deeper list. */
-const BLUR_PX = 4.5;
+function medalFor(rank: number): MedalKind | undefined {
+    if (rank === 1) return 'gold';
+    if (rank === 2) return 'silver';
+    if (rank === 3) return 'bronze';
+    if (rank <= 10) return 'honor';
+    return undefined;
+}
 
-/**
- * Preview leaderboard — what the live ranking will look like once
- * Cycle 0 ships. Rows 1-10 render sharp; 11-13 render blurred. A
- * watermark overlay covers the lower half with a "Coming soon" CTA so
- * users don't mistake the mock data for live numbers.
- */
+function truncate(addr: string): string {
+    return `${addr.slice(0, 6)}…${addr.slice(-4)}`;
+}
+
+/** Live leaderboard ranking — top-N pulled from `/leaderboard/top`. */
 export function PreviewTable() {
+    const { data, isLoading } = useLeaderboardTop(100);
+    const entries = data?.entries ?? [];
+
+    const rows: PreviewRowData[] = entries.map((e) => {
+        const payouts = Number(formatUnits(BigInt(e.totalScore), USDC_DECIMALS));
+        return {
+            rank: e.rank,
+            who: truncate(e.userAddress),
+            pnl: payouts,
+            win: 0,
+            vol: 0,
+            medal: medalFor(e.rank),
+        };
+    });
+
     return (
         <section
             id="lb-preview"
-            className="relative z-[4] mx-auto max-w-[1400px] px-8 py-20 sm:px-14 sm:py-24"
+            className="relative z-2 mx-auto max-w-[1400px] px-8 py-20 sm:px-14 sm:py-24"
         >
             <div className="mb-9 flex flex-col gap-3">
-                <Eyebrow>How it&apos;ll look</Eyebrow>
+                <Eyebrow>Live ranking</Eyebrow>
                 <h2
                     className="font-display m-0 uppercase leading-[0.92] tracking-[-0.012em] text-white"
                     style={{ fontSize: 'clamp(40px, 5vw, 64px)', fontWeight: 800 }}
                 >
-                    The board, when{' '}
-                    <span className="text-[#E8001D]">it&apos;s real</span>.
+                    The board.{' '}
+                    <span className="text-[#E8001D]">Live.</span>
                 </h2>
                 <p className="max-w-[640px] text-[15px] font-light leading-[1.55] text-white/55">
-                    A composite score across PnL, win rate, and volume — settled at the end of every cycle. Below is what the live ranking will look like.
+                    Cumulative USDC payouts from winning predictions. Updated continuously by the indexer.
                 </p>
             </div>
 
             <div className="relative overflow-hidden rounded-xl border border-[#1E1E1E] bg-[#111]">
-                {/* Column headers */}
                 <div
                     className="grid items-center gap-3 border-b border-[#1E1E1E] bg-[#0F0F0F] px-5 py-3.5"
                     style={{ gridTemplateColumns: PREVIEW_COLS }}
@@ -50,76 +74,22 @@ export function PreviewTable() {
                     ))}
                 </div>
 
-                {/* Top 10 — sharp */}
-                {MOCK_TOP_10.map((row) => (
+                {isLoading && rows.length === 0 && (
+                    <div className="px-5 py-12 text-center">
+                        <div className="mx-auto h-8 w-8 animate-spin rounded-full border-b-2 border-[#E8001D]" />
+                    </div>
+                )}
+
+                {!isLoading && rows.length === 0 && (
+                    <div className="font-mono-ctv px-5 py-16 text-center text-[11px] uppercase tracking-[0.18em] text-white/45">
+                        No predictions settled yet — be the first.
+                    </div>
+                )}
+
+                {rows.map((row) => (
                     <PreviewRow key={row.rank} row={row} />
                 ))}
-
-                {/* Trailing blurred rows */}
-                <div className="relative">
-                    {MOCK_BLURRED_ROWS.map((row) => (
-                        <div
-                            key={row.rank}
-                            style={{ filter: `blur(${BLUR_PX}px)`, opacity: 0.45 }}
-                        >
-                            <PreviewRow row={row} />
-                        </div>
-                    ))}
-                    <div
-                        aria-hidden
-                        className="pointer-events-none absolute inset-x-0 bottom-0 h-32"
-                        style={{
-                            background:
-                                'linear-gradient(180deg, rgba(17,17,17,0) 0%, #111 80%)',
-                        }}
-                    />
-                </div>
-
-                {/* Watermark — covers the lower portion to hammer "coming soon" home */}
-                <WatermarkOverlay />
-            </div>
-
-            <div className="font-mono-ctv mt-5 flex items-center gap-2 text-[10px] uppercase tracking-[0.18em] text-white/45">
-                <span aria-hidden>ⓘ</span>
-                Mocked data shown for illustration. Predict to qualify when live.
             </div>
         </section>
-    );
-}
-
-function WatermarkOverlay() {
-    return (
-        <div
-            className="pointer-events-none absolute inset-x-0 flex items-center justify-center"
-            style={{
-                top: '30%',
-                bottom: 0,
-                background:
-                    'linear-gradient(180deg, rgba(10,10,10,0) 0%, rgba(10,10,10,0.55) 40%, rgba(10,10,10,0.55) 100%)',
-                backdropFilter: 'blur(2px)',
-                WebkitBackdropFilter: 'blur(2px)',
-            }}
-        >
-            <div className="px-6 text-center">
-                <div
-                    className="font-mono-ctv inline-flex items-center gap-3 text-[11px] font-bold uppercase tracking-[0.22em]"
-                    style={{ color: '#F5C518' }}
-                >
-                    <span aria-hidden>✦</span>
-                    Coming soon
-                    <span aria-hidden>✦</span>
-                </div>
-                <div
-                    className="font-display mt-3 font-extrabold uppercase leading-[0.92] tracking-[-0.018em] text-white"
-                    style={{ fontSize: 'clamp(36px, 4.5vw, 64px)' }}
-                >
-                    Real ranks unlock when{' '}
-                    <span className="text-[#E8001D]">Cycle 0</span> starts.
-                </div>
-                <div className="font-mono-ctv mt-3 text-[11px] uppercase tracking-[0.18em] text-white/55">
-                    Settled in USDC · launch date TBA
-                </div>
-            </div>
-        </div>
     );
 }

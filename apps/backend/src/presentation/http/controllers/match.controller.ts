@@ -9,6 +9,7 @@ import { GetMatchByIdUseCase } from '../../../application/matches/use-cases/GetM
 import { GetMatchesByLeagueUseCase } from '../../../application/matches/use-cases/GetMatchesByLeagueUseCase';
 import { GetMatchStatsUseCase } from '../../../application/matches/use-cases/GetMatchStatsUseCase';
 import { GetBrowseMatchesUseCase } from '../../../application/matches/use-cases/GetBrowseMatchesUseCase';
+import { GetMarketPoolsUseCase } from '../../../application/matches/use-cases/GetMarketPoolsUseCase';
 
 @injectable()
 export class MatchController {
@@ -27,6 +28,8 @@ export class MatchController {
     private readonly getMatchStatsUseCase: GetMatchStatsUseCase,
     @inject(GetBrowseMatchesUseCase)
     private readonly getBrowseMatchesUseCase: GetBrowseMatchesUseCase,
+    @inject(GetMarketPoolsUseCase)
+    private readonly getMarketPoolsUseCase: GetMarketPoolsUseCase,
     @inject(TOKENS.IClock)
     private readonly clock: IClock,
   ) {}
@@ -122,6 +125,23 @@ export class MatchController {
     try {
       const result = await this.getBrowseMatchesUseCase.execute();
       res.json(result);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async getMarketPools(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const address = String(req.params.address ?? '').toLowerCase();
+      if (!/^0x[0-9a-f]{40}$/.test(address)) {
+        res.status(400).json({ success: false, error: { code: 'INVALID_ADDRESS', message: 'Address must be a 0x-prefixed 40-hex string' } });
+        return;
+      }
+      const dto = await this.getMarketPoolsUseCase.execute(address);
+      // Short Cache-Control allows a CDN edge cache in front of the API to
+      // soak up the read-heavy /pools traffic during a live match.
+      res.setHeader('Cache-Control', 'public, max-age=3');
+      res.json({ success: true, ...dto });
     } catch (error) {
       next(error);
     }

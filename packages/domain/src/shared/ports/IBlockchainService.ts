@@ -1,52 +1,45 @@
-import { ExtendedOdds } from './IFootballApiService';
+/**
+ * Domain port over the on-chain betting workflow. The current implementation
+ * (`ViemBlockchainService`) wraps PariMatchFactory + FootballPariMatch /
+ * BasketballPariMatch and ChilizSwapRouter via viem.
+ */
 
 export interface DeployContractResult {
   contractAddress: string;
 }
 
 export interface CloseMarketsResult {
-  /** Markets fermés sur ce tick (state == Open avant). */
+  /** Markets closed on this tick (state == Open before). */
   closed: number;
-  /** Markets ignorés parce que déjà non-Open (Closed/Resolved/Cancelled/Suspended). */
+  /** Markets skipped because already non-Open (Closed/Resolved/Cancelled/Suspended). */
   skipped: number;
 }
 
 export interface CancelMarketsResult {
-  /** Markets passés à `Cancelled` sur ce tick (ouvre `claimRefund`). */
+  /** Markets transitioned to Cancelled on this tick (unlocks `claimRefund`). */
   cancelled: number;
-  /** Markets ignorés (déjà Resolved/Cancelled). */
+  /** Markets skipped (already Resolved/Cancelled). */
   skipped: number;
 }
 
-export interface FootballMarketView {
-  /** Solidity-side marketType string ('WINNER' | 'GOALS_TOTAL' | ...). */
-  marketType: string;
-  /** Goals-tenths (25 → 2.5). Always 0 for markets without a numeric line. */
-  line: number;
-  /** Max valid `selection` value for this market — informational, not enforced here. */
-  maxSelections: number;
+export interface FootballScoreInput {
+  homeGoals: number;
+  awayGoals: number;
+  htHomeGoals: number;
+  htAwayGoals: number;
+  /** 0 = unknown — FIRST_SCORER markets are skipped when unknown. */
+  firstScorerId: number;
 }
 
 export interface IBlockchainService {
   deployBettingContract(matchName: string, ownerAddress: string, oracleAddress?: string): Promise<DeployContractResult>;
-  setupMarkets(contractAddress: string, odds: ExtendedOdds): Promise<void>;
-  resolveMarkets(contractAddress: string, homeScore: number, awayScore: number): Promise<number>;
-  syncOdds(contractAddress: string, odds: ExtendedOdds): Promise<void>;
-  /**
-   * Ferme tous les markets `Open` du contrat via `closeMarketsBatch` (1 tx).
-   * Idempotent — les markets non-Open sont skip par le contrat.
-   */
+  /** Seed and open the default 3-market lineup on a freshly-deployed proxy. */
+  setupDefaultMarkets(contractAddress: string): Promise<void>;
+  /** Resolve every closeable market via `resolveByScore`. Returns count transitioned to Resolved. */
+  resolveMarketsByScore(contractAddress: string, score: FootballScoreInput): Promise<number>;
+  /** Close every Open market on the contract via `closeMarketsBatch` (1 tx, idempotent). */
   closeOpenMarketsForMatch(contractAddress: string): Promise<CloseMarketsResult>;
-  /**
-   * Annule tous les markets non-terminaux du contrat via `cancelMarket(id, reason)`.
-   * Single-id côté contrat → N tx par match. Réservé aux statuts CANC/ABD.
-   */
+  /** Cancel every non-terminal market via `cancelMarket(id, reason)` (N tx). Reserved for CANC/ABD statuses. */
   cancelOpenMarketsForMatch(contractAddress: string, reason: string): Promise<CancelMarketsResult>;
-  /**
-   * Read-only — returns the on-chain `getFootballMarket(marketId)` view so the
-   * indexer can enrich `market_events.payload` with `line` (the `MarketCreated`
-   * event itself does not include it).
-   */
-  readFootballMarket(contractAddress: string, marketId: bigint): Promise<FootballMarketView>;
   getAdminAddress(): string;
 }

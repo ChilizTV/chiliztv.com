@@ -10,4 +10,5 @@ export * from './users';
 export * from './waitlist';
 export * from './access';
 export * from './prices';
-export * from './pool';
+export * from './markets';
+export * from './leaderboard';

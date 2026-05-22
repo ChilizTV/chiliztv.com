@@ -63,6 +63,54 @@ export function getCountdown(kickoffAt: string, now: Date | null): string {
   return m > 0 ? `in ${h}h ${m}m` : `in ${h}h`;
 }
 
+/**
+ * USDC raw (6-decimal bigint string) → whole-dollar integer, suitable for
+ * rendering as "48 214" or "1 247 pts" in headline copy. Returns 0 when
+ * input is null/undefined/unparsable so the UI stays NaN-free.
+ */
+export function usdcRawToWhole(raw: string | null | undefined): number {
+    if (!raw) return 0;
+    try {
+        return Math.floor(Number(raw) / 1_000_000);
+    } catch {
+        return 0;
+    }
+}
+
+/**
+ * Format an integer with non-breaking spaces as thousand separators —
+ * matches the "$48 214" display from the design (locale-independent).
+ */
+export function fmtNbsp(n: number): string {
+    return n.toLocaleString("en-US").replace(/,/g, " ");
+}
+
+/**
+ * Compact USDC display from a raw 6-decimal bigint. Renders `$1.2K`,
+ * `$48K`, `$1.4M`. Returns "—" when the input is falsy. Matches the
+ * design's `fmtUSD` thresholds.
+ */
+export function fmtUsdcCompact(raw: bigint | null | undefined): string {
+    if (raw === null || raw === undefined) return "—";
+    const usd = Number(raw) / 1_000_000;
+    if (!Number.isFinite(usd) || usd <= 0) return "$0";
+    if (usd >= 1_000_000) return `$${(usd / 1_000_000).toFixed(1).replace(/\.0$/, "")}M`;
+    if (usd >= 10_000) return `$${Math.round(usd / 1_000)}K`;
+    if (usd >= 1_000) return `$${(usd / 1_000).toFixed(1).replace(/\.0$/, "")}K`;
+    return `$${usd.toLocaleString("en-US", { maximumFractionDigits: 2 })}`;
+}
+
+/**
+ * Squeeze a team name down to a 3-4 letter short label suitable for tight
+ * legend rows (e.g. donut card outcome lines). First word if short enough,
+ * otherwise the first three letters — always upper-cased.
+ */
+export function shortName(name: string): string {
+    const trimmed = name.trim();
+    const first = trimmed.split(/\s+/)[0] ?? trimmed;
+    return first.length <= 4 ? first.toUpperCase() : first.slice(0, 3).toUpperCase();
+}
+
 /** Compact viewer count: 1.4K / 12.0K / 1.2M. */
 export function fmtViewers(n: number): string {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;

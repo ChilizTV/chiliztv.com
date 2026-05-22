@@ -65,5 +65,11 @@ export function getOddsForMarket(odds: MatchOdds | undefined, key: MarketKey): M
                 hasAny: true,
             };
         }
+        case 'goalsexact':
+        case 'pointsexact':
+        case 'bb-winner':
+        case 'totalpoints':
+        case 'spread':
+            return EMPTY;
     }
 }

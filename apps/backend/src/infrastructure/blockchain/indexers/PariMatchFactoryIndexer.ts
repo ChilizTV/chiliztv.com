@@ -24,35 +24,34 @@ const MATCH_CREATED = parseAbiItem(
     'event MatchCreated(address indexed proxy, uint8 sportType, address indexed owner)',
 );
 const WIRING_SET = parseAbiItem(
-    'event WiringSet(address indexed liquidityPool, address indexed usdcToken, address indexed swapRouter)',
+    'event WiringSet(address indexed usdcToken, address indexed feeRecipient, address indexed swapRouter)',
+);
+const LEADERBOARD_WIRING_SET = parseAbiItem(
+    'event LeaderboardWiringSet(address indexed leaderboard, uint16 leaderboardFeeBps)',
 );
 
-const ALL_EVENTS = [MATCH_CREATED, WIRING_SET];
+const ALL_EVENTS = [MATCH_CREATED, WIRING_SET, LEADERBOARD_WIRING_SET];
 
 const SWAP_ROUTER_ROLE = keccak256(toBytes('SWAP_ROUTER_ROLE'));
 const RESOLVER_ROLE = keccak256(toBytes('RESOLVER_ROLE'));
-const MATCH_ROLE = keccak256(toBytes('MATCH_ROLE'));
 
 const READ_ABI = [
     { type: 'function', name: 'usdcToken', inputs: [], outputs: [{ type: 'address' }], stateMutability: 'view' },
-    { type: 'function', name: 'liquidityPool', inputs: [], outputs: [{ type: 'address' }], stateMutability: 'view' },
+    { type: 'function', name: 'feeRecipient', inputs: [], outputs: [{ type: 'address' }], stateMutability: 'view' },
     { type: 'function', name: 'hasRole', inputs: [{ type: 'bytes32' }, { type: 'address' }], outputs: [{ type: 'bool' }], stateMutability: 'view' },
 ] as const;
 
 /**
- * Listens for `MatchCreated` on the BettingMatchFactory and validates that
- * the freshly-deployed proxy has been fully wired (setUSDCToken, setLiquidityPool,
- * pool.authorizeMatch, grantRole(SWAP_ROUTER_ROLE/RESOLVER_ROLE)). Emits a
- * `wiring_alerts` row if anything is missing, so ops can fix it without
- * having to manually inspect every newly-deployed match.
+ * Listens for `MatchCreated` on the PariMatchFactory and validates that the
+ * freshly-deployed proxy has been fully wired (usdcToken, feeRecipient,
+ * SWAP_ROUTER_ROLE, RESOLVER_ROLE). Emits a `wiring_alerts` row when steps
+ * are missing so ops can fix it without manual inspection.
  *
- * Does NOT auto-correct: the deployer key is held by the factory's admin /
- * a Safe, and the indexer should never carry an admin key.
+ * Parimutuel removes the LP wiring check — no more pool.authorizeMatch.
  */
 @injectable()
-export class BettingMatchFactoryIndexer extends BaseIndexer {
+export class PariMatchFactoryIndexer extends BaseIndexer {
     private readonly factoryAddress: `0x${string}`;
-    private readonly poolAddress: `0x${string}`;
     private readonly swapRouterAddress: `0x${string}`;
     private readonly oracleAddress: `0x${string}`;
 
@@ -66,9 +65,9 @@ export class BettingMatchFactoryIndexer extends BaseIndexer {
         @inject(TOKENS.ILockService)
         lockService: ILockService,
     ) {
-        const factoryAddress = network.bettingFactoryAddress as `0x${string}`;
+        const factoryAddress = network.pariMatchFactoryAddress as `0x${string}`;
         super({
-            name: 'BettingMatchFactory',
+            name: 'PariMatchFactory',
             contractAddress: factoryAddress,
             client: createPublicClient({
                 chain: chainFor(networkType),
@@ -78,9 +77,7 @@ export class BettingMatchFactoryIndexer extends BaseIndexer {
             lockService,
         });
         this.factoryAddress = factoryAddress;
-        this.poolAddress = network.liquidityPoolAddress as `0x${string}`;
         this.swapRouterAddress = network.swapRouterAddress as `0x${string}`;
-        // The oracle that should hold RESOLVER_ROLE is the admin EOA.
         this.oracleAddress = this.deriveOracleAddress();
     }
 
@@ -123,9 +120,6 @@ export class BettingMatchFactoryIndexer extends BaseIndexer {
             txHash: log.transactionHash,
         });
 
-        // Confirm the row exists in `matches` (it may have been written by
-        // BettingContractDeploymentAdapter); if not, log so ops knows the
-        // match was created out of band.
         await this.ensureMatchRow(proxy);
 
         const missingSteps = await this.detectMissingWiring(proxy);
@@ -144,18 +138,15 @@ export class BettingMatchFactoryIndexer extends BaseIndexer {
         const match = matchAddress as `0x${string}`;
         const missing: WiringStep[] = [];
 
-        const [usdcToken, liquidityPool, swapRouterRoleOk, resolverRoleOk] = await Promise.all([
+        const [usdcToken, feeRecipient, swapRouterRoleOk, resolverRoleOk] = await Promise.all([
             this.read(match, 'usdcToken', []),
-            this.read(match, 'liquidityPool', []),
+            this.read(match, 'feeRecipient', []),
             this.read(match, 'hasRole', [SWAP_ROUTER_ROLE, this.swapRouterAddress]),
             this.read(match, 'hasRole', [RESOLVER_ROLE, this.oracleAddress]),
         ]);
 
-        const matchAuthorized = await this.read(this.poolAddress, 'hasRole', [MATCH_ROLE, match]);
-
         if ((usdcToken as string).toLowerCase() === zeroAddress.toLowerCase()) missing.push('setUSDCToken');
-        if ((liquidityPool as string).toLowerCase() === zeroAddress.toLowerCase()) missing.push('setLiquidityPool');
-        if (!matchAuthorized) missing.push('pool.authorizeMatch');
+        if ((feeRecipient as string).toLowerCase() === zeroAddress.toLowerCase()) missing.push('setFeeRecipient');
         if (!swapRouterRoleOk) missing.push('grantRole.SWAP_ROUTER_ROLE');
         if (this.oracleAddress.toLowerCase() !== zeroAddress.toLowerCase() && !resolverRoleOk) {
             missing.push('grantRole.RESOLVER_ROLE');
@@ -163,7 +154,7 @@ export class BettingMatchFactoryIndexer extends BaseIndexer {
         return missing;
     }
 
-    private async read<T = unknown>(address: `0x${string}`, functionName: 'usdcToken' | 'liquidityPool' | 'hasRole', args: readonly unknown[]): Promise<T> {
+    private async read<T = unknown>(address: `0x${string}`, functionName: 'usdcToken' | 'feeRecipient' | 'hasRole', args: readonly unknown[]): Promise<T> {
         try {
             return (await this.client.readContract({
                 address,
@@ -176,8 +167,6 @@ export class BettingMatchFactoryIndexer extends BaseIndexer {
                 address,
                 error: err instanceof Error ? err.message : String(err),
             });
-            // Default to a "missing" answer so the alert is raised — better
-            // a false-positive alert than a silently broken match.
             return (functionName === 'hasRole' ? false : zeroAddress) as T;
         }
     }
@@ -204,16 +193,10 @@ export class BettingMatchFactoryIndexer extends BaseIndexer {
     }
 
     private deriveOracleAddress(): `0x${string}` {
-        // The oracle in the current architecture is the same admin EOA that
-        // holds DEFAULT_ADMIN_ROLE on every match. We derive its address from
-        // the admin private key via viem's privateKeyToAccount.
         const pk = this.network.adminPrivateKey;
         if (!pk || !pk.startsWith('0x') || pk.length !== 66) {
             return zeroAddress as `0x${string}`;
         }
-        // Light derivation without importing viem/accounts here — we only
-        // need the address. Return zero if the derivation isn't available
-        // (the wiring check skips the RESOLVER_ROLE step when oracle is 0x0).
         try {
             // eslint-disable-next-line @typescript-eslint/no-var-requires
             const { privateKeyToAddress } = require('viem/accounts');

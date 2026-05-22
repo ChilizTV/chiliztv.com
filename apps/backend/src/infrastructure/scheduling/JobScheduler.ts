@@ -9,9 +9,7 @@ import { OldEndedStreamsCleanupJob } from './jobs/OldEndedStreamsCleanupJob';
 import { SettlePredictionsJob } from './jobs/SettlePredictionsJob';
 import { ViewerReconcileJob } from './jobs/ViewerReconcileJob';
 import { CloudflareReconcileJob } from './jobs/CloudflareReconcileJob';
-import { ComputeApyJob } from './jobs/ComputeApyJob';
 import { RefreshTokenPricesJob } from './jobs/RefreshTokenPricesJob';
-import { BackfillMarketLinesJob } from './jobs/BackfillMarketLinesJob';
 import { TOKENS } from '@chiliztv/domain/shared/tokens';
 import type { ILockService } from '@chiliztv/domain/shared/ports/ILockService';
 import { JobLocks, type JobLockConfig } from './JobLockConfig';
@@ -38,9 +36,7 @@ export class JobScheduler {
         private readonly settlePredictionsJob: SettlePredictionsJob,
         private readonly viewerReconcileJob: ViewerReconcileJob,
         private readonly cloudflareReconcileJob: CloudflareReconcileJob,
-        private readonly computeApyJob: ComputeApyJob,
         private readonly refreshTokenPricesJob: RefreshTokenPricesJob,
-        private readonly backfillMarketLinesJob: BackfillMarketLinesJob,
         @inject(TOKENS.ILockService) private readonly locks: ILockService,
     ) {}
 
@@ -68,10 +64,6 @@ export class JobScheduler {
             () => this.refreshTokenPricesJob.execute());
         this.startIntervalJob('SettlePredictions', this.settlePredictionsJob.getIntervalMs(), JobLocks.settlePredictions,
             () => this.settlePredictionsJob.execute());
-        this.startIntervalJob('ComputeApy', this.computeApyJob.getIntervalMs(), JobLocks.computeApy,
-            () => this.computeApyJob.execute());
-        this.startIntervalJob('BackfillMarketLines', this.backfillMarketLinesJob.getIntervalMs(), JobLocks.backfillMarketLines,
-            () => this.backfillMarketLinesJob.execute());
 
         logger.info('Job scheduler started successfully');
     }

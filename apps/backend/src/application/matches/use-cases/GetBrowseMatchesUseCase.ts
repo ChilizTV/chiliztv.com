@@ -111,6 +111,7 @@ export class GetBrowseMatchesUseCase {
               away: props.odds.winner.awayWin ?? null,
             }
           : null,
+        contractAddress: props.bettingContractAddress ?? null,
         streamsPreview,
       };
 

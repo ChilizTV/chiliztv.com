@@ -1,7 +1,7 @@
 import { injectable, inject } from 'tsyringe';
 import { TOKENS } from '@chiliztv/domain/shared/tokens';
 import { IMatchRepository } from '@chiliztv/domain/matches/repositories/IMatchRepository';
-import { BettingContractDeploymentAdapter } from '../../../infrastructure/blockchain/adapters/BettingContractDeploymentAdapter';
+import { PariMatchDeploymentAdapter } from '../../../infrastructure/blockchain/adapters/PariMatchDeploymentAdapter';
 import { logger } from '../../../infrastructure/logging/logger';
 
 /**
@@ -12,7 +12,7 @@ import { logger } from '../../../infrastructure/logging/logger';
 export class DeployMissingContractsCommand {
     constructor(
         @inject(TOKENS.IMatchRepository) private readonly matchRepository: IMatchRepository,
-        @inject(BettingContractDeploymentAdapter) private readonly deploymentAdapter: BettingContractDeploymentAdapter
+        @inject(PariMatchDeploymentAdapter) private readonly deploymentAdapter: PariMatchDeploymentAdapter
     ) {}
 
     async execute(): Promise<void> {
@@ -48,17 +48,8 @@ export class DeployMissingContractsCommand {
                         ownerAddress
                     );
 
-                    // Setup markets with odds if available
-                    const odds = matchJson.odds;
-                    await this.deploymentAdapter.setupDefaultMarkets(contractAddress, {
-                        homeWin: odds?.homeWin,
-                        draw: odds?.draw,
-                        awayWin: odds?.awayWin,
-                        over25: undefined,
-                        under25: undefined,
-                        bttsYes: undefined,
-                        bttsNo: undefined
-                    });
+                    // Parimutuel — no odds parameter (pools emerge from stakes).
+                    await this.deploymentAdapter.setupDefaultMarkets(contractAddress);
 
                     // Update match with contract address
                     const updatedMatch = match.toJSON();

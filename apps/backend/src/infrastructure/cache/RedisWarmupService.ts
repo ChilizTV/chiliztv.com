@@ -3,37 +3,28 @@ import { inject, injectable } from 'tsyringe';
 import { TOKENS } from '@chiliztv/domain/shared/tokens';
 import type { ILockService } from '@chiliztv/domain/shared/ports/ILockService';
 import type { ILogger } from '@chiliztv/domain/shared/ports/ILogger';
-import { GetLatestApyUseCase } from '../../application/pool/use-cases/GetLatestApyUseCase';
-import { GetPoolStateUseCase } from '../../application/pool/use-cases/GetPoolStateUseCase';
 import { GetTokenPricesUseCase } from '../../application/prices/use-cases/GetTokenPricesUseCase';
 import { GetBrowseMatchesUseCase } from '../../application/matches/use-cases/GetBrowseMatchesUseCase';
 
 const WARMUP_LOCK_TTL_SECONDS = 60;
 
 /**
- * Pre-fills the hottest cache keys when the API process boots. Without this,
- * a Fly rolling deploy of N machines causes N parallel misses against the
- * data sources at restart (Supabase, Chiliz RPC, API-Football) before the
- * single-flight protection kicks in — a small but visible "cold start"
- * latency spike.
+ * Pre-fills the hottest cache keys when the API process boots. Avoids the
+ * cold-start latency spike on rolling deploys when N instances would race on
+ * the same cache misses against Supabase / Chiliz RPC / API-Football.
  *
- * Concurrency: under a multi-instance rolling deploy, every instance would
- * race on the same warmup work. A short distributed lock (`lock:warmup`,
- * SETNX 60 s) lets the first booting instance fill the cache while the
- * others skip and read whatever it has just written.
+ * Concurrency: a short distributed lock (`lock:warmup`, 60s) lets the first
+ * booting instance fill the cache while the others skip silently.
  *
- * Failure mode: every use case here is best-effort. A failure on one surface
- * (RPC timeout, Supabase blip) is logged and the warmup continues — the
- * regular request path already handles a cold key, the warmup is just an
- * optimisation, not a correctness layer.
+ * Failure mode: every surface is best-effort. A miss here just means the
+ * regular request path handles the cold read — warmup is an optimisation,
+ * not a correctness layer. Pool / APY surfaces removed (parimutuel — no LP).
  */
 @injectable()
 export class RedisWarmupService {
     constructor(
         @inject(TOKENS.ILockService) private readonly locks: ILockService,
         @inject(TOKENS.ILogger) private readonly logger: ILogger,
-        @inject(GetLatestApyUseCase) private readonly apy: GetLatestApyUseCase,
-        @inject(GetPoolStateUseCase) private readonly poolState: GetPoolStateUseCase,
         @inject(GetTokenPricesUseCase) private readonly prices: GetTokenPricesUseCase,
         @inject(GetBrowseMatchesUseCase) private readonly browseMatches: GetBrowseMatchesUseCase,
     ) {}
@@ -55,8 +46,6 @@ export class RedisWarmupService {
         this.logger.info('Cache warmup starting', { hostname });
         const started = Date.now();
         const tasks = [
-            this.tryWarm('pool.apy', () => this.apy.execute()),
-            this.tryWarm('pool.state', () => this.poolState.execute()),
             this.tryWarm('prices.list', () => this.prices.execute()),
             this.tryWarm('matches.browse', () => this.browseMatches.execute()),
         ];

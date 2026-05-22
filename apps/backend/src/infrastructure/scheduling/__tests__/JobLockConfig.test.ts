@@ -11,7 +11,7 @@ describe('JobLocks', () => {
 
   it('long-running jobs get larger TTLs than short ones (sanity check)', () => {
     expect(JobLocks.resolveMarkets.ttlSeconds).toBeGreaterThan(JobLocks.refreshTokenPrices.ttlSeconds);
-    expect(JobLocks.backfillMarketLines.ttlSeconds).toBeGreaterThan(JobLocks.computeApy.ttlSeconds);
+    expect(JobLocks.cleanupStreams.ttlSeconds).toBeGreaterThan(JobLocks.refreshTokenPrices.ttlSeconds);
   });
 
   it('no two jobs share a lock key (collision would silently serialise unrelated work)', () => {

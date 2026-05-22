@@ -10,6 +10,8 @@ router.get('/browse', matchController.getBrowseMatches.bind(matchController));
 router.get('/live', matchController.getLiveMatches.bind(matchController));
 router.get('/upcoming', matchController.getUpcomingMatches.bind(matchController));
 router.get('/league/:league', matchController.getMatchesByLeague.bind(matchController));
+// Parimutuel pool snapshot — multicall + cache. Address validated by the controller.
+router.get('/:address/pools', matchController.getMarketPools.bind(matchController));
 router.get('/:id', matchController.getMatchById.bind(matchController));
 router.get('/', matchController.getAllMatches.bind(matchController));
 

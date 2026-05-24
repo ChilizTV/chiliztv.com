@@ -42,6 +42,39 @@ interface LiveDetailsPageProps {
 
 const TEST_MATCH_ID = "999999";
 
+// Hardcoded dummy match for the /live/999999 route. Points at the real
+// on-chain PariMatch proxy so placeBet / claim / read flows work, but skips
+// the factory.getAllMatches() round-trip that was returning empty during
+// local dev. Edit the contractAddress here when you spin up a fresh match
+// via the smart-contract scripts.
+// 24h ahead — keeps the kickoff buffer (KICKOFF_BUFFER_SEC = 120s in
+// MatchMarketsList) satisfied so the BettablePolicy resolves to `ok: true`.
+// Without this, `isBettable` returns KICKOFF_BUFFER and the markets render
+// disabled with "Kicks off in 0m · Betting closed".
+const DUMMY_KICKOFF_ISO = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+
+// Hardcoded dummy match for the /live/999999 route. Points at the real
+// on-chain PariMatch proxy so placeBet / claim / read flows work, but skips
+// the factory.getAllMatches() round-trip that was returning empty during
+// local dev. Edit the contractAddress here when you spin up a fresh match
+// via the smart-contract scripts.
+// status must be one of the API-Football codes recognised by
+// BettablePolicy.classifyStatus (UPCOMING_STATUSES = ['NS','TBD']); the
+// previous "TEST" sentinel fell into `unknown` and locked every market with
+// "Predictions unavailable".
+const DUMMY_TEST_MATCH: Match = {
+  id: 999999,
+  homeTeam: "Bayern",
+  awayTeam: "Dortmund",
+  league: "Football · Test",
+  status: "NS",
+  startTime: DUMMY_KICKOFF_ISO,
+  // Latest PariMatch proxy on archi-off-mica's factory
+  // (factory 0xbba7f5d1… → getAllMatches().at(-1)). Update when the SSR
+  // fallback should track a newer match.
+  contractAddress: "0xe43a99cb7dd0787ce47e5ba0d838d9faca6bec7a" as Address,
+};
+
 export default function LiveDetailsPage({ id }: LiveDetailsPageProps) {
   const router = useRouter();
   const { primaryWallet, user } = useDynamicContext();
@@ -77,25 +110,30 @@ export default function LiveDetailsPage({ id }: LiveDetailsPageProps) {
   });
 
   const onChainMatchData = useMemo<Match | undefined>(() => {
-    if (!isTestMatch || !latestProxy || !onChainMatchName) return undefined;
-    const { home, away } = splitTeamNames(onChainMatchName as string);
-    const sport = sportLabel(onChainSportType);
-    return {
-      id: 999999,
-      homeTeam: home,
-      awayTeam: away,
-      league: sport,
-      status: "TEST",
-      startTime: new Date().toISOString(),
-      contractAddress: latestProxy,
-    };
+    if (!isTestMatch) return undefined;
+    // Prefer on-chain reads when available; fall back to the hardcoded
+    // dummy so /live/999999 always renders something local-dev can drive.
+    if (latestProxy && onChainMatchName) {
+      const { home, away } = splitTeamNames(onChainMatchName as string);
+      const sport = sportLabel(onChainSportType);
+      return {
+        id: 999999,
+        homeTeam: home,
+        awayTeam: away,
+        league: sport,
+        // See DUMMY_TEST_MATCH note — "NS" + future kickoff keeps the
+        // BettablePolicy from blocking every market.
+        status: "NS",
+        startTime: DUMMY_KICKOFF_ISO,
+        contractAddress: latestProxy,
+      };
+    }
+    return DUMMY_TEST_MATCH;
   }, [isTestMatch, latestProxy, onChainMatchName, onChainSportType]);
 
   const matchData = isTestMatch ? onChainMatchData : matchDataFromApi;
-  const loading = isTestMatch
-    ? !!latestProxy && !onChainMatchName
-    : loadingFromApi;
-  const noMatchDeployedYet = isTestMatch && allMatches !== undefined && !latestProxy;
+  const loading = isTestMatch ? false : loadingFromApi;
+  const noMatchDeployedYet = false;
 
   const searchParams = useSearchParams();
   const initialStreamId = searchParams.get("streamId") ?? undefined;

@@ -18,14 +18,15 @@ const ARTIFACTS = resolve(FRONTEND_ROOT, 'artifacts');
 const PACKAGE_ABIS_JSON = resolve(FRONTEND_ROOT, '../../packages/blockchain/src/abis/json');
 
 // Contracts whose artifacts the frontend actually consumes via wagmi.config.ts.
+// Keep this list aligned with the imports in apps/frontend/wagmi.config.ts.
 const TARGETS = [
-    'BettingMatch',
-    'BettingMatchFactory',
-    'FootballMatch',
-    'BasketballMatch',
+    'PariMatchBase',
+    'PariMatchFactory',
+    'FootballPariMatch',
+    'BasketballPariMatch',
+    'LeaderboardRewards',
     'StreamWallet',
     'StreamWalletFactory',
-    'LiquidityPool',
     'ChilizSwapRouter',
 ];
 

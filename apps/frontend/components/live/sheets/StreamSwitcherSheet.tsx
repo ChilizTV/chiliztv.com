@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Eye } from "lucide-react";
 import { streamViewerService } from "@/services";
+import { useVisibilityAwareInterval } from "@/hooks/useVisibilityAwareInterval";
 import type { LiveStream } from "@/models/stream.model";
 import { PulseDot, fmtViewersLive } from "../primitives";
 import { SheetShell } from "./SheetShell";
@@ -101,15 +102,19 @@ export function StreamSwitcherSheet({
     }
   }, []);
 
+  // Initial fetch on mount / matchId change. The visibility hook's own
+  // immediate-fire only runs once `document.visibilityState === 'visible'`.
   useEffect(() => {
     isInitialMount.current = true;
     const isInitial = isInitialMount.current;
     if (isInitialMount.current) isInitialMount.current = false;
-
     fetchStreams(isInitial);
-    const interval = setInterval(() => fetchStreams(false), 5000);
-    return () => clearInterval(interval);
   }, [matchId, fetchStreams]);
+
+  // 5s refresh whenever the tab is visible. Polls continue even when the
+  // sheet is closed because the parent relies on `onOwnStreamDetected` to
+  // react to the user's own stream coming online from another tab.
+  useVisibilityAwareInterval(() => fetchStreams(false), 5000);
 
   const ownStream = streams.find((s) => s.streamerId === currentUserId) ?? null;
   const otherStreams = streams.filter(

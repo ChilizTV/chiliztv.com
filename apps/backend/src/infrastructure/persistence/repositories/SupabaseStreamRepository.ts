@@ -25,6 +25,9 @@ interface StreamRow {
   cloudflare_rtmps_stream_key?: string;
   cloudflare_playback_hls_url?: string;
   cloudflare_webrtc_publish_url?: string;
+  recording_video_uid?: string;
+  recording_hls_url?: string;
+  recording_ready_at?: string;
 }
 
 @injectable()
@@ -148,6 +151,9 @@ export class SupabaseStreamRepository implements IStreamRepository {
       cloudflareRtmpsStreamKey: row.cloudflare_rtmps_stream_key,
       cloudflarePlaybackHlsUrl: row.cloudflare_playback_hls_url,
       cloudflareWebRtcPublishUrl: row.cloudflare_webrtc_publish_url,
+      recordingVideoUid: row.recording_video_uid,
+      recordingHlsUrl: row.recording_hls_url,
+      recordingReadyAt: row.recording_ready_at ? new Date(row.recording_ready_at) : undefined,
     });
   }
 
@@ -174,6 +180,9 @@ export class SupabaseStreamRepository implements IStreamRepository {
       cloudflare_rtmps_stream_key: json.cloudflareRtmpsStreamKey,
       cloudflare_playback_hls_url: json.cloudflarePlaybackHlsUrl,
       cloudflare_webrtc_publish_url: json.cloudflareWebRtcPublishUrl,
+      recording_video_uid: json.recordingVideoUid,
+      recording_hls_url: json.recordingHlsUrl,
+      recording_ready_at: json.recordingReadyAt ? (json.recordingReadyAt as Date).toISOString() : undefined,
     };
   }
 }

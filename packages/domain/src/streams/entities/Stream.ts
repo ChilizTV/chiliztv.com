@@ -35,6 +35,11 @@ export interface StreamProps {
   cloudflareRtmpsStreamKey?: string;
   cloudflarePlaybackHlsUrl?: string;
   cloudflareWebRtcPublishUrl?: string;
+  // Recording (replay) fields — populated post-stream via the recording-ready
+  // webhook. NULL on browser-source streams and on rows older than migration 028.
+  recordingVideoUid?: string;
+  recordingHlsUrl?: string;
+  recordingReadyAt?: Date;
 }
 
 export class Stream {
@@ -79,6 +84,13 @@ export class Stream {
     this.props.cloudflarePlaybackHlsUrl = result.playbackHlsUrl;
     this.props.cloudflareWebRtcPublishUrl = result.webRtcPublishUrl;
     this.props.hlsUrl = result.playbackHlsUrl;
+  }
+
+  /** Attach the post-stream recording metadata once CF Stream has finished processing. */
+  attachRecording(videoUid: string, hlsUrl: string, readyAt: Date): void {
+    this.props.recordingVideoUid = videoUid;
+    this.props.recordingHlsUrl = hlsUrl;
+    this.props.recordingReadyAt = readyAt;
   }
 
   getStatus(): StreamStatus {

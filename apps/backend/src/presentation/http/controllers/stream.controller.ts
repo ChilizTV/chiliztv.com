@@ -1,5 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { injectable, inject } from 'tsyringe';
+import { TOKENS } from '@chiliztv/domain/shared/tokens';
+import type { ICacheService } from '@chiliztv/domain/shared/ports/ICacheService';
 import { CreateStreamUseCase } from '../../../application/streams/use-cases/CreateStreamUseCase';
 import { GetActiveStreamsUseCase } from '../../../application/streams/use-cases/GetActiveStreamsUseCase';
 import { GetPreferredStreamUseCase } from '../../../application/streams/use-cases/GetPreferredStreamUseCase';
@@ -9,6 +11,9 @@ import { StreamLifecycleService } from '../../../infrastructure/services/StreamL
 import { ViewerSessionService } from '../../../infrastructure/services/ViewerSessionService';
 import { supabaseClient as supabase } from '../../../infrastructure/database/supabase/client';
 import { logger } from '../../../infrastructure/logging/logger';
+
+const METRIC_FALLBACK_KEY = 'metrics:cfstream:fallback:24h';
+const METRIC_TTL_SECONDS = 86400;
 
 @injectable()
 export class StreamController {
@@ -27,6 +32,8 @@ export class StreamController {
     private readonly lifecycleService: StreamLifecycleService,
     @inject(ViewerSessionService)
     private readonly viewerSessionService: ViewerSessionService,
+    @inject(TOKENS.ICacheService)
+    private readonly cache: ICacheService,
   ) {}
 
   async createStream(req: Request, res: Response, next: NextFunction): Promise<void> {
@@ -80,6 +87,9 @@ export class StreamController {
       if (streamerId && cloudflareInputUid) {
         if (streams.length === 0) {
           // OBS not connected yet — check CF API and create the LIVE row if connected.
+          // Fallback-rate counter: pairs with the webhook counter; a sustained
+          // `fallback / (webhook + fallback)` > 20% signals a webhook outage.
+          await this.cache.incr(METRIC_FALLBACK_KEY, METRIC_TTL_SECONDS);
           await this.lifecycleService.startStreamByLiveInput(cloudflareInputUid);
           streams = await this.getActiveStreamsUseCase.execute(matchId, streamerId);
         } else {
@@ -92,6 +102,7 @@ export class StreamController {
               s.getSourceType() === 'obs',
           );
           if (obsLive) {
+            await this.cache.incr(METRIC_FALLBACK_KEY, METRIC_TTL_SECONDS);
             await this.lifecycleService.checkAndEndIfDisconnected(cloudflareInputUid);
             streams = await this.getActiveStreamsUseCase.execute(matchId, streamerId);
           }

@@ -4,6 +4,7 @@ import { useEffect, useState, useRef, useCallback } from 'react';
 import { Card, CardContent, Button } from '@chiliztv/ui';
 import { Loader2, Radio } from 'lucide-react';
 import { streamViewerService } from '@/services';
+import { useVisibilityAwareInterval } from '@/hooks/useVisibilityAwareInterval';
 import { LiveStream } from '@/models/stream.model';
 
 interface StreamSelectorProps {
@@ -97,24 +98,20 @@ export default function StreamSelector({
     }
     }, []);
 
+    // Initial fetch on mount / matchId change (the visibility hook's own
+    // immediate-fire only runs once the document is `visible`).
     useEffect(() => {
-        // Reset initial mount flag when matchId changes
         isInitialMount.current = true;
-        
         const isInitial = isInitialMount.current;
         if (isInitialMount.current) {
             isInitialMount.current = false;
-          }
-        
+        }
         fetchStreams(isInitial);
-        
-        // Refresh streams every 5 seconds (silently in background)
-        const interval = setInterval(() => {
-            fetchStreams(false);
-        }, 5000);
-        
-        return () => clearInterval(interval);
     }, [matchId, fetchStreams]);
+
+    // Refresh streams every 5s while the tab is visible. Pauses entirely on
+    // hidden tabs so a background viewer page burns 0 backend / CF API quota.
+    useVisibilityAwareInterval(() => fetchStreams(false), 5000);
 
     if (loading && streams.length === 0) {
     return (

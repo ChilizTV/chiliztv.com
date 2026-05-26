@@ -207,6 +207,38 @@ export class StreamLifecycleService {
     return true;
   }
 
+  /**
+   * Persist the recording metadata from a Cloudflare Stream recording-ready
+   * webhook. Gated on `status === ENDED` to avoid racing a mid-reconnect:
+   * if the publisher dropped briefly and the row is still flagged LIVE, we
+   * skip the write — the next recording-ready (or a manual repair) will fix it.
+   */
+  async attachRecording(
+    uid: string,
+    recording: { videoUid: string; hlsUrl: string; readyAt: Date },
+  ): Promise<void> {
+    const stream = await this.streamRepository.findByCloudflareInputUid(uid);
+    if (!stream) {
+      logger.warn('attachRecording: stream not found', { uid, videoUid: recording.videoUid });
+      return;
+    }
+    if (stream.getStatus() !== StreamStatus.ENDED) {
+      logger.warn('attachRecording skipped: stream not ended', {
+        uid,
+        streamId: stream.getId(),
+        status: stream.getStatus(),
+      });
+      return;
+    }
+    stream.attachRecording(recording.videoUid, recording.hlsUrl, recording.readyAt);
+    await this.streamRepository.update(stream);
+    logger.info('Recording attached to stream', {
+      uid,
+      streamId: stream.getId(),
+      videoUid: recording.videoUid,
+    });
+  }
+
   /** Called by the stale cleanup job to retire browser LIVE streams whose heartbeat expired. */
   async endStaleLive(streamKey: string): Promise<void> {
     const stream = await this.streamRepository.findByStreamKey(streamKey);

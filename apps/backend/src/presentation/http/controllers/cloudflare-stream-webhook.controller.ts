@@ -13,6 +13,9 @@ const IDEMPOTENCY_TTL_SECONDS = 300;
 
 const REPLAY_WINDOW_SECONDS = 300;
 
+const METRIC_WEBHOOK_KEY = 'metrics:cfstream:webhook:24h';
+const METRIC_TTL_SECONDS = 86400;
+
 function verifySignature(rawBody: Buffer, header: string): boolean {
   // header format: "time=<unix>,sig1=<hex>"
   const parts = Object.fromEntries(
@@ -119,6 +122,9 @@ export class CloudflareStreamWebhookController {
         default:
           logger.warn('CF webhook: unknown live input event type', { event_type, input_id });
       }
+      // Webhook-rate counter — pairs with the fallback counter in stream.controller.ts
+      // to expose `fallback / (webhook + fallback)` ratio for outage detection.
+      await this.cache.incr(METRIC_WEBHOOK_KEY, METRIC_TTL_SECONDS);
       return;
     }
 
@@ -126,9 +132,23 @@ export class CloudflareStreamWebhookController {
     // Ref: https://developers.cloudflare.com/stream/manage-video-library/using-webhooks/
     if (typeof payload['uid'] === 'string') {
       const video = payload as unknown as CfVideoWebhookPayload;
-      if (video.readyToStream) {
+      if (video.readyToStream && video.liveInput) {
+        const hlsUrl =
+          `https://customer-${env.CLOUDFLARE_STREAM_CUSTOMER_SUBDOMAIN}.cloudflarestream.com` +
+          `/${video.uid}/manifest/video.m3u8`;
+        // Fire-and-forget — response 200 was already flushed at line 90.
+        lifecycleService
+          .attachRecording(video.liveInput, { videoUid: video.uid, hlsUrl, readyAt: new Date() })
+          .catch(err =>
+            logger.error('CF webhook: attachRecording failed', {
+              videoUid: video.uid,
+              liveInput: video.liveInput,
+              err: (err as Error).message,
+            }),
+          );
         logger.info('CF webhook: recording ready', { videoUid: video.uid, liveInput: video.liveInput });
       }
+      await this.cache.incr(METRIC_WEBHOOK_KEY, METRIC_TTL_SECONDS);
       return;
     }
 

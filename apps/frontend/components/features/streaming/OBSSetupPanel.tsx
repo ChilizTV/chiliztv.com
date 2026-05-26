@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useCallback, useState, useRef } from "react";
 import axios from "axios";
 import { Copy, Eye, EyeOff, RefreshCw, Wifi, WifiOff, ChevronDown, ChevronUp, Tv2, Square, CheckCircle2 } from "lucide-react";
 import { streamViewerService, ApiService } from "@/services";
+import { useVisibilityAwareInterval } from "@/hooks/useVisibilityAwareInterval";
 import { LiveStream } from "@/models/stream.model";
 
 function StreamerLiveBanner({ isLive }: { isLive: boolean }) {
@@ -62,34 +63,35 @@ export function OBSSetupPanel({
   const [isRegenerating, setIsRegenerating] = useState(false);
   const [copied, setCopied] = useState<string | null>(null);
 
-  useEffect(() => {
-    const poll = async () => {
-      try {
-        const response = await axios.get(`${ApiService.baseURL}/stream`, {
-          params: {
-            streamerId,
-            ...(cloudflareInputUid ? { cloudflareInputUid } : {}),
-          },
-        });
-        const streams: { status: string }[] = response.data?.streams ?? [];
-        const nowLive = streams.length > 0 && streams[0].status === "live";
-        if (nowLive !== isLiveRef.current) {
-          onIsLiveChange?.(nowLive);
-        }
-        if (isLiveRef.current && !nowLive) {
-          onStreamEnded();
-        }
-        isLiveRef.current = nowLive;
-        setIsLive(nowLive);
-      } catch {
-        // network error — keep last known state
+  // Poll the backend for OBS live status. Defined as `useCallback` so the
+  // hook's internal ref always captures the latest closure (cloudflareInputUid,
+  // onIsLiveChange, onStreamEnded) without re-creating the interval.
+  const poll = useCallback(async () => {
+    try {
+      const response = await axios.get(`${ApiService.baseURL}/stream`, {
+        params: {
+          streamerId,
+          ...(cloudflareInputUid ? { cloudflareInputUid } : {}),
+        },
+      });
+      const streams: { status: string }[] = response.data?.streams ?? [];
+      const nowLive = streams.length > 0 && streams[0].status === "live";
+      if (nowLive !== isLiveRef.current) {
+        onIsLiveChange?.(nowLive);
       }
-    };
+      if (isLiveRef.current && !nowLive) {
+        onStreamEnded();
+      }
+      isLiveRef.current = nowLive;
+      setIsLive(nowLive);
+    } catch {
+      // network error — keep last known state
+    }
+  }, [streamerId, cloudflareInputUid, onIsLiveChange, onStreamEnded]);
 
-    poll();
-    const interval = setInterval(poll, 4000);
-    return () => clearInterval(interval);
-  }, [streamerId]);
+  // Pauses on hidden tabs (visibilityState), resumes with an immediate fire.
+  // Drops to 0 CF API churn when the streamer has multi-tab open.
+  useVisibilityAwareInterval(poll, streamerId ? 4000 : null, !!streamerId);
 
   const copyToClipboard = async (text: string, label: string) => {
     await navigator.clipboard.writeText(text);

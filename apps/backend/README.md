@@ -66,6 +66,63 @@ Migrations are re-applied on the next `pnpm dev:supabase:reset` (or via `pnpm de
 
 `compose.yml` (root) and `apps/backend/compose.yml` ship a legacy all-Docker workflow (Node runs in a container). They are **not** used by `pnpm dev:local` — the new workflow runs Node on the host and only Redis in Docker (`compose.local.yml`). Don't mix them in the same session.
 
+### Cloudflare Stream webhook testing
+
+The webhook controller at `/cloudflare-stream/webhook` only runs when Cloudflare
+Stream can reach the host over HTTPS. The 4s OBSSetupPanel poll is a fallback,
+not a replacement — to exercise the webhook path locally the backend must be
+exposed via a public tunnel. Pick one:
+
+**Option A — Cloudflare Named Tunnel** (recommended, free, stable hostname)
+
+```bash
+brew install cloudflared
+cloudflared login
+
+# Once, create the tunnel:
+cloudflared tunnel create chiliztv-local
+
+# Then write ~/.cloudflared/config.yml with the tunnel id printed above:
+# tunnel: chiliztv-local
+# credentials-file: /Users/<you>/.cloudflared/<tunnel-uuid>.json
+# ingress:
+#   - hostname: cf-webhook-local.<your-domain>
+#     service: http://localhost:3001
+#   - service: http_status:404
+
+# Add the DNS CNAME `cf-webhook-local.<your-domain>` → `<tunnel-uuid>.cfargotunnel.com`.
+
+cloudflared tunnel run chiliztv-local
+```
+
+Set the CF Stream dashboard webhook URL to `https://cf-webhook-local.<your-domain>/cloudflare-stream/webhook`. Stable across restarts — fits daily dev.
+
+**Option B — ngrok** (free 1 URL + 1 GB/month, $8/mo for a stable URL)
+
+```bash
+brew install ngrok
+ngrok http 3001
+# prints e.g. https://abc-123-456.ngrok-free.app
+```
+
+Copy the HTTPS URL into the CF Stream dashboard webhook URL. The free plan
+rotates the URL on every restart — Pro for stability.
+
+**Option C — Cloudflare Quick Tunnel** (one-liner, URL rotates per run)
+
+```bash
+cloudflared tunnel --url http://localhost:3001
+# prints e.g. https://random-words-123.trycloudflare.com
+```
+
+Best for an ad-hoc 5-minute probe; useless for the daily dev loop.
+
+**In every option**, set `CLOUDFLARE_STREAM_WEBHOOK_SECRET` in `.env.local` to a
+**dev-only secret** that matches the dashboard's webhook secret. The HMAC
+verification is timing-safe (`webhook-signature` header) — a mismatch returns
+401 silently and burns rate-limit budget without any log clue. Use a secret
+distinct from staging and prod.
+
 ## Live betting policy — disabled
 
 Aucun pari ne peut être posé pendant qu'un match est in-play (`1H`, `HT`,

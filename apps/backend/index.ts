@@ -1,5 +1,5 @@
 // Same image is deployed to chiliztv-api and chiliztv-workers; PROCESS_ROLE
-// (read further down) decides which set of services boot. 
+// (read further down) decides which set of services boot.
 import 'reflect-metadata';
 import express from 'express';
 import cors from "cors";
@@ -7,6 +7,20 @@ import http from 'http';
 import { config } from 'dotenv';
 import { securityHeadersMiddleware, env, setupDependencyInjection, container } from './src/infrastructure/config';
 import { logger, createRequestLogger } from './src/infrastructure/logging';
+
+// Safety nets — keep the process alive when Redis (or any other infra)
+// throws asynchronously without a local handler. Without these, an
+// upstream like Upstash hitting its quota crashes the whole API and
+// triggers a Fly restart loop until the machine is force-stopped.
+process.on('unhandledRejection', (reason) => {
+  logger.error('Unhandled promise rejection', {
+    reason: reason instanceof Error ? reason.message : String(reason),
+    stack: reason instanceof Error ? reason.stack : undefined,
+  });
+});
+process.on('uncaughtException', (err) => {
+  logger.error('Uncaught exception', { message: err.message, stack: err.stack });
+});
 import { TOKENS } from '@chiliztv/domain/shared/tokens';
 import type { IClock } from '@chiliztv/domain/shared/ports/IClock';
 import { errorHandler, authenticate, globalLimiter, authLimiter, predictionsLimiter, chatLimiter, accessCodeLimiter, webhookLimiter } from './src/presentation/http/middlewares';

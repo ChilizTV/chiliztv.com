@@ -185,6 +185,7 @@ contract ChilizSwapRouter is ReentrancyGuard, Ownable {
     error TokenIsUSDC();
     error UnauthorizedBettingMatch(address bettingMatch);
     error BettingMatchFactoryNotSet();
+    error StreamWalletFactoryNotSet();
     error RouterNotConfiguredOnFactory();
 
     // ══════════════════════════════════════════════════════════════════════════
@@ -316,9 +317,10 @@ contract ChilizSwapRouter is ReentrancyGuard, Ownable {
         if (streamer == address(0)) revert ZeroAddress();
         if (block.timestamp > deadline) revert DeadlinePassed();
 
+        address wallet = _walletFor(streamer);
         uint256 usdcReceived = _swapCHZToUSDC(msg.value, amountOutMin, deadline);
-        (uint256 fee, uint256 streamerAmt) = _splitAndTransfer(streamer, usdcReceived);
-        _recordDonation(streamer, msg.sender, usdcReceived, fee, streamerAmt, message);
+        (uint256 fee, uint256 streamerAmt) = _splitAndTransfer(wallet, usdcReceived);
+        _recordDonation(wallet, msg.sender, usdcReceived, fee, streamerAmt, message);
 
         emit DonationWithCHZ(msg.sender, streamer, msg.value, usdcReceived, fee, message);
     }
@@ -334,9 +336,10 @@ contract ChilizSwapRouter is ReentrancyGuard, Ownable {
         if (duration == 0) revert ZeroValue();
         if (block.timestamp > deadline) revert DeadlinePassed();
 
+        address wallet = _walletFor(streamer);
         uint256 usdcReceived = _swapCHZToUSDC(msg.value, amountOutMin, deadline);
-        (uint256 fee,) = _splitAndTransfer(streamer, usdcReceived);
-        _recordSubscription(streamer, msg.sender, usdcReceived, duration);
+        (uint256 fee,) = _splitAndTransfer(wallet, usdcReceived);
+        _recordSubscription(wallet, msg.sender, usdcReceived, duration);
 
         emit SubscriptionWithCHZ(msg.sender, streamer, msg.value, usdcReceived, fee, duration);
     }
@@ -353,9 +356,10 @@ contract ChilizSwapRouter is ReentrancyGuard, Ownable {
         if (amount == 0) revert ZeroValue();
         if (streamer == address(0)) revert ZeroAddress();
 
+        address wallet = _walletFor(streamer);
         usdc.safeTransferFrom(msg.sender, address(this), amount);
-        (uint256 fee, uint256 streamerAmt) = _splitAndTransfer(streamer, amount);
-        _recordDonation(streamer, msg.sender, amount, fee, streamerAmt, message);
+        (uint256 fee, uint256 streamerAmt) = _splitAndTransfer(wallet, amount);
+        _recordDonation(wallet, msg.sender, amount, fee, streamerAmt, message);
 
         emit DonationWithUSDCEvent(msg.sender, streamer, amount, fee, message);
     }
@@ -369,9 +373,10 @@ contract ChilizSwapRouter is ReentrancyGuard, Ownable {
         if (streamer == address(0)) revert ZeroAddress();
         if (duration == 0) revert ZeroValue();
 
+        address wallet = _walletFor(streamer);
         usdc.safeTransferFrom(msg.sender, address(this), amount);
-        (uint256 fee,) = _splitAndTransfer(streamer, amount);
-        _recordSubscription(streamer, msg.sender, amount, duration);
+        (uint256 fee,) = _splitAndTransfer(wallet, amount);
+        _recordSubscription(wallet, msg.sender, amount, duration);
 
         emit SubscriptionWithUSDCEvent(msg.sender, streamer, amount, fee, duration);
     }
@@ -393,10 +398,11 @@ contract ChilizSwapRouter is ReentrancyGuard, Ownable {
         if (token == address(usdc)) revert TokenIsUSDC();
         if (block.timestamp > deadline) revert DeadlinePassed();
 
+        address wallet = _walletFor(streamer);
         uint256 received     = _pullToken(IERC20(token), msg.sender, amount);
         uint256 usdcReceived = _swapTokensToUSDC(token, received, amountOutMin, deadline);
-        (uint256 fee, uint256 streamerAmt) = _splitAndTransfer(streamer, usdcReceived);
-        _recordDonation(streamer, msg.sender, usdcReceived, fee, streamerAmt, message);
+        (uint256 fee, uint256 streamerAmt) = _splitAndTransfer(wallet, usdcReceived);
+        _recordDonation(wallet, msg.sender, usdcReceived, fee, streamerAmt, message);
 
         emit DonationWithToken(msg.sender, streamer, token, received, usdcReceived, fee, message);
     }
@@ -415,10 +421,11 @@ contract ChilizSwapRouter is ReentrancyGuard, Ownable {
         if (duration == 0) revert ZeroValue();
         if (block.timestamp > deadline) revert DeadlinePassed();
 
+        address wallet = _walletFor(streamer);
         uint256 received     = _pullToken(IERC20(token), msg.sender, amount);
         uint256 usdcReceived = _swapTokensToUSDC(token, received, amountOutMin, deadline);
-        (uint256 fee,) = _splitAndTransfer(streamer, usdcReceived);
-        _recordSubscription(streamer, msg.sender, usdcReceived, duration);
+        (uint256 fee,) = _splitAndTransfer(wallet, usdcReceived);
+        _recordSubscription(wallet, msg.sender, usdcReceived, duration);
 
         emit SubscriptionWithToken(msg.sender, streamer, token, received, usdcReceived, fee, duration);
     }
@@ -534,40 +541,46 @@ contract ChilizSwapRouter is ReentrancyGuard, Ownable {
     // INTERNAL — STREAMING HELPERS
     // ══════════════════════════════════════════════════════════════════════════
 
+    /// @dev Resolve (and lazily deploy) the StreamWallet escrow for `streamer`.
+    ///      Reverts if the StreamWalletFactory has not been wired — without it
+    ///      we have no place to escrow USDC, so the call must fail loudly
+    ///      instead of routing funds to the streamer EOA.
+    function _walletFor(address streamer) internal returns (address) {
+        StreamWalletFactory factory = streamWalletFactory;
+        if (address(factory) == address(0)) revert StreamWalletFactoryNotSet();
+        return factory.getOrCreateWallet(streamer);
+    }
+
+    /// @dev USDC is escrowed in the StreamWallet (`wallet`); streamer
+    ///      withdraws via StreamWallet.withdrawRevenue.
     function _splitAndTransfer(
-        address streamer,
+        address wallet,
         uint256 totalAmount
     ) internal returns (uint256 fee, uint256 streamerAmount) {
         fee           = (totalAmount * platformFeeBps) / 10_000;
         streamerAmount = totalAmount - fee;
         if (fee > 0) usdc.safeTransfer(treasury, fee);
-        usdc.safeTransfer(streamer, streamerAmount);
+        usdc.safeTransfer(wallet, streamerAmount);
     }
 
     function _recordSubscription(
-        address streamer,
+        address wallet,
         address subscriber,
         uint256 usdcAmount,
         uint256 duration
     ) internal {
-        if (address(streamWalletFactory) != address(0)) {
-            address wallet = streamWalletFactory.getOrCreateWallet(streamer);
-            StreamWallet(payable(wallet)).recordSubscriptionByRouter(subscriber, usdcAmount, duration);
-        }
+        StreamWallet(payable(wallet)).recordSubscriptionByRouter(subscriber, usdcAmount, duration);
     }
 
     function _recordDonation(
-        address streamer,
+        address wallet,
         address donor,
         uint256 usdcAmount,
         uint256 platformFee,
         uint256 streamerAmount,
         string calldata message
     ) internal {
-        if (address(streamWalletFactory) != address(0)) {
-            address wallet = streamWalletFactory.getOrCreateWallet(streamer);
-            StreamWallet(payable(wallet)).recordDonationByRouter(donor, usdcAmount, platformFee, streamerAmount, message);
-        }
+        StreamWallet(payable(wallet)).recordDonationByRouter(donor, usdcAmount, platformFee, streamerAmount, message);
     }
 
     receive() external payable {}

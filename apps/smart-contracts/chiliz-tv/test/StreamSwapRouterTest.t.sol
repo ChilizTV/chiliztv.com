@@ -25,6 +25,7 @@ contract StreamSwapRouterTest is Test {
     MockKayenRouter public mockRouter;
     MockFanToken public fanToken;
     ChilizSwapRouter public streamSwapRouter;
+    StreamWalletFactory public walletFactory;
 
     address public treasury = address(0x999);
     address public streamer1 = address(0x4);
@@ -48,6 +49,14 @@ contract StreamSwapRouterTest is Test {
             PLATFORM_FEE_BPS
         );
 
+        // Streaming flows now require a StreamWalletFactory because USDC is
+        // escrowed in the per-streamer wallet (not pushed to the streamer EOA).
+        walletFactory = new StreamWalletFactory(
+            address(this), treasury, PLATFORM_FEE_BPS, address(mockRouter), address(usdc)
+        );
+        walletFactory.setSwapRouter(address(streamSwapRouter));
+        streamSwapRouter.setStreamWalletFactory(address(walletFactory));
+
         vm.deal(viewer1, 100 ether);
         vm.deal(viewer2, 100 ether);
 
@@ -56,6 +65,12 @@ contract StreamSwapRouterTest is Test {
         fanToken.mint(viewer2, 1000 ether);
         usdc.mint(viewer1, 100_000e6);
         usdc.mint(viewer2, 100_000e6);
+    }
+
+    /// @dev Read the escrow balance for a streamer (lazily-deployed wallet).
+    function _streamerEscrow(address streamer) internal view returns (uint256) {
+        address wallet = walletFactory.getWallet(streamer);
+        return wallet == address(0) ? 0 : usdc.balanceOf(wallet);
     }
 
     // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
@@ -77,7 +92,7 @@ contract StreamSwapRouterTest is Test {
         uint256 expectedStreamer = expectedTotal - expectedFee;
 
         assertEq(usdc.balanceOf(treasury), expectedFee, "Treasury should receive fee");
-        assertEq(usdc.balanceOf(streamer1), expectedStreamer, "Streamer should receive donation");
+        assertEq(_streamerEscrow(streamer1), expectedStreamer, "Streamer escrow should hold donation");
     }
 
     function test_SubscribeWithCHZ() public {
@@ -96,7 +111,7 @@ contract StreamSwapRouterTest is Test {
         uint256 expectedStreamer = expectedTotal - expectedFee;
 
         assertEq(usdc.balanceOf(treasury), expectedFee);
-        assertEq(usdc.balanceOf(streamer1), expectedStreamer);
+        assertEq(_streamerEscrow(streamer1), expectedStreamer);
     }
 
     // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
@@ -115,7 +130,7 @@ contract StreamSwapRouterTest is Test {
         uint256 expectedStreamer = amount - expectedFee;
 
         assertEq(usdc.balanceOf(treasury), expectedFee, "Treasury should receive fee");
-        assertEq(usdc.balanceOf(streamer1), expectedStreamer, "Streamer should receive donation");
+        assertEq(_streamerEscrow(streamer1), expectedStreamer, "Streamer escrow should hold donation");
     }
 
     function test_SubscribeWithUSDC() public {
@@ -131,7 +146,7 @@ contract StreamSwapRouterTest is Test {
         uint256 expectedStreamer = amount - expectedFee;
 
         assertEq(usdc.balanceOf(treasury), expectedFee);
-        assertEq(usdc.balanceOf(streamer1), expectedStreamer);
+        assertEq(_streamerEscrow(streamer1), expectedStreamer);
     }
 
     // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
@@ -159,7 +174,7 @@ contract StreamSwapRouterTest is Test {
         uint256 expectedStreamer = expectedTotal - expectedFee;
 
         assertEq(usdc.balanceOf(treasury), expectedFee, "Treasury should receive fee");
-        assertEq(usdc.balanceOf(streamer1), expectedStreamer, "Streamer should receive donation");
+        assertEq(_streamerEscrow(streamer1), expectedStreamer, "Streamer escrow should hold donation");
     }
 
     function test_SubscribeWithToken() public {
@@ -183,7 +198,7 @@ contract StreamSwapRouterTest is Test {
         uint256 expectedStreamer = expectedTotal - expectedFee;
 
         assertEq(usdc.balanceOf(treasury), expectedFee);
-        assertEq(usdc.balanceOf(streamer1), expectedStreamer);
+        assertEq(_streamerEscrow(streamer1), expectedStreamer);
     }
 
     // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•

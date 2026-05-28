@@ -252,12 +252,13 @@ contract StreamWallet is Initializable, OwnableUpgradeable, UUPSUpgradeable, Ree
             emit PlatformFeeCollected(platformFee, treasury);
         }
 
-        // Swap streamer portion to USDC and send to streamer
+        // Swap streamer portion to USDC into this contract's escrow;
+        // streamer releases it via withdrawRevenue().
         uint256[] memory amounts = IKayenRouter(kayenRouter).swapExactTokensForTokens(
             streamerAmount,
             0,
             path,
-            streamer,
+            address(this),
             deadline
         );
 
@@ -430,13 +431,11 @@ contract StreamWallet is Initializable, OwnableUpgradeable, UUPSUpgradeable, Ree
         lifetimeDonations[donor] += totalUsdc;
         totalRevenue             += totalUsdc;
 
-        // Transfer USDC directly — no second swap needed
+        // Platform fee → treasury immediately; streamer portion stays escrowed
+        // in this contract and is released via withdrawRevenue().
         if (platformFee > 0) {
             SafeERC20.safeTransfer(IERC20(usdc), treasury, platformFee);
             emit PlatformFeeCollected(platformFee, treasury);
-        }
-        if (streamerAmount > 0) {
-            SafeERC20.safeTransfer(IERC20(usdc), streamer, streamerAmount);
         }
 
         emit DonationReceived(

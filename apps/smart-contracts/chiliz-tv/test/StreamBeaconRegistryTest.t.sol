@@ -191,8 +191,8 @@ contract StreamBeaconRegistryTest is Test {
         // Treasury should have received USDC platform fee
         assertEq(usdcToken.balanceOf(treasury), expectedFee);
 
-        // Streamer should have received USDC payment
-        assertEq(usdcToken.balanceOf(streamer1), expectedStreamerAmount);
+        // Streamer's wallet (escrow) should hold the USDC payment
+        assertEq(usdcToken.balanceOf(wallet), expectedStreamerAmount);
 
         // Verify subscription data
         assertTrue(streamWallet.isSubscribed(viewer1));
@@ -255,10 +255,10 @@ contract StreamBeaconRegistryTest is Test {
         assertTrue(factory.hasWallet(streamer1));
         assertTrue(factory.hasWallet(streamer2));
 
-        // Both streamers should have received USDC payments
+        // Each streamer's wallet (escrow) should hold the USDC payment
         uint256 expectedStreamerAmount = amount - ((amount * PLATFORM_FEE_BPS) / 10_000);
-        assertEq(usdcToken.balanceOf(streamer1), expectedStreamerAmount);
-        assertEq(usdcToken.balanceOf(streamer2), expectedStreamerAmount);
+        assertEq(usdcToken.balanceOf(wallet1), expectedStreamerAmount);
+        assertEq(usdcToken.balanceOf(wallet2), expectedStreamerAmount);
     }
 
     function testSubscriptionExpiry() public {
@@ -327,7 +327,7 @@ contract StreamBeaconRegistryTest is Test {
         vm.prank(viewer1);
         address wallet = factory.subscribeToStream(streamer1, 30 days, subscriptionAmount, 0, block.timestamp + 1 hours, address(fanToken));
 
-        uint256 streamerUsdcBefore = usdcToken.balanceOf(streamer1);
+        uint256 walletUsdcBefore = usdcToken.balanceOf(wallet);
         uint256 treasuryUsdcBefore = usdcToken.balanceOf(treasury);
 
         StreamWallet streamWallet = StreamWallet(payable(wallet));
@@ -343,7 +343,7 @@ contract StreamBeaconRegistryTest is Test {
         // Check donation recorded
         assertEq(streamWallet.getDonationAmount(viewer2), donationAmount);
 
-        // Check USDC balances
+        // Check USDC balances — streamer portion is escrowed in the wallet.
         uint256 expectedFee = (donationAmount * PLATFORM_FEE_BPS) / 10_000;
         uint256 expectedStreamerAmount = donationAmount - expectedFee;
 
@@ -352,8 +352,8 @@ contract StreamBeaconRegistryTest is Test {
             treasuryUsdcBefore + expectedFee
         );
         assertEq(
-            usdcToken.balanceOf(streamer1),
-            streamerUsdcBefore + expectedStreamerAmount
+            usdcToken.balanceOf(wallet),
+            walletUsdcBefore + expectedStreamerAmount
         );
     }
 
@@ -409,29 +409,28 @@ contract StreamBeaconRegistryTest is Test {
     //////////////////////////////////////////////////////////////*/
 
     function testStreamerWithdrawal() public {
-        // Create wallet with subscription
+        // Subscribe — streamer portion is escrowed in the wallet.
         uint256 subscriptionAmount = 100 ether;
         vm.prank(viewer1);
         address wallet = factory.subscribeToStream(streamer1, 30 days, subscriptionAmount, 0, block.timestamp + 1 hours, address(fanToken));
 
         StreamWallet streamWallet = StreamWallet(payable(wallet));
 
-        // Check available balance (should be 0 as USDC was sent directly to streamer/treasury)
-        assertEq(streamWallet.availableBalance(), 0);
+        uint256 expectedFee = (subscriptionAmount * PLATFORM_FEE_BPS) / 10_000;
+        uint256 expectedEscrow = subscriptionAmount - expectedFee;
 
-        // Mint USDC directly to wallet to test withdrawal
-        usdcToken.mint(wallet, 10 ether);
-
-        uint256 balance = streamWallet.availableBalance();
-        assertEq(balance, 10 ether);
+        // Available balance reflects the escrowed USDC.
+        assertEq(streamWallet.availableBalance(), expectedEscrow);
 
         uint256 streamerUsdcBefore = usdcToken.balanceOf(streamer1);
 
         vm.prank(streamer1);
-        streamWallet.withdrawRevenue(balance);
+        streamWallet.withdrawRevenue(expectedEscrow);
 
-        assertEq(usdcToken.balanceOf(streamer1), streamerUsdcBefore + balance);
+        // Streamer EOA receives the USDC; escrow drained.
+        assertEq(usdcToken.balanceOf(streamer1), streamerUsdcBefore + expectedEscrow);
         assertEq(streamWallet.availableBalance(), 0);
+        assertEq(streamWallet.totalWithdrawn(), expectedEscrow);
     }
 
     function testOnlyStreamerCanWithdraw() public {
@@ -464,6 +463,7 @@ contract StreamBeaconRegistryTest is Test {
 
         uint256 totalFees = 0;
         uint256 totalStreamerPayments = 0;
+        address wallet;
 
         for (uint256 i = 0; i < amounts.length; i++) {
             // Create new viewer for each test
@@ -475,7 +475,7 @@ contract StreamBeaconRegistryTest is Test {
             fanToken.approve(address(factory), amounts[i]);
 
             vm.prank(viewer);
-            factory.subscribeToStream(streamer1, 30 days, amounts[i], 0, block.timestamp + 1 hours, address(fanToken));
+            wallet = factory.subscribeToStream(streamer1, 30 days, amounts[i], 0, block.timestamp + 1 hours, address(fanToken));
 
             uint256 expectedFee = (amounts[i] * PLATFORM_FEE_BPS) / 10_000;
             uint256 expectedStreamerAmount = amounts[i] - expectedFee;
@@ -487,9 +487,9 @@ contract StreamBeaconRegistryTest is Test {
         // Verify total USDC fees collected by treasury
         assertEq(usdcToken.balanceOf(treasury), totalFees);
 
-        // Verify total USDC streamer payments
+        // Streamer portions are escrowed in streamer1's wallet.
         assertEq(
-            usdcToken.balanceOf(streamer1),
+            usdcToken.balanceOf(wallet),
             totalStreamerPayments
         );
     }
@@ -516,10 +516,10 @@ contract StreamBeaconRegistryTest is Test {
         uint256 treasuryBefore = usdcToken.balanceOf(treasury);
 
         vm.prank(viewer1);
-        zeroFeeFactory.subscribeToStream(streamer2, 30 days, amount, 0, block.timestamp + 1 hours, address(fanToken));
+        address zeroFeeWallet = zeroFeeFactory.subscribeToStream(streamer2, 30 days, amount, 0, block.timestamp + 1 hours, address(fanToken));
 
-        // Streamer should receive full USDC amount
-        assertEq(usdcToken.balanceOf(streamer2), amount);
+        // Streamer's wallet (escrow) holds the full USDC amount
+        assertEq(usdcToken.balanceOf(zeroFeeWallet), amount);
 
         // Treasury should receive nothing
         assertEq(usdcToken.balanceOf(treasury), treasuryBefore);
@@ -630,9 +630,9 @@ contract StreamBeaconRegistryTest is Test {
         assertEq(streamWallet.totalSubscribers(), 2);
         assertEq(streamWallet.getDonationAmount(viewer1), donationAmount);
 
-        // Verify USDC balances
+        // Verify USDC balances — streamer portion is escrowed in the wallet.
         assertEq(usdcToken.balanceOf(treasury), totalFees);
-        assertEq(usdcToken.balanceOf(streamer1), totalStreamerPayment);
+        assertEq(usdcToken.balanceOf(wallet), totalStreamerPayment);
 
         // Verify subscriptions
         assertTrue(streamWallet.isSubscribed(viewer1));

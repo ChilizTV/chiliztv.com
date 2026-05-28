@@ -64,12 +64,12 @@ function bettableBlockLabel(verdict: BettableResult, kickoffAt: string, now: Dat
   if (verdict.ok) return '';
   switch (verdict.reason) {
     case 'LIVE':
-      return 'Live · Betting closed';
+      return 'Live · Predictions closed';
     case 'HALFTIME':
-      return 'Halftime · Betting closed';
+      return 'Halftime · Predictions closed';
     case 'KICKOFF_BUFFER': {
       const mins = Math.max(1, Math.ceil((new Date(kickoffAt).getTime() - now.getTime()) / 60_000));
-      return `Kicks off in ${mins}m · Betting closed`;
+      return `Kicks off in ${mins}m · Predictions closed`;
     }
     case 'FINISHED':
       return 'Awaiting resolution';
@@ -311,7 +311,7 @@ function MarketRow({ contractAddress, snapshot, homeTeam, awayTeam, matchOdds, m
                   </span>
                 ) : (
                   <span className="font-mono-ctv text-[10px] tabular-nums text-white/45">
-                    Be the first to bet
+                    Be the first to predict
                   </span>
                 )}
               </button>
@@ -396,7 +396,7 @@ export function MatchMarketsList({
   });
 
   if (!contractAddress) {
-    return <EmptyState message="No betting contract attached to this match." />;
+    return <EmptyState message="No prediction contract attached to this match." />;
   }
 
   if (!isFootball) {

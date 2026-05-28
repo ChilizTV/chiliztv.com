@@ -28,6 +28,25 @@ export interface UseChatRoomResult {
 
 const chatService = new SupabaseChatService();
 
+// Single dedup rule shared by realtime push and the polling fallback —
+// optimistic rows match by (message, userId) so the DB row takes their slot
+// instead of being appended as a duplicate when the realtime push is missed.
+function mergeAndDedupOptimistic(prev: ChatMessage[], incoming: ChatMessage): ChatMessage[] {
+    if (prev.some(m => m.id === incoming.id)) return prev;
+    const optimisticIdx = prev.findIndex(
+        m =>
+            m.id.startsWith('optimistic-') &&
+            m.message === incoming.message &&
+            m.userId === incoming.userId,
+    );
+    if (optimisticIdx !== -1) {
+        const next = [...prev];
+        next[optimisticIdx] = incoming;
+        return next;
+    }
+    return [...prev, incoming];
+}
+
 export function useChatRoom({
     roomType,
     roomId,
@@ -84,21 +103,7 @@ export function useChatRoom({
 
         const handleNewMessage = (msg: ChatMessage) => {
             if (activeRef.current) {
-                setMessages(prev => {
-                    // Deduplicate: replace optimistic message if content matches
-                    const optimisticIdx = prev.findIndex(
-                        m =>
-                            m.id.startsWith('optimistic-') &&
-                            m.message === msg.message &&
-                            m.userId === msg.userId
-                    );
-                    if (optimisticIdx !== -1) {
-                        const next = [...prev];
-                        next[optimisticIdx] = msg;
-                        return next;
-                    }
-                    return [...prev, msg];
-                });
+                setMessages(prev => mergeAndDedupOptimistic(prev, msg));
             } else {
                 setUnreadCount(n => n + 1);
             }
@@ -199,11 +204,9 @@ export function useChatRoom({
                 : await chatService.getGeneralMessages(matchId);
             let addedCount = 0;
             setMessages(prev => {
-                const known = new Set(prev.map(m => m.id));
-                const fresh = history.filter(m => !known.has(m.id));
-                addedCount = fresh.length;
-                if (addedCount === 0) return prev;
-                return [...prev, ...fresh];
+                const next = history.reduce(mergeAndDedupOptimistic, prev);
+                addedCount = Math.max(0, next.length - prev.length);
+                return next === prev ? prev : next;
             });
             if (addedCount > 0 && !activeRef.current) {
                 setUnreadCount(n => n + addedCount);

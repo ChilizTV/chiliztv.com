@@ -169,7 +169,7 @@ function PayoutHint({
     return (
         <div className={`flex flex-col gap-0.5 ${alignClass}`}>
             <span className="font-mono-ctv text-[10px] uppercase tracking-[0.14em] text-white/45">
-                Be the first to bet
+                Be the first to predict
             </span>
         </div>
     );

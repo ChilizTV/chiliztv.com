@@ -53,10 +53,10 @@ export function BetSuccessStep({
                 className="font-display mt-6 leading-[0.92] tracking-[-0.02em] text-white"
                 style={{ fontSize: 44, fontWeight: 800 }}
             >
-                Bet placed.
+                Prediction placed.
             </div>
             <div className="mt-3 text-[14px] font-light leading-[1.55] text-white/65">
-                Your stake is locked in the BettingMatch contract.
+                Your stake is locked in the prediction contract.
                 <br />
                 You&apos;ll see the result the moment full-time settles on-chain.
             </div>
@@ -118,7 +118,7 @@ export function BetSuccessStep({
                     onClick={onAnother}
                     className="font-display rounded-md border border-[#2A2A2A] px-5 py-3 text-[13px] font-bold uppercase tracking-[0.06em] text-white/85 hover:border-[#E8001D]"
                 >
-                    Bet another market
+                    Predict another market
                 </button>
                 <button
                     type="button"

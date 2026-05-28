@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { useFollowedStreamers, useSubscriberHistory } from '@/hooks/api';
+import { useFollowedStreamers, useSubscriberHistory, useUserProfilesBatch } from '@/hooks/api';
 import { SectionHeadDash } from '../components/SectionHeadDash';
 import { TabPill } from '../components/TabPill';
 import { TokenCardDash, type TokenCardData } from '../components/TokenCardDash';
@@ -56,16 +56,25 @@ export function MainTabs({ tokens, activity, userId, wallet, onSwap, onPlaceFirs
         }));
     }, [followedQuery.data?.items]);
 
+    const subscriberWallets = useMemo(
+        () => (subscribedQuery.data?.subscriptions ?? []).map((s) => s.streamerAddress),
+        [subscribedQuery.data?.subscriptions],
+    );
+    const { data: streamerProfiles } = useUserProfilesBatch(subscriberWallets);
+
     const subscribed = useMemo<SubscribedStreamer[]>(() => {
-        return (subscribedQuery.data?.subscriptions ?? []).map((s) => ({
-            id: s.id,
-            streamerId: s.streamerAddress,
-            name: s.streamerAddress.slice(0, 6) + '…' + s.streamerAddress.slice(-4),
-            renewsAt: new Date(s.endDate).getTime(),
-            monthlyUSDC: null,
-            active: s.isActive,
-        }));
-    }, [subscribedQuery.data?.subscriptions]);
+        return (subscribedQuery.data?.subscriptions ?? []).map((s) => {
+            const profile = streamerProfiles?.get(s.streamerAddress.toLowerCase());
+            return {
+                id: s.id,
+                streamerId: s.streamerAddress,
+                name: profile?.username ?? `${s.streamerAddress.slice(0, 6)}…${s.streamerAddress.slice(-4)}`,
+                renewsAt: new Date(s.endDate).getTime(),
+                monthlyUSDC: null,
+                active: s.isActive,
+            };
+        });
+    }, [subscribedQuery.data?.subscriptions, streamerProfiles]);
 
     const followedTotal = followedQuery.data?.total ?? 0;
     const subscribedTotal = subscribedQuery.data?.total ?? 0;
@@ -105,7 +114,7 @@ export function MainTabs({ tokens, activity, userId, wallet, onSwap, onPlaceFirs
                     <EmptyCard
                         icon={EMPTY_ICONS.coin}
                         title="No fan tokens"
-                        lead="Hold any club's $TOKEN to multiply your support and stake on its matches. Pick a match and stake in CHZ, USDC or any supported fan token — the swap to USDC runs inside the bet flow."
+                        lead="Hold any club's $TOKEN to multiply your support and stake on its matches. Pick a match and stake in CHZ, USDC or any supported fan token — the swap to USDC runs inside the prediction flow."
                         cta="Find a match →"
                         onCta={onSwap}
                         tip="Supported: $PSG · $BAR · $JUV · $ATM · $ACM · $INTER · $GAL · $POR …"

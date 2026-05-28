@@ -70,7 +70,7 @@ const CUSTOM_ERROR_HANDLERS: Record<
     // ── BettingMatch ────────────────────────────────────────────────────────
     InvalidMarketId: () => ({ title: 'Market not found', severity: 'error' }),
     InvalidMarketState: () => ({
-        title: 'Market is not open for bets',
+        title: 'Market is not open for predictions',
         description: 'Closed, suspended, or already resolved.',
         severity: 'warning',
     }),
@@ -96,17 +96,17 @@ const CUSTOM_ERROR_HANDLERS: Record<
         severity: 'warning',
     }),
     BetNotFound: () => ({
-        title: 'Bet not found',
-        description: 'The pool has no record of this bet — it may already have been claimed or refunded.',
+        title: 'Prediction not found',
+        description: 'The pool has no record of this prediction — it may already have been claimed or refunded.',
         severity: 'error',
     }),
     AlreadyClaimed: () => ({
         title: 'Already claimed',
-        description: 'This bet has been settled. Refresh the page to update the list.',
+        description: 'This prediction has been settled. Refresh the page to update the list.',
         severity: 'info',
     }),
     BetLost: () => ({
-        title: 'No payout — bet lost',
+        title: 'No payout — prediction lost',
         description: 'This selection lost when the market resolved.',
         severity: 'info',
     }),
@@ -142,16 +142,16 @@ const CUSTOM_ERROR_HANDLERS: Record<
         severity: 'warning',
     }),
     BetAmountAboveCap: (args) => ({
-        title: 'Stake above per-bet cap',
+        title: 'Stake above per-prediction cap',
         description: args[0] !== undefined && args[1] !== undefined
             ? `Stake ${fmtUsdc(args[0])} exceeds the cap ${fmtUsdc(args[1])}.`
-            : 'The pool has a per-bet cap that this stake exceeds.',
+            : 'The pool has a per-prediction cap that this stake exceeds.',
         severity: 'warning',
     }),
     MarketLiabilityCapExceeded: (args) => ({
         title: 'Market liability cap reached',
         description: args[1] !== undefined
-            ? `This market is already backing ${fmtUsdc(args[1])} of liability — no more bets accepted.`
+            ? `This market is already backing ${fmtUsdc(args[1])} of liability — no more predictions accepted.`
             : 'This market has reached its liability ceiling.',
         severity: 'warning',
     }),

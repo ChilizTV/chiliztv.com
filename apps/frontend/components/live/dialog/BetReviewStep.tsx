@@ -79,10 +79,10 @@ export function BetReviewStep({
                 className="font-display uppercase leading-[0.95] tracking-[-0.005em] text-white"
                 style={{ fontSize: 18, fontWeight: 800 }}
             >
-                Confirm your bet
+                Confirm your prediction
             </div>
             <div className="mt-2 text-[12px] font-light leading-[1.55] text-white/55">
-                Review the terms. On submit you sign one transaction — approve + bet are bundled when possible.
+                Review the terms. On submit you sign one transaction — approve + prediction are bundled when possible.
             </div>
 
             {/* Match strip */}

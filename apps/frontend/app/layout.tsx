@@ -4,6 +4,7 @@ import { Lexend, Barlow_Condensed, JetBrains_Mono } from "next/font/google";
 import DynamicProviderWrapper from "@/components/providers/DynamicProviderWrapper";
 import { AuthProvider } from "@/providers/auth-provider";
 import { QueryProvider } from "@/providers/query-provider";
+import { UsernameSetupGuard } from "@/components/providers/UsernameSetupGuard";
 import { Toaster } from "@chiliztv/ui";
 
 const lexend = Lexend({
@@ -48,6 +49,7 @@ export default function RootLayout({
         <DynamicProviderWrapper>
           <AuthProvider>
             <QueryProvider>
+              <UsernameSetupGuard />
               {children}
               <Toaster position="top-right" richColors />
             </QueryProvider>

@@ -145,7 +145,7 @@ export class SupabaseChatService {
                 match_id: matchId,
                 user_id: userId,
                 username: username,
-                message: `Pari ${betType} - ${betSubType}`,
+                message: `Prediction ${betType} - ${betSubType}`,
                 message_type: MessageType.BET,
                 bet_type: betType,
                 bet_sub_type: betSubType,

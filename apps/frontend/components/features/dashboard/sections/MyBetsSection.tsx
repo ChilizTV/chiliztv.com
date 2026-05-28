@@ -80,7 +80,7 @@ export function MyBetsSection({ wallet, onPlaceFirstBet, onWatchLive }: MyBetsSe
                             Your <span className="text-[#E8001D]">positions.</span>
                         </>
                     }
-                    lead="Stakes settle on-chain via the BettingMatch contracts. Claim your wins anytime — funds sit in the contract until you do."
+                    lead="Stakes settle on-chain via the prediction contracts. Claim your wins anytime — funds sit in the contract until you do."
                 />
                 <EmptyCard
                     icon={EMPTY_ICONS.ticket}
@@ -105,7 +105,7 @@ export function MyBetsSection({ wallet, onPlaceFirstBet, onWatchLive }: MyBetsSe
                         Your <span className="text-[#E8001D]">positions.</span>
                     </>
                 }
-                lead="Stakes settle on-chain via the BettingMatch contracts. Claim your wins anytime — funds sit in the contract until you do."
+                lead="Stakes settle on-chain via the prediction contracts. Claim your wins anytime — funds sit in the contract until you do."
             />
 
             {(statusCounts?.claimable ?? 0) > 0 && (

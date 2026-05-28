@@ -2,6 +2,8 @@
 
 import { useCallback, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useDynamicContext } from "@dynamic-labs/sdk-react-core";
+import { useAuth } from "@/providers/auth-provider";
 import {
     EmptyState,
     FilterBar,
@@ -36,6 +38,8 @@ export function MatchExplorer({
     isLoading?: boolean;
 }) {
     const router = useRouter();
+    const { isAuthenticated } = useAuth();
+    const { setShowAuthFlow } = useDynamicContext();
     const [tab, setTab] = useState<MatchTab>("all");
     const [league, setLeague] = useState<string | null>(null);
     const [sort, setSort] = useState<SortMode>("time_asc");
@@ -79,9 +83,18 @@ export function MatchExplorer({
         [empty],
     );
 
+    // Visitors see Discover but cannot enter a live room until they connect —
+    // clicking a match pops Dynamic's auth flow instead of navigating, so the
+    // wallet-required UI on `/live/[id]` never renders for anonymous users.
     const goToMatch = useCallback(
-        (m: FlatMatch) => router.push(`/live/${m.id}`),
-        [router],
+        (m: FlatMatch) => {
+            if (!isAuthenticated) {
+                setShowAuthFlow(true);
+                return;
+            }
+            router.push(`/live/${m.id}`);
+        },
+        [router, isAuthenticated, setShowAuthFlow],
     );
 
     const tabs: TabDescriptor[] = [

@@ -79,7 +79,7 @@ export function LatestSystemBanner({ message }: LatestSystemBannerProps) {
             className="rounded-md border border-dashed border-[#1E1E1E] px-3 py-2.5 text-center"
           >
             <div className="font-mono-ctv text-[9px] uppercase tracking-[0.18em] text-white/35">
-              Tips · Bets · Subs land here
+              Tips · Predictions · Subs land here
             </div>
           </motion.div>
         )}

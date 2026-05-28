@@ -51,7 +51,7 @@ export function UnsupportedSportPanel({ onClose }: UnsupportedSportPanelProps) {
                 Coming soon
             </div>
             <div className="max-w-md text-[14px] font-light leading-[1.55] text-white/55">
-                Football markets only for now. Basketball matches will go live once the betting UI ships.
+                Football markets only for now. Basketball matches will go live once the prediction UI ships.
             </div>
             <button
                 type="button"

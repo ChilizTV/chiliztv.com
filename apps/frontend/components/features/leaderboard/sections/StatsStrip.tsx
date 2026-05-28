@@ -1,11 +1,55 @@
-import { STATS_CELLS, type StatCell } from '../domain';
+'use client';
+
+import { formatUnits } from 'viem';
+import { useLeaderboardTop } from '@/hooks/api';
+
+const USDC_DECIMALS = 6;
+
+function fmtUsdc(raw: string | undefined): string {
+    if (!raw || raw === '0') return '0';
+    return Number(formatUnits(BigInt(raw), USDC_DECIMALS)).toLocaleString(undefined, {
+        maximumFractionDigits: 2,
+    });
+}
+
+interface StatCellData {
+    readonly label: string;
+    readonly value: string;
+    readonly sub: string;
+}
 
 /**
- * Four-cell stats strip below the hero. Each cell carries a label, a
- * big tabular value, and a secondary green sub-line. Cells are split
- * by vertical 1px dividers; the last one drops the divider.
+ * Four-cell stats strip below the hero. Live values pulled from the
+ * leaderboard DTO — no static placeholders.
  */
 export function StatsStrip() {
+    const { data } = useLeaderboardTop(1);
+    const topN = data?.topN ?? 10;
+    const claimDurationDays = data?.claimDurationDays ?? 7;
+
+    const cells: ReadonlyArray<StatCellData> = [
+        {
+            label: 'Prize pool',
+            value: `${fmtUsdc(data?.currentPrizePool)} USDC`,
+            sub: '▲ Funded on-chain',
+        },
+        {
+            label: 'Volume this epoch',
+            value: `${fmtUsdc(data?.currentEpochVolume)} USDC`,
+            sub: 'Settled in USDC',
+        },
+        {
+            label: 'Current epoch',
+            value: `#${data?.currentEpochId ?? 0}`,
+            sub: `${claimDurationDays}d claim window`,
+        },
+        {
+            label: `Top ${topN}`,
+            value: 'Pro-rata',
+            sub: 'By cumulative payout',
+        },
+    ];
+
     return (
         <section
             className="relative z-[4] border-y border-[#1E1E1E]"
@@ -15,15 +59,15 @@ export function StatsStrip() {
             }}
         >
             <div className="mx-auto grid max-w-[1400px] grid-cols-2 lg:grid-cols-4">
-                {STATS_CELLS.map((cell, i) => (
-                    <Cell key={cell.label} cell={cell} last={i === STATS_CELLS.length - 1} />
+                {cells.map((cell, i) => (
+                    <Cell key={cell.label} cell={cell} last={i === cells.length - 1} />
                 ))}
             </div>
         </section>
     );
 }
 
-function Cell({ cell, last }: { cell: StatCell; last: boolean }) {
+function Cell({ cell, last }: { cell: StatCellData; last: boolean }) {
     return (
         <div
             className="relative flex flex-col justify-between gap-5 px-7 py-9 sm:px-9"

@@ -1,7 +1,8 @@
 'use client';
 
 import { useDynamicContext } from '@dynamic-labs/sdk-react-core';
-import { TICKER_ITEMS } from './domain';
+import { useLeaderboardTop } from '@/hooks/api';
+import { buildTickerItems } from './domain/ticker';
 import {
     BackgroundFX,
     ClaimBanner,
@@ -30,18 +31,17 @@ function scrollToId(id: string): void {
 export function Leaderboard() {
     const { primaryWallet } = useDynamicContext();
     const wallet = primaryWallet?.address;
+    const { data } = useLeaderboardTop(1);
+    const ticker = buildTickerItems(data?.topN ?? 10, data?.claimDurationDays ?? 7);
 
     return (
         <div className="relative min-h-screen overflow-x-hidden bg-[#0A0A0A] text-white">
             <BackgroundFX />
 
-            <Ticker items={TICKER_ITEMS} />
+            <Ticker items={ticker} />
 
             <main className="relative z-2">
-                <Hero
-                    onNotify={() => scrollToId('lb-notify')}
-                    onRules={() => scrollToId('lb-split')}
-                />
+                <Hero onRules={() => scrollToId('lb-split')} />
                 <ClaimBanner wallet={wallet} />
                 <StatsStrip />
                 <MyPosition wallet={wallet} />

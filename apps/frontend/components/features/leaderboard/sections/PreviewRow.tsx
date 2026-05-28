@@ -53,14 +53,14 @@ export function PreviewRow({ row }: PreviewRowProps) {
                 ${(row.vol / 1000).toFixed(0)}K
             </div>
 
-            {/* tier label */}
+            {/* tier label — medal name only; the absolute share is pro-rata, not a fixed %. */}
             <div className="text-right">
                 {row.medal === 'gold' && (
                     <span
                         className="font-mono-ctv text-[11px] font-bold uppercase tracking-[0.18em]"
                         style={{ color: '#F5C518' }}
                     >
-                        Gold · 40%
+                        Gold
                     </span>
                 )}
                 {row.medal === 'silver' && (
@@ -68,7 +68,7 @@ export function PreviewRow({ row }: PreviewRowProps) {
                         className="font-mono-ctv text-[11px] font-bold uppercase tracking-[0.18em]"
                         style={{ color: '#D8D8DC' }}
                     >
-                        Silver · 30%
+                        Silver
                     </span>
                 )}
                 {row.medal === 'bronze' && (
@@ -76,12 +76,17 @@ export function PreviewRow({ row }: PreviewRowProps) {
                         className="font-mono-ctv text-[11px] font-bold uppercase tracking-[0.18em]"
                         style={{ color: '#C8794B' }}
                     >
-                        Bronze · 20%
+                        Bronze
+                    </span>
+                )}
+                {row.medal === 'honor' && (
+                    <span className="font-mono-ctv text-[11px] font-bold uppercase tracking-[0.18em] text-white/55">
+                        Top 10
                     </span>
                 )}
                 {!row.medal && (
-                    <span className="font-mono-ctv text-[11px] font-bold uppercase tracking-[0.18em] text-white/55">
-                        Top 10 · 10%
+                    <span className="font-mono-ctv text-[11px] font-bold uppercase tracking-[0.18em] text-white/35">
+                        —
                     </span>
                 )}
             </div>

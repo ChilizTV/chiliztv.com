@@ -1,31 +1,40 @@
-import { Eyebrow } from '../primitives';
-import { LBI } from '../primitives/icons';
-import { NotifyForm } from './NotifyForm';
+'use client';
 
-/** Closing CTA — email signup + social links. */
+import { useRouter } from 'next/navigation';
+import { useLeaderboardTop } from '@/hooks/api';
+import { Eyebrow, PrimaryBtn } from '../primitives';
+import { LBI } from '../primitives/icons';
+
+/** Closing CTA — drive new bettors to /browse. */
 export function NotifyCTA() {
+    const router = useRouter();
+    const { data } = useLeaderboardTop(1);
+    const topN = data?.topN ?? 10;
+
     return (
         <section
             id="lb-notify"
             className="relative z-[4] mx-auto max-w-[1400px] px-8 py-24 text-center sm:px-14 sm:py-28"
         >
             <div className="flex flex-col items-center gap-3">
-                <Eyebrow>Stay in the loop</Eyebrow>
+                <Eyebrow>Get on the board</Eyebrow>
                 <h2
                     className="font-display m-0 uppercase leading-[0.9] tracking-[-0.015em] text-white"
                     style={{ fontSize: 'clamp(48px, 6vw, 84px)', fontWeight: 800 }}
                 >
-                    Get pinged
+                    Place your first
                     <br />
-                    at <span className="text-[#E8001D]">kickoff</span>.
+                    <span className="text-[#E8001D]">prediction.</span>
                 </h2>
                 <p className="mt-4 max-w-[560px] text-[16px] font-light leading-[1.55] text-white/65">
-                    Drop your email — we&apos;ll ping you the moment Cycle 0 opens, and again every cycle close with the results. No spam, just signal.
+                    Every winning prediction adds to your score. Top {topN} cuts the pool every cycle.
                 </p>
             </div>
 
-            <div className="mx-auto mt-9 max-w-[560px]">
-                <NotifyForm />
+            <div className="mx-auto mt-9 flex justify-center">
+                <PrimaryBtn onClick={() => router.push('/browse')}>
+                    Browse live matches {LBI.arrowRight}
+                </PrimaryBtn>
             </div>
 
             <div className="font-mono-ctv mt-10 flex flex-wrap items-center justify-center gap-5 text-[10px] uppercase tracking-[0.18em] text-white/45">

@@ -1,21 +1,41 @@
 'use client';
 
+import { useRouter } from 'next/navigation';
+import { formatUnits } from 'viem';
+import { useLeaderboardTop } from '@/hooks/api';
 import { Eyebrow, GhostBtn, Pill, PrimaryBtn, PulseDot } from '../primitives';
 import { LBI } from '../primitives/icons';
 
 interface HeroProps {
-    onNotify: () => void;
     onRules: () => void;
 }
 
+const USDC_DECIMALS = 6;
+
+function fmtUsdc(raw: string | undefined): string {
+    if (!raw || raw === '0') return '0';
+    return Number(formatUnits(BigInt(raw), USDC_DECIMALS)).toLocaleString(undefined, {
+        maximumFractionDigits: 2,
+    });
+}
+
 /**
- * Hero — large display title + side teaser card showing the prize-pool
- * placeholder ("TBA") since the real number isn't decided yet.
+ * Hero — live prize pool snapshot + CTA to start betting. Pool figures and
+ * cycle metadata come from the leaderboard DTO; nothing is hardcoded "TBA".
  */
-export function Hero({ onNotify, onRules }: HeroProps) {
+export function Hero({ onRules }: HeroProps) {
+    const router = useRouter();
+    const { data } = useLeaderboardTop(1);
+    const prizePool = data?.currentPrizePool ?? '0';
+    const epochId = data?.currentEpochId ?? 0;
+    const volume = data?.currentEpochVolume ?? '0';
+    const topN = data?.topN ?? 10;
+    const claimDurationDays = data?.claimDurationDays ?? 7;
+    const isEmpty = prizePool === '0';
+
     return (
         <section className="relative z-[4] mx-auto max-w-[1400px] px-8 pb-16 pt-20 sm:px-14 sm:pb-20 sm:pt-28">
-            <Eyebrow>Leaderboard · Coming soon</Eyebrow>
+            <Eyebrow>Leaderboard · Live</Eyebrow>
 
             <div className="mt-8 grid items-end gap-10 lg:grid-cols-[1.5fr_1fr]">
                 {/* Left — copy */}
@@ -28,48 +48,37 @@ export function Hero({ onNotify, onRules }: HeroProps) {
                         <br />
                         predictors <span className="text-[#E8001D]">win</span>
                         <br />
-                        every month.
+                        every cycle.
                     </h1>
 
                     <p className="mt-7 max-w-[560px] text-[17px] font-light leading-[1.55] text-white/65">
-                        A monthly prize pool, paid in USDC on Chiliz Chain. Top spots get paid for being right. No tier, no subscription — just signal.
+                        Cycle paid in USDC on Chiliz Chain. Top {topN} predictors split the pool pro-rata by their cumulative payouts. No tier, no subscription — just signal.
                     </p>
 
                     <div className="mt-9 flex flex-wrap items-center gap-3">
-                        <PrimaryBtn onClick={onNotify}>
-                            Notify me when it ships {LBI.arrowRight}
+                        <PrimaryBtn onClick={() => router.push('/browse')}>
+                            Place a prediction {LBI.arrowRight}
                         </PrimaryBtn>
                         <GhostBtn onClick={onRules}>
-                            See the split {LBI.arrowDown}
+                            How payouts work {LBI.arrowDown}
                         </GhostBtn>
-                    </div>
-
-                    <div className="mt-7 inline-flex items-center gap-2.5">
-                        <span aria-hidden className="block h-0.5 w-4" style={{ background: '#F5C518' }} />
-                        <span
-                            className="font-mono-ctv text-[11px] font-bold uppercase tracking-[0.16em]"
-                            style={{ color: '#F5C518' }}
-                        >
-                            Launch window <span className="text-white">TBA</span> · Pool size{' '}
-                            <span className="text-white">TBA</span>
-                        </span>
                     </div>
                 </div>
 
-                {/* Right — TBA pool teaser card */}
+                {/* Right — live pool card */}
                 <div className="relative">
                     <div
                         className="relative overflow-hidden rounded-xl border border-[#1E1E1E] bg-[#111] p-7"
-                        style={{ boxShadow: '0 0 60px rgba(245,197,24,0.04)' }}
+                        style={{ boxShadow: '0 0 60px rgba(45,212,164,0.04)' }}
                     >
                         <div className="flex items-center justify-between">
                             <Eyebrow color="#F5C518">Prize pool</Eyebrow>
                             <Pill
-                                border="rgba(232,0,29,0.4)"
-                                color="#E8001D"
-                                icon={<PulseDot color="#E8001D" />}
+                                border="rgba(45,212,164,0.4)"
+                                color="#2dd4a4"
+                                icon={<PulseDot color="#2dd4a4" />}
                             >
-                                In design
+                                Live
                             </Pill>
                         </div>
 
@@ -78,23 +87,28 @@ export function Hero({ onNotify, onRules }: HeroProps) {
                                 className="font-display font-extrabold uppercase leading-[0.88] tabular-nums"
                                 style={{
                                     color: '#F5C518',
-                                    fontSize: 'clamp(72px, 7.4vw, 108px)',
+                                    fontSize: 'clamp(56px, 6vw, 88px)',
                                     letterSpacing: '-0.03em',
                                 }}
                             >
-                                TBA
+                                {fmtUsdc(prizePool)}
+                            </div>
+                            <div className="font-mono-ctv pb-3 text-[12px] font-bold uppercase tracking-[0.16em] text-white/55">
+                                USDC
                             </div>
                         </div>
                         <div className="font-mono-ctv mt-3 text-[11px] uppercase tracking-[0.18em] text-white/45">
-                            Funded on-chain · Top 10 paid · USDC
+                            {isEmpty
+                                ? 'Pool builds up as predictions resolve'
+                                : `Funded on-chain · Top ${topN} paid`}
                         </div>
 
                         <div className="mt-6 h-px w-full bg-[#1E1E1E]" />
 
                         <div className="mt-4 grid grid-cols-3 gap-4">
-                            <PoolFact label="Status" value="Soon" />
-                            <PoolFact label="Cycle" value="Monthly" />
-                            <PoolFact label="Min predictions" value="5" />
+                            <PoolFact label="Epoch" value={`#${epochId}`} />
+                            <PoolFact label="Volume" value={`${fmtUsdc(volume)} USDC`} />
+                            <PoolFact label="Claim window" value={`${claimDurationDays}d`} />
                         </div>
                     </div>
                 </div>

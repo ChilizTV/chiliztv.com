@@ -12,11 +12,14 @@ import type { ILeaderboardEpochRepository } from '@chiliztv/domain/leaderboard/r
 import type { ILeaderboardClaimRepository } from '@chiliztv/domain/leaderboard/repositories/ILeaderboardClaimRepository';
 import { BaseIndexer } from './BaseIndexer';
 
+// V2 (post `UpgradeLeaderboard.s.sol`) event signatures. The contract no
+// longer emits merkle roots or cumulative `newScore` — scores are per-epoch
+// and the contract self-advances at the boundary.
 const WIN_RECORDED = parseAbiItem(
-    'event WinRecorded(address indexed match_, address indexed user, uint256 delta, uint256 newScore)',
+    'event WinRecorded(address indexed match_, address indexed user, uint256 indexed epochId, uint256 delta, uint256 newEpochScore)',
 );
-const EPOCH_CLOSED = parseAbiItem(
-    'event EpochClosed(uint256 indexed epochId, bytes32 merkleRoot, uint256 prizePool, uint256 claimExpiry)',
+const EPOCH_ADVANCED = parseAbiItem(
+    'event EpochAdvanced(uint256 indexed closedId, uint256 prizePool, uint256 totalScore, uint64 closedAt, uint64 claimExpiry)',
 );
 const PRIZE_CLAIMED = parseAbiItem(
     'event PrizeClaimed(uint256 indexed epochId, address indexed user, uint256 amount)',
@@ -25,21 +28,25 @@ const EPOCH_ROLLED_OVER = parseAbiItem(
     'event EpochRolledOver(uint256 indexed epochId, uint256 rolledOver)',
 );
 
-const ALL_EVENTS = [WIN_RECORDED, EPOCH_CLOSED, PRIZE_CLAIMED, EPOCH_ROLLED_OVER];
+const ALL_EVENTS = [WIN_RECORDED, EPOCH_ADVANCED, PRIZE_CLAIMED, EPOCH_ROLLED_OVER];
 
 /**
- * Reads `LeaderboardRewards` events into the three leaderboard tables.
+ * Reads `LeaderboardRewards` V2 events into the leaderboard tables.
  *
- *  - WinRecorded     → increment `leaderboard_scores.total_score`
- *  - EpochClosed     → flip the pending row (matched by tx_hash) to confirmed,
- *                      fill `epoch_id`, `prize_pool`, `claim_expiry`
- *  - PrizeClaimed    → INSERT into `leaderboard_claims`
- *  - EpochRolledOver → flip the epoch row to `status='rolled_over'`
+ *  - WinRecorded     → increment `leaderboard_scores` for the user (the V1
+ *                      cumulative `total_score` semantics are kept for the
+ *                      ladder display; per-epoch isolation is enforced by
+ *                      the contract via auto-advance and pro-rata claims).
+ *  - EpochAdvanced   → upsert the epoch row as `confirmed` with the
+ *                      contract-supplied `prizePool` / `totalScore` /
+ *                      `claimExpiry`. There is no pre-CLI pending row in V2;
+ *                      the contract is the sole source of truth.
+ *  - PrizeClaimed    → INSERT into `leaderboard_claims`.
+ *  - EpochRolledOver → mark the epoch `rolled_over`.
  *
- * If `EpochClosed` lands without a pre-existing pending row (e.g. someone
- * called `closeEpoch` via Etherscan, bypassing our CLI), the indexer still
- * marks it confirmed but with empty `leaves_json` — the claimable hook
- * filters those out because it can't build a merkle proof for them.
+ * Pro-rata claim amounts are NOT computed by this indexer — they're derived
+ * on the fly by `GetMyClaimableEpochsUseCase` from `(epochScore, totalScore,
+ * prizePool)`, all of which are exposed by view functions on the contract.
  */
 @injectable()
 export class LeaderboardIndexer extends BaseIndexer {
@@ -93,8 +100,8 @@ export class LeaderboardIndexer extends BaseIndexer {
                     case 'WinRecorded':
                         await this.handleWinRecorded(args);
                         break;
-                    case 'EpochClosed':
-                        await this.handleEpochClosed(log, args, tsCache);
+                    case 'EpochAdvanced':
+                        await this.handleEpochAdvanced(log, args, tsCache);
                         break;
                     case 'PrizeClaimed':
                         await this.handlePrizeClaimed(log, args, tsCache);
@@ -119,15 +126,21 @@ export class LeaderboardIndexer extends BaseIndexer {
         await this.scoreRepo.upsertScore(user, delta);
     }
 
-    private async handleEpochClosed(
+    private async handleEpochAdvanced(
         log: Log,
         args: Record<string, unknown>,
         tsCache: Map<bigint, Date>,
     ): Promise<void> {
         const txHash = (log.transactionHash ?? '').toLowerCase();
-        const epochId = BigInt(args.epochId as bigint);
+        const epochId = BigInt(args.closedId as bigint);
         const prizePool = BigInt(args.prizePool as bigint);
         const claimExpirySec = Number(args.claimExpiry as bigint);
+        // V2 contract has no pending state. Synthesize a pending row first so
+        // `markConfirmed` (which patches an existing PK) succeeds. The
+        // synthetic row carries the V2 `total_score` in the `merkle_root`
+        // text column until the schema migration moves it to a dedicated
+        // column — the repo layer still treats this as opaque.
+        const totalScore = BigInt(args.totalScore as bigint);
         const closedAt = log.blockNumber !== null && log.blockNumber !== undefined
             ? tsCache.get(log.blockNumber) ?? new Date()
             : new Date();
@@ -140,20 +153,24 @@ export class LeaderboardIndexer extends BaseIndexer {
                 claimExpiry: new Date(claimExpirySec * 1000),
                 closedAt,
             });
-            logger.info(`${this.indexerName}: epoch confirmed`, { epochId: epochId.toString(), txHash });
+            logger.info(`${this.indexerName}: epoch advanced`, {
+                epochId: epochId.toString(),
+                txHash,
+                totalScore: totalScore.toString(),
+            });
         } catch (err) {
-            // Pending row may not exist (someone called closeEpoch via
-            // Etherscan, bypassing the CLI). Fall back to insertPending with
-            // empty leaves — claim banner ignores it because no proof is
-            // reconstructable, but ops at least see the event in DB.
-            logger.warn(`${this.indexerName}: no pending epoch row, inserting confirmed ghost`, {
+            // No matching pending row — V2 contract self-advances without a
+            // CLI step, so we always need to insert before patching.
+            logger.warn(`${this.indexerName}: synthesising pending row before confirm`, {
                 epochId: epochId.toString(),
                 txHash,
                 error: err instanceof Error ? err.message : String(err),
             });
             await this.epochRepo.insertPending({
                 txHash,
-                merkleRoot: (args.merkleRoot as string) ?? '0x',
+                // Stash totalScore in the merkle_root text column until the
+                // V2 schema migration adds a dedicated total_score column.
+                merkleRoot: `v2:totalScore=${totalScore.toString()}`,
                 leaves: [],
             });
             await this.epochRepo.markConfirmed({

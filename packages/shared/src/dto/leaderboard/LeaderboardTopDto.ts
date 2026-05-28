@@ -20,5 +20,9 @@ export const LeaderboardTopDtoSchema = z.object({
      * (or all-time if no epoch has closed yet). Raw 6-decimal bigint string.
      */
     currentEpochVolume: z.string(),
+    /** Number of top-N winners the CLI distributes to — mirror of `LEADERBOARD_TOP_N`. */
+    topN: z.number().int().positive(),
+    /** Claim window length applied at the next `closeEpoch` — mirror of `LEADERBOARD_CLAIM_DURATION_DAYS`. */
+    claimDurationDays: z.number().int().positive(),
 });
 export type LeaderboardTopDto = z.infer<typeof LeaderboardTopDtoSchema>;

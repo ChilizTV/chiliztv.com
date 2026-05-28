@@ -44,23 +44,7 @@ const LEADERBOARD_ABI = [
 const TOP_N = Number(process.env.LEADERBOARD_TOP_N ?? 10);
 const CLAIM_DURATION_DAYS = Number(process.env.LEADERBOARD_CLAIM_DURATION_DAYS ?? 7);
 
-interface Allocation {
-    readonly user: Hex;
-    readonly amount: bigint;
-}
-
-/** Pro-rata distribution over a notional 1e18 unit pool — scale doesn't matter; the contract uses its own balance snapshot. */
-function buildAllocations(
-    rows: ReadonlyArray<{ userAddress: string; totalScore: bigint }>,
-): Allocation[] {
-    const totalScore = rows.reduce((acc, r) => acc + r.totalScore, 0n);
-    if (totalScore === 0n) return [];
-    const scale = 10n ** 18n;
-    return rows.map((r) => ({
-        user: r.userAddress as Hex,
-        amount: (r.totalScore * scale) / totalScore,
-    }));
-}
+import { buildAllocations } from '../../application/leaderboard/buildAllocations';
 
 async function main(): Promise<void> {
     const network = container.resolve<INetworkConfig>(TOKENS.INetworkConfig);

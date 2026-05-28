@@ -38,9 +38,18 @@ export interface GetLeaderboardResult {
     readonly currentEpochId: number | null;
     /** USDC raw — SUM(stake_amount) since the latest confirmed epoch close. */
     readonly currentEpochVolume: string;
+    /** Number of top-N winners the CLI distributes to — mirror of LEADERBOARD_TOP_N. */
+    readonly topN: number;
+    /** Claim window length applied at the next closeEpoch — mirror of LEADERBOARD_CLAIM_DURATION_DAYS. */
+    readonly claimDurationDays: number;
 }
 
 const CACHE_TTL_SECONDS = 30;
+
+// Mirror of the CLI defaults (apps/backend/src/presentation/cli/leaderboard-close-epoch.ts).
+// Reading env here keeps front, CLI, and backend in lockstep without an extra config service.
+const DEFAULT_TOP_N = 10;
+const DEFAULT_CLAIM_DURATION_DAYS = 7;
 
 @injectable()
 export class GetLeaderboardUseCase {
@@ -88,6 +97,8 @@ export class GetLeaderboardUseCase {
             currentPrizePool: prizePool.toString(),
             currentEpochId: epochIndex > BigInt(0) ? Number(epochIndex) : null,
             currentEpochVolume: epochVolume.toString(),
+            topN: Number(process.env.LEADERBOARD_TOP_N ?? DEFAULT_TOP_N),
+            claimDurationDays: Number(process.env.LEADERBOARD_CLAIM_DURATION_DAYS ?? DEFAULT_CLAIM_DURATION_DAYS),
         };
         await this.cache.set(cacheKey, result, CACHE_TTL_SECONDS);
         return result;

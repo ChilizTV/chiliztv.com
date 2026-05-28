@@ -6,6 +6,7 @@ import { Copy, Eye, EyeOff, RefreshCw, Wifi, WifiOff, ChevronDown, ChevronUp, Tv
 import { streamViewerService, ApiService } from "@/services";
 import { useVisibilityAwareInterval } from "@/hooks/useVisibilityAwareInterval";
 import { LiveStream } from "@/models/stream.model";
+import { OBSInstructionsList } from "@/components/streaming/OBSInstructionsList";
 
 function StreamerLiveBanner({ isLive }: { isLive: boolean }) {
   if (!isLive) return null;
@@ -227,26 +228,7 @@ export function OBSSetupPanel({
             <span>OBS Setup Instructions</span>
             {showInstructions ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
           </button>
-          {showInstructions && (
-            <ol className="space-y-2 border-t border-[#1E1E1E] px-4 pb-4 pt-3 text-[11px] font-light leading-relaxed text-white/55 list-decimal list-inside">
-              <li>Open OBS Studio → Settings → Stream</li>
-              <li>
-                Service: <span className="text-white">Custom…</span>
-              </li>
-              <li>
-                Server: paste the <span className="text-white">Server</span> URL above
-              </li>
-              <li>
-                Stream Key: paste the <span className="text-white">Stream Key</span> above
-              </li>
-              <li>
-                Click Apply, then press <span className="text-white">Start Streaming</span> in OBS
-              </li>
-              <li>
-                The <span className="text-[#E8001D]">Live</span> badge updates within ~4 s
-              </li>
-            </ol>
-          )}
+          {showInstructions && <OBSInstructionsList />}
         </div>
 
         {/* End stream */}

@@ -54,9 +54,6 @@ import { PariMatchDeploymentAdapter } from '../infrastructure/blockchain/adapter
 import { ViemPariMatchPoolsReader } from '../infrastructure/blockchain/adapters/ViemPariMatchPoolsReader';
 import type { IPariMatchPoolsReader } from '@chiliztv/domain/markets/ports/IPariMatchPoolsReader';
 
-// ─── External Adapters (legacy compat layer) ─────────────────────────────────
-import { FootballApiAdapter } from '../infrastructure/external/adapters/FootballApiAdapter';
-
 // ─── Application — Predictions ───────────────────────────────────────────────
 import { CreatePredictionUseCase } from '../application/predictions/use-cases/CreatePredictionUseCase';
 import { GetUserPredictionsUseCase } from '../application/predictions/use-cases/GetUserPredictionsUseCase';
@@ -271,9 +268,6 @@ export function setupDependencyInjection(): void {
   container.registerSingleton(TokenBalanceAdapter);
   container.registerSingleton(PariMatchResolutionAdapter);
   container.registerSingleton(PariMatchDeploymentAdapter);
-
-  // ─── External Adapters ─────────────────────────────────────────────────────
-  container.registerSingleton(FootballApiAdapter);
 
   // ─── Use Cases — Predictions ───────────────────────────────────────────────
   container.registerSingleton(CreatePredictionUseCase);

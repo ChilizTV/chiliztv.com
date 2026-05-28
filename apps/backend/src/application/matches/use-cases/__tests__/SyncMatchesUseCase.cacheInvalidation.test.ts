@@ -9,7 +9,6 @@ import type { IMatchRepository } from '@chiliztv/domain/matches/repositories/IMa
 import type {
   IFootballApiService,
   RawMatch,
-  ExtendedOdds,
 } from '@chiliztv/domain/shared/ports/IFootballApiService';
 import type { IBlockchainService } from '@chiliztv/domain/shared/ports/IBlockchainService';
 import { Match } from '@chiliztv/domain/matches/entities/Match';
@@ -41,10 +40,10 @@ function rawMatchAt(score: { home: number; away: number } | null, status = '2H')
   };
 }
 
-function fakeFootballApi(impl: { matches: RawMatch[]; odds?: Map<number, ExtendedOdds> }): IFootballApiService {
+function fakeFootballApi(impl: { matches: RawMatch[]; forms?: Map<number, string | null> }): IFootballApiService {
   return {
     fetchMatches: vi.fn().mockResolvedValue(impl.matches),
-    fetchOddsForMatches: vi.fn().mockResolvedValue(impl.odds ?? new Map()),
+    getTeamForm: vi.fn(async (teamId: number) => impl.forms?.get(teamId) ?? null),
   };
 }
 

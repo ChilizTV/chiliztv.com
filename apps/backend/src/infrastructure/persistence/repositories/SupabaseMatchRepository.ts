@@ -1,7 +1,7 @@
 import { inject, injectable } from 'tsyringe';
 import { supabaseClient as supabase } from '../../database/supabase/client';
 import { TOKENS } from '@chiliztv/domain/shared/tokens';
-import { Match, MatchOdds } from '@chiliztv/domain/matches/entities/Match';
+import { Match } from '@chiliztv/domain/matches/entities/Match';
 import { IMatchRepository, MatchStats } from '@chiliztv/domain/matches/repositories/IMatchRepository';
 import { MatchFetchWindow } from '@chiliztv/domain/matches/value-objects/MatchFetchWindow';
 import { LIVE_STATUSES } from '@chiliztv/domain/matches/policies/BettablePolicy';
@@ -20,109 +20,11 @@ interface MatchRow {
   league: any;
   season: number;
   venue: string | null;
-  odds: any;
+  home_form: string | null;
+  away_form: string | null;
   betting_contract_address?: string | null;
   created_at: string;
   updated_at: string;
-}
-
-/**
- * Read JSONB → typed `MatchOdds`. Accepts the new per-market shape
- *   `{ WINNER: {...}, HALFTIME: {...}, GOALS_TOTAL: {...}, BOTH_SCORE: {...}, FIRST_SCORER: {...} }`
- * and falls back to the legacy flat `{ home_win, draw, away_win }` shape
- * (auto-promoted to `winner`). Missing markets stay `undefined`.
- */
-function mapOdds(raw: unknown): MatchOdds | undefined {
-  if (!raw || typeof raw !== 'object') return undefined;
-  const r = raw as Record<string, any>;
-
-  // Legacy flat shape — promote to `winner` and stop.
-  if ((r.home_win !== undefined || r.homeWin !== undefined) && r.WINNER === undefined && r.winner === undefined) {
-    return {
-      winner: {
-        homeWin: Number(r.home_win ?? r.homeWin),
-        draw: Number(r.draw),
-        awayWin: Number(r.away_win ?? r.awayWin),
-      },
-    };
-  }
-
-  const out: MatchOdds = {};
-  const winner = r.WINNER ?? r.winner;
-  if (winner && (winner.home_win !== undefined || winner.homeWin !== undefined)) {
-    out.winner = {
-      homeWin: Number(winner.home_win ?? winner.homeWin),
-      draw: Number(winner.draw),
-      awayWin: Number(winner.away_win ?? winner.awayWin),
-    };
-  }
-  const halftime = r.HALFTIME ?? r.halftime;
-  if (halftime && (halftime.home_win !== undefined || halftime.homeWin !== undefined)) {
-    out.halftime = {
-      homeWin: Number(halftime.home_win ?? halftime.homeWin),
-      draw: Number(halftime.draw),
-      awayWin: Number(halftime.away_win ?? halftime.awayWin),
-    };
-  }
-  const gt = r.GOALS_TOTAL ?? r.goalsTotal;
-  if (gt && gt.over !== undefined && gt.under !== undefined) {
-    out.goalsTotal = {
-      line: Number(gt.line),
-      over: Number(gt.over),
-      under: Number(gt.under),
-    };
-  }
-  const bs = r.BOTH_SCORE ?? r.bothScore;
-  if (bs && bs.yes !== undefined && bs.no !== undefined) {
-    out.bothScore = { yes: Number(bs.yes), no: Number(bs.no) };
-  }
-  const fs = r.FIRST_SCORER ?? r.firstScorer;
-  if (fs && fs.home !== undefined && fs.away !== undefined) {
-    out.firstScorer = {
-      home: Number(fs.home),
-      away: Number(fs.away),
-      none: Number(fs.none),
-    };
-  }
-
-  return Object.keys(out).length > 0 ? out : undefined;
-}
-
-/** Typed `MatchOdds` → JSONB written to the `matches.odds` column. */
-function unmapOdds(odds: MatchOdds): Record<string, unknown> {
-  const out: Record<string, unknown> = {};
-  if (odds.winner) {
-    out.WINNER = {
-      home_win: odds.winner.homeWin,
-      draw: odds.winner.draw,
-      away_win: odds.winner.awayWin,
-    };
-  }
-  if (odds.halftime) {
-    out.HALFTIME = {
-      home_win: odds.halftime.homeWin,
-      draw: odds.halftime.draw,
-      away_win: odds.halftime.awayWin,
-    };
-  }
-  if (odds.goalsTotal) {
-    out.GOALS_TOTAL = {
-      line: odds.goalsTotal.line,
-      over: odds.goalsTotal.over,
-      under: odds.goalsTotal.under,
-    };
-  }
-  if (odds.bothScore) {
-    out.BOTH_SCORE = { yes: odds.bothScore.yes, no: odds.bothScore.no };
-  }
-  if (odds.firstScorer) {
-    out.FIRST_SCORER = {
-      home: odds.firstScorer.home,
-      away: odds.firstScorer.away,
-      none: odds.firstScorer.none,
-    };
-  }
-  return out;
 }
 
 @injectable()
@@ -421,8 +323,6 @@ export class SupabaseMatchRepository implements IMatchRepository {
     const awayTeam = typeof row.away_team === 'string' ? JSON.parse(row.away_team) : row.away_team;
     const league = typeof row.league === 'string' ? JSON.parse(row.league) : row.league;
 
-    const odds: MatchOdds | undefined = mapOdds(row.odds);
-
     return Match.reconstitute({
       id: row.id,
       apiFootballId: row.api_football_id,
@@ -442,7 +342,8 @@ export class SupabaseMatchRepository implements IMatchRepository {
       venue: row.venue || undefined,
       homeScore: row.home_score ?? undefined,
       awayScore: row.away_score ?? undefined,
-      odds,
+      homeForm: row.home_form,
+      awayForm: row.away_form,
       bettingContractAddress: row.betting_contract_address || undefined,
       createdAt: new Date(row.created_at),
       updatedAt: new Date(row.updated_at),
@@ -470,7 +371,8 @@ export class SupabaseMatchRepository implements IMatchRepository {
       venue: json.venue,
       home_score: json.score?.home,
       away_score: json.score?.away,
-      odds: json.odds ? unmapOdds(json.odds) : null,
+      home_form: json.homeForm ?? null,
+      away_form: json.awayForm ?? null,
       // Normalize to lowercase so it joins against `bets.contract_address`
       // (which the indexer always writes lowercased). Mixed-case rows that
       // predate this fix break the join and surface as "Unknown match".

@@ -26,6 +26,7 @@ export const JobLocks = {
   oldEndedStreams:      { key: baseKey('old-ended-streams'),     ttlSeconds: 300 } satisfies JobLockConfig,
   viewerReconcile:      { key: baseKey('viewer-reconcile'),      ttlSeconds: 300 } satisfies JobLockConfig,
   cloudflareReconcile:  { key: baseKey('cloudflare-reconcile'),  ttlSeconds: 300 } satisfies JobLockConfig,
+  closeMonthlyEpoch:    { key: baseKey('close-monthly-epoch'),   ttlSeconds: 300 } satisfies JobLockConfig,
 } as const;
 
 /** Per-indexer lock key. Watchdog renews automatically at TTL/3. */

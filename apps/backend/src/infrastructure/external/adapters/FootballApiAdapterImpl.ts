@@ -1,16 +1,17 @@
 import { inject, injectable } from 'tsyringe';
 import axios from 'axios';
 import { TOKENS } from '@chiliztv/domain/shared/tokens';
-import { IFootballApiService, RawMatch, ExtendedOdds } from '@chiliztv/domain/shared/ports/IFootballApiService';
+import { IFootballApiService, RawMatch } from '@chiliztv/domain/shared/ports/IFootballApiService';
 import { MatchFetchWindow } from '@chiliztv/domain/matches/value-objects/MatchFetchWindow';
 import type { IClock } from '@chiliztv/domain/shared/ports/IClock';
 import type { ICacheService } from '@chiliztv/domain/shared/ports/ICacheService';
-import { ApiFootballMatch, ApiFootballOdds } from '../types/ApiFootball.types';
+import { ApiFootballMatch } from '../types/ApiFootball.types';
 import { logger } from '../../logging/logger';
 
-const ODDS_CACHE_TTL_SECONDS = 60;
-const ODDS_NEGATIVE_TTL_SECONDS = 30;
-const ODDS_JITTER_PCT = 15;
+const FORM_CACHE_TTL_SECONDS = 3600;       // 1h — form moves max once per 3-7 days
+const FORM_NEGATIVE_TTL_SECONDS = 600;     // 10 min — team has no completed fixtures
+const FORM_JITTER_PCT = 15;
+const FINISHED_STATUSES = new Set(['FT', 'AET', 'PEN']);
 
 /**
  * FootballApiAdapterImpl
@@ -66,10 +67,7 @@ export class FootballApiAdapterImpl implements IFootballApiService {
             logger.info('Fetching matches from API-Football', { from, to, daysAhead });
 
             const response = await axios.get(`${this.BASE_URL}/fixtures`, {
-                headers: {
-                    'x-rapidapi-key': this.API_KEY,
-                    'x-rapidapi-host': 'v3.football.api-sports.io',
-                },
+                headers: this.headers(),
                 params: { from, to, status: 'NS-LIVE-FT' },
             });
 
@@ -89,69 +87,70 @@ export class FootballApiAdapterImpl implements IFootballApiService {
         }
     }
 
-    async fetchOddsForMatches(apiMatchIds: number[]): Promise<Map<number, ExtendedOdds>> {
-        const result = new Map<number, ExtendedOdds>();
-        if (!this.API_KEY || apiMatchIds.length === 0) return result;
-
-        // Cache-aside per match-id. Pre-match odds drift on the 1-2 min scale
-        // at the bookmaker side, so 60 s is well within tolerance and divides
-        // the paid API-Football call volume by the polling fan-out. A short
-        // negative TTL absorbs the "no odds posted" case (typical for matches
-        // outside the major sharps' coverage).
-        try {
-            logger.info('Fetching odds for matches', { count: apiMatchIds.length });
-
-            const settled = await Promise.all(
-                apiMatchIds.map(async (id) => {
-                    const odds = await this.cache.getOrLoad<ExtendedOdds>({
-                        key: `apifootball:odds:${id}`,
-                        ttlSeconds: ODDS_CACHE_TTL_SECONDS,
-                        negativeTtlSeconds: ODDS_NEGATIVE_TTL_SECONDS,
-                        jitterPct: ODDS_JITTER_PCT,
-                        loader: () => this.fetchOddsForSingleMatch(id),
-                    });
-                    return { id, odds };
-                }),
-            );
-
-            for (const entry of settled) {
-                if (entry.odds) result.set(entry.id, entry.odds);
-            }
-
-            logger.info('Odds fetched', { requested: apiMatchIds.length, found: result.size });
-        } catch (error) {
-            logger.error('Error fetching odds', {
-                error: error instanceof Error ? error.message : 'Unknown error',
-            });
-        }
-
-        return result;
-    }
-
     /**
-     * Single-fixture odds fetch — called by `fetchOddsForMatches` through the
-     * cache layer. Returns null when the bookmaker has no line posted yet so
-     * negative caching kicks in (avoids re-hitting the paid endpoint for
-     * matches that simply have no odds available).
+     * Latest 5 W/D/L results for the team across all competitions. Pulled from
+     * `/fixtures?team={id}&last=5` and reversed so the returned string reads
+     * oldest → newest (left = older, right = most recent). Cache-aside with
+     * 1h TTL + 10 min negative TTL: form changes max every 3-7 days, so the
+     * paid API call is amortised across many syncs.
      */
-    private async fetchOddsForSingleMatch(id: number): Promise<ExtendedOdds | null> {
-        try {
-            const response = await axios.get(`${this.BASE_URL}/odds`, {
-                headers: {
-                    'x-rapidapi-key': this.API_KEY!,
-                    'x-rapidapi-host': 'v3.football.api-sports.io',
-                },
-                params: { fixture: id, bookmaker: 1 },
-            });
-            const entries: ApiFootballOdds[] = response.data.response ?? [];
-            if (entries.length === 0) return null;
-            return this.parseOdds(entries[0]!);
-        } catch {
-            return null;
-        }
+    async getTeamForm(teamId: number): Promise<string | null> {
+        if (!this.API_KEY) return null;
+        return this.cache.getOrLoad<string | null>({
+            key: `apifootball:teamform:last5:${teamId}`,
+            ttlSeconds: FORM_CACHE_TTL_SECONDS,
+            negativeTtlSeconds: FORM_NEGATIVE_TTL_SECONDS,
+            jitterPct: FORM_JITTER_PCT,
+            loader: async () => {
+                try {
+                    const response = await axios.get(`${this.BASE_URL}/fixtures`, {
+                        headers: this.headers(),
+                        params: { team: teamId, last: 5 },
+                        timeout: 10_000,
+                    });
+                    const fixtures: ApiFootballMatch[] = response.data?.response ?? [];
+                    if (fixtures.length === 0) return null;
+                    // API returns newest-first — reverse so the string reads
+                    // oldest (left) → newest (right) when displayed.
+                    const chars = fixtures
+                        .slice()
+                        .reverse()
+                        .map((f) => this.deriveResult(f, teamId))
+                        .filter((c) => c !== '');
+                    return chars.length > 0 ? chars.join('') : null;
+                } catch (err) {
+                    logger.warn('getTeamForm fetch failed', {
+                        teamId,
+                        error: err instanceof Error ? err.message : String(err),
+                    });
+                    return null;
+                }
+            },
+        });
     }
 
     // ─── Private helpers ──────────────────────────────────────────────────────
+
+    private headers(): Record<string, string> {
+        return {
+            'x-rapidapi-key': this.API_KEY!,
+            'x-rapidapi-host': 'v3.football.api-sports.io',
+        };
+    }
+
+    /** W/D/L from the team's perspective, empty string if the match isn't a finished result. */
+    private deriveResult(fixture: ApiFootballMatch, teamId: number): 'W' | 'D' | 'L' | '' {
+        const short = fixture.fixture?.status?.short;
+        if (!short || !FINISHED_STATUSES.has(short)) return '';
+        const { home, away } = fixture.goals ?? { home: null, away: null };
+        if (home == null || away == null) return '';
+        if (home === away) return 'D';
+        const teamWasHome = fixture.teams?.home?.id === teamId;
+        const teamWasAway = fixture.teams?.away?.id === teamId;
+        if (!teamWasHome && !teamWasAway) return '';
+        if (teamWasHome) return home > away ? 'W' : 'L';
+        return away > home ? 'W' : 'L';
+    }
 
     /**
      * Convert API-Football fixture to domain RawMatch.
@@ -177,56 +176,6 @@ export class FootballApiAdapterImpl implements IFootballApiService {
             homeScore:      m.goals.home,
             awayScore:      m.goals.away,
         };
-    }
-
-    /**
-     * Parse API-Football bookmaker odds into domain ExtendedOdds.
-     * All snake_case / nested API formats stop here.
-     */
-    private parseOdds(data: ApiFootballOdds): ExtendedOdds | null {
-        if (!data.bookmakers || data.bookmakers.length === 0) return null;
-
-        const bets = data.bookmakers[0].bets;
-        let homeWin: number | undefined;
-        let draw: number | undefined;
-        let awayWin: number | undefined;
-        let over25: number | undefined;
-        let under25: number | undefined;
-        let bttsYes: number | undefined;
-        let bttsNo: number | undefined;
-
-        // Match Winner (1X2)
-        const mw = bets.find(b => b.name === 'Match Winner');
-        if (mw) {
-            homeWin = this.parseOdd(mw.values.find(v => v.value === 'Home')?.odd);
-            draw    = this.parseOdd(mw.values.find(v => v.value === 'Draw')?.odd);
-            awayWin = this.parseOdd(mw.values.find(v => v.value === 'Away')?.odd);
-        }
-
-        // Over/Under 2.5
-        const ou = bets.find(b => b.name === 'Over/Under');
-        if (ou) {
-            over25  = this.parseOdd(ou.values.find(v => v.value === 'Over 2.5')?.odd);
-            under25 = this.parseOdd(ou.values.find(v => v.value === 'Under 2.5')?.odd);
-        }
-
-        // Both Teams Score
-        const btts = bets.find(b => b.name === 'Both Teams Score');
-        if (btts) {
-            bttsYes = this.parseOdd(btts.values.find(v => v.value === 'Yes')?.odd);
-            bttsNo  = this.parseOdd(btts.values.find(v => v.value === 'No')?.odd);
-        }
-
-        // Require at minimum a complete 1X2 line
-        if (homeWin == null || draw == null || awayWin == null) return null;
-
-        return { homeWin, draw, awayWin, over25, under25, bttsYes, bttsNo };
-    }
-
-    private parseOdd(value?: string): number | undefined {
-        if (value == null) return undefined;
-        const n = parseFloat(value);
-        return isNaN(n) ? undefined : n;
     }
 
     private mapApiStatus(short: string): string {

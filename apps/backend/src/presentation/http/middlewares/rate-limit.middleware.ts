@@ -13,7 +13,7 @@ const isDevelopment = env.NODE_ENV === 'development';
  * below via `skip: () => true`. Windows / max values are kept intact so the
  * revert is one line.
  */
-const RATE_LIMIT_DISABLED = false;
+const RATE_LIMIT_DISABLED = true;
 
 /**
  * Whitelist a few well-known IPs (monitoring probes, Sentry crons, on-call

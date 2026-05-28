@@ -10,6 +10,7 @@ import { SettlePredictionsJob } from './jobs/SettlePredictionsJob';
 import { ViewerReconcileJob } from './jobs/ViewerReconcileJob';
 import { CloudflareReconcileJob } from './jobs/CloudflareReconcileJob';
 import { RefreshTokenPricesJob } from './jobs/RefreshTokenPricesJob';
+import { CloseMonthlyEpochJob } from './jobs/CloseMonthlyEpochJob';
 import { TOKENS } from '@chiliztv/domain/shared/tokens';
 import type { ILockService } from '@chiliztv/domain/shared/ports/ILockService';
 import { JobLocks, type JobLockConfig } from './JobLockConfig';
@@ -37,6 +38,7 @@ export class JobScheduler {
         private readonly viewerReconcileJob: ViewerReconcileJob,
         private readonly cloudflareReconcileJob: CloudflareReconcileJob,
         private readonly refreshTokenPricesJob: RefreshTokenPricesJob,
+        private readonly closeMonthlyEpochJob: CloseMonthlyEpochJob,
         @inject(TOKENS.ILockService) private readonly locks: ILockService,
     ) {}
 
@@ -55,6 +57,8 @@ export class JobScheduler {
             () => this.viewerReconcileJob.execute());
         this.startCronJob('CloudflareReconcile', this.cloudflareReconcileJob.getSchedule(), JobLocks.cloudflareReconcile,
             () => this.cloudflareReconcileJob.execute());
+        this.startCronJob('CloseMonthlyEpoch', this.closeMonthlyEpochJob.getSchedule(), JobLocks.closeMonthlyEpoch,
+            () => this.closeMonthlyEpochJob.execute());
 
         this.startIntervalJob('ResolveMarkets', this.resolveMarketsJob.getIntervalMs(), JobLocks.resolveMarkets,
             () => this.resolveMarketsJob.execute());

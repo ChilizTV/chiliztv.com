@@ -8,6 +8,9 @@ import type { ILeaderboardEpochRepository } from '@chiliztv/domain/leaderboard/r
 import type { IBetRepository } from '@chiliztv/domain/blockchain-indexing/repositories/IBetRepository';
 import type { INetworkConfig } from '@chiliztv/domain/shared/ports/INetworkConfig';
 import type { ICacheService } from '@chiliztv/domain/shared/ports/ICacheService';
+import type { IClock } from '@chiliztv/domain/shared/ports/IClock';
+import { nextCycleEnd } from '@chiliztv/domain/leaderboard/policies/cycleSchedule';
+import { ResolveUserProfilesBatchUseCase } from '../../users/use-cases/ResolveUserProfilesBatchUseCase';
 
 const LEADERBOARD_ABI = [
     {
@@ -30,6 +33,8 @@ export interface LeaderboardEntryDto {
     readonly rank: number;
     readonly userAddress: string;
     readonly totalScore: string;
+    readonly username: string | null;
+    readonly avatarUrl: string | null;
 }
 
 export interface GetLeaderboardResult {
@@ -42,6 +47,8 @@ export interface GetLeaderboardResult {
     readonly topN: number;
     /** Claim window length applied at the next closeEpoch — mirror of LEADERBOARD_CLAIM_DURATION_DAYS. */
     readonly claimDurationDays: number;
+    /** ISO 8601 UTC timestamp of the next scheduled cycle close. */
+    readonly cycleEndsAt: string;
 }
 
 const CACHE_TTL_SECONDS = 30;
@@ -67,6 +74,10 @@ export class GetLeaderboardUseCase {
         network: INetworkConfig,
         @inject(TOKENS.ICacheService)
         private readonly cache: ICacheService,
+        @inject(TOKENS.IClock)
+        private readonly clock: IClock,
+        @inject(ResolveUserProfilesBatchUseCase)
+        private readonly profiles: ResolveUserProfilesBatchUseCase,
     ) {
         this.client = createPublicClient({
             chain: chainFor(networkType),
@@ -81,24 +92,37 @@ export class GetLeaderboardUseCase {
         const cached = await this.cache.get<GetLeaderboardResult>(cacheKey);
         if (cached.hit) return cached.value;
 
-        const [topScores, prizePool, epochIndex, epochVolume] = await Promise.all([
-            this.scoreRepo.getTopN(clampedLimit),
+        // Read current cycle first; per-cycle top-N depends on it.
+        const epochIndex = await this.readEpochIndex();
+        const currentCycle = epochIndex;
+
+        const [topScores, prizePool, epochVolume] = await Promise.all([
+            this.scoreRepo.getTopNForCycle(currentCycle, clampedLimit),
             this.readPrizePool(),
-            this.readEpochIndex(),
             this.readCurrentEpochVolume(),
         ]);
 
+        const profileMap = topScores.length > 0
+            ? await this.profiles.execute(topScores.map((s) => s.userAddress))
+            : new Map();
+
         const result: GetLeaderboardResult = {
-            entries: topScores.map((s) => ({
-                rank: s.rank,
-                userAddress: s.userAddress,
-                totalScore: s.totalScore.toString(),
-            })),
+            entries: topScores.map((s) => {
+                const profile = profileMap.get(s.userAddress.toLowerCase());
+                return {
+                    rank: s.rank,
+                    userAddress: s.userAddress,
+                    totalScore: s.totalScore.toString(),
+                    username: profile?.username ?? null,
+                    avatarUrl: profile?.avatarUrl ?? null,
+                };
+            }),
             currentPrizePool: prizePool.toString(),
-            currentEpochId: epochIndex > BigInt(0) ? Number(epochIndex) : null,
+            currentEpochId: Number(epochIndex),
             currentEpochVolume: epochVolume.toString(),
             topN: Number(process.env.LEADERBOARD_TOP_N ?? DEFAULT_TOP_N),
             claimDurationDays: Number(process.env.LEADERBOARD_CLAIM_DURATION_DAYS ?? DEFAULT_CLAIM_DURATION_DAYS),
+            cycleEndsAt: nextCycleEnd(this.clock.now()).toISOString(),
         };
         await this.cache.set(cacheKey, result, CACHE_TTL_SECONDS);
         return result;

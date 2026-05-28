@@ -1,22 +1,18 @@
 import { injectable, inject } from 'tsyringe';
 import { TOKENS } from '@chiliztv/domain/shared/tokens';
 import { IMatchRepository } from '@chiliztv/domain/matches/repositories/IMatchRepository';
-import { IFootballApiService, RawMatch, ExtendedOdds } from '@chiliztv/domain/shared/ports/IFootballApiService';
+import { IFootballApiService, RawMatch } from '@chiliztv/domain/shared/ports/IFootballApiService';
 import { IBlockchainService } from '@chiliztv/domain/shared/ports/IBlockchainService';
 import { MatchFetchWindow } from '@chiliztv/domain/matches/value-objects/MatchFetchWindow';
-import { Match, MatchOdds } from '@chiliztv/domain/matches/entities/Match';
+import { Match } from '@chiliztv/domain/matches/entities/Match';
 import type { IClock } from '@chiliztv/domain/shared/ports/IClock';
 import type { ICacheService } from '@chiliztv/domain/shared/ports/ICacheService';
 import { FIXED_LIST_KEYS, MatchCacheKeys } from '../MatchCacheKeys';
+import { logger } from '../../../infrastructure/logging/logger';
 
-/**
- * API-Football still provides the implied odds line we display as a hint on
- * the UI before a market has any volume — the parimutuel contract itself
- * carries no odds, but a brand-new market with empty pools needs *some*
- * displayable initial probability for the bettor's UX. We persist these
- * cosmetic odds on the `matches.odds` JSONB column and never push them
- * on-chain (no more setMarketOdds in parimutuel).
- */
+// Cap fan-out of getTeamForm cache-misses to keep axios + the paid
+// API-Football quota under control during WC peaks (200+ unique teams/sync).
+const FORM_FETCH_CONCURRENCY = 10;
 
 export interface SyncMatchesResult {
     matchesFetched: number;
@@ -28,10 +24,9 @@ export interface SyncMatchesResult {
  * SyncMatchesUseCase
  * Orchestrates match synchronization:
  *  1. Fetch raw matches from IFootballApiService (domain port)
- *  2. Fetch odds via the same port
+ *  2. Fetch each unique team's recent W/D/L form (via the same port)
  *  3. Persist matches via IMatchRepository
  *  4. Deploy betting contracts via IBlockchainService (domain port)
- *  5. Sync odds to existing contracts
  *
  * No infrastructure imports — only domain ports and entities.
  */
@@ -57,8 +52,7 @@ export class SyncMatchesUseCase {
             return { matchesFetched: 0, matchesStored: 0, contractsDeployed: 0 };
         }
 
-        const matchIds = rawMatches.map(m => m.apiFootballId);
-        const oddsMap  = await this.footballApiService.fetchOddsForMatches(matchIds);
+        const formByTeam = await this.fetchTeamForms(rawMatches);
 
         let matchesStored    = 0;
         let contractsDeployed = 0;
@@ -67,20 +61,20 @@ export class SyncMatchesUseCase {
 
         for (const raw of rawMatches) {
             try {
-                const extendedOdds = oddsMap.get(raw.apiFootballId) ?? null;
-                const matchOdds    = this.toMatchOdds(extendedOdds);
+                const homeForm = formByTeam.get(raw.homeTeamId) ?? null;
+                const awayForm = formByTeam.get(raw.awayTeamId) ?? null;
 
                 const existing = await this.matchRepository.findByApiFootballId(raw.apiFootballId);
 
                 if (existing) {
-                    const mutated = await this.updateExistingMatch(existing, raw, matchOdds, extendedOdds);
+                    const mutated = await this.updateExistingMatch(existing, raw, homeForm, awayForm);
                     matchesStored++;
                     if (mutated) {
                         changedMatchIds.push(raw.apiFootballId);
                         changedLeagueIds.add(raw.leagueId);
                     }
                 } else {
-                    const deployed = await this.createNewMatch(raw, matchOdds, extendedOdds);
+                    const deployed = await this.createNewMatch(raw, homeForm, awayForm);
                     matchesStored++;
                     if (deployed) contractsDeployed++;
                     changedMatchIds.push(raw.apiFootballId);
@@ -94,6 +88,41 @@ export class SyncMatchesUseCase {
         await this.invalidateCache(changedMatchIds, changedLeagueIds);
 
         return { matchesFetched: rawMatches.length, matchesStored, contractsDeployed };
+    }
+
+    /**
+     * Dedup teams across the sync batch (Premier League weekend = 20 teams
+     * across 10 matches → 20 unique calls instead of 20) and bound concurrency
+     * so cache misses don't fan out > FORM_FETCH_CONCURRENCY axios reqs at
+     * once. Cache hits return synchronously and are unaffected by the cap.
+     */
+    private async fetchTeamForms(rawMatches: ReadonlyArray<RawMatch>): Promise<Map<number, string | null>> {
+        const uniqueIds = new Set<number>();
+        for (const raw of rawMatches) {
+            uniqueIds.add(raw.homeTeamId);
+            uniqueIds.add(raw.awayTeamId);
+        }
+        const idList = Array.from(uniqueIds);
+        const result = new Map<number, string | null>();
+
+        // Manual chunking — p-limit is not a project dep.
+        for (let i = 0; i < idList.length; i += FORM_FETCH_CONCURRENCY) {
+            const chunk = idList.slice(i, i + FORM_FETCH_CONCURRENCY);
+            await Promise.all(
+                chunk.map(async (teamId) => {
+                    try {
+                        result.set(teamId, await this.footballApiService.getTeamForm(teamId));
+                    } catch (err) {
+                        logger.warn('getTeamForm failed', {
+                            teamId,
+                            error: err instanceof Error ? err.message : String(err),
+                        });
+                        result.set(teamId, null);
+                    }
+                }),
+            );
+        }
+        return result;
     }
 
     /**
@@ -124,8 +153,8 @@ export class SyncMatchesUseCase {
     private async updateExistingMatch(
         existing: Match,
         raw: RawMatch,
-        matchOdds: MatchOdds | undefined,
-        extendedOdds: ExtendedOdds | null
+        homeForm: string | null,
+        awayForm: string | null,
     ): Promise<boolean> {
         const existingJson = existing.toJSON();
         const existingScore = existingJson.score
@@ -138,8 +167,8 @@ export class SyncMatchesUseCase {
             existingScore?.home !== rawScore?.home ||
             existingScore?.away !== rawScore?.away;
         const statusChanged = existingJson.status !== raw.status;
-        const oddsChanged = JSON.stringify(existingJson.odds ?? null) !== JSON.stringify(matchOdds ?? null);
-        const mutated = scoreChanged || statusChanged || oddsChanged;
+        const formChanged = existingJson.homeForm !== homeForm || existingJson.awayForm !== awayForm;
+        const mutated = scoreChanged || statusChanged || formChanged;
 
         const updated = Match.reconstitute({
             id:                     existingJson.id,
@@ -160,23 +189,21 @@ export class SyncMatchesUseCase {
             venue:                  raw.venue,
             homeScore:              raw.homeScore ?? undefined,
             awayScore:              raw.awayScore ?? undefined,
-            odds:                   matchOdds,
+            homeForm,
+            awayForm,
             bettingContractAddress: existing.getBettingContractAddress(),
             createdAt:              existingJson.createdAt,
             updatedAt:              this.clock.now(),
         });
 
         await this.matchRepository.update(updated);
-        // Note: in the parimutuel model the contract carries no odds — the
-        // displayable hint is persisted via `matchOdds` above; nothing is
-        // pushed on-chain (no more setMarketOdds).
         return mutated;
     }
 
     private async createNewMatch(
         raw: RawMatch,
-        matchOdds: MatchOdds | undefined,
-        _extendedOdds: ExtendedOdds | null
+        homeForm: string | null,
+        awayForm: string | null,
     ): Promise<boolean> {
         const newMatch = Match.create({
             id:            raw.apiFootballId,
@@ -197,7 +224,8 @@ export class SyncMatchesUseCase {
             venue:         raw.venue,
             homeScore:     raw.homeScore ?? undefined,
             awayScore:     raw.awayScore ?? undefined,
-            odds:          matchOdds,
+            homeForm,
+            awayForm,
         });
 
         const saved = await this.matchRepository.save(newMatch);
@@ -225,13 +253,5 @@ export class SyncMatchesUseCase {
         } catch {
             return false;
         }
-    }
-
-    /** Convert domain ExtendedOdds (1X2 only) to per-market MatchOdds. */
-    private toMatchOdds(odds: ExtendedOdds | null): MatchOdds | undefined {
-        if (!odds) return undefined;
-        return {
-            winner: { homeWin: odds.homeWin, draw: odds.draw, awayWin: odds.awayWin },
-        };
     }
 }

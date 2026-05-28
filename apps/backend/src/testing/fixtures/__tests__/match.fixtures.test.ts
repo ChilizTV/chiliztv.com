@@ -36,7 +36,6 @@ describe('matchFixture — coverage', () => {
         expect(json.homeTeam.name).toBeTypeOf('string');
         expect(json.awayTeam.name).toBeTypeOf('string');
         expect(json.matchDate).toBeInstanceOf(Date);
-        expect(json.odds?.winner).toBeDefined();
     });
 });
 

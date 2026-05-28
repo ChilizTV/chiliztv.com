@@ -27,6 +27,16 @@ const EPOCH_ROLLED_OVER = parseAbiItem(
 
 const ALL_EVENTS = [WIN_RECORDED, EPOCH_CLOSED, PRIZE_CLAIMED, EPOCH_ROLLED_OVER];
 
+const EPOCH_INDEX_ABI = [
+    {
+        type: 'function',
+        name: 'epochIndex',
+        inputs: [],
+        outputs: [{ type: 'uint256' }],
+        stateMutability: 'view',
+    },
+] as const;
+
 /**
  * Reads `LeaderboardRewards` events into the three leaderboard tables.
  *
@@ -82,6 +92,21 @@ export class LeaderboardIndexer extends BaseIndexer {
         });
         if (logs.length === 0) return;
 
+        // CRITICAL: viem does not guarantee cross-block ordering. Sort explicitly
+        // so EpochClosed events are processed in chain order vs WinRecorded events
+        // from the same / adjacent blocks — otherwise cycle_id attribution drifts.
+        logs.sort((a, b) => {
+            const blockDiff = a.blockNumber !== b.blockNumber
+                ? Number((a.blockNumber ?? 0n) - (b.blockNumber ?? 0n))
+                : 0;
+            if (blockDiff !== 0) return blockDiff;
+            return (a.logIndex ?? 0) - (b.logIndex ?? 0);
+        });
+
+        // Read epochIndex once per batch — mirrors on-chain state at batch start.
+        // EpochClosed handling below bumps this locally as it's processed inline.
+        let currentCycle = await this.readEpochIndex();
+
         const tsCache = await this.resolveBlockTimestamps(logs);
 
         for (const log of logs) {
@@ -91,11 +116,14 @@ export class LeaderboardIndexer extends BaseIndexer {
             try {
                 switch (eventName) {
                     case 'WinRecorded':
-                        await this.handleWinRecorded(args);
+                        await this.handleWinRecorded(args, currentCycle);
                         break;
-                    case 'EpochClosed':
+                    case 'EpochClosed': {
+                        const closedId = BigInt(args.epochId as bigint);
+                        if (closedId === currentCycle) currentCycle = currentCycle + 1n;
                         await this.handleEpochClosed(log, args, tsCache);
                         break;
+                    }
                     case 'PrizeClaimed':
                         await this.handlePrizeClaimed(log, args, tsCache);
                         break;
@@ -113,10 +141,28 @@ export class LeaderboardIndexer extends BaseIndexer {
         }
     }
 
-    private async handleWinRecorded(args: Record<string, unknown>): Promise<void> {
+    private async readEpochIndex(): Promise<bigint> {
+        try {
+            return (await this.client.readContract({
+                address: this.leaderboardAddress,
+                abi: EPOCH_INDEX_ABI,
+                functionName: 'epochIndex',
+            })) as bigint;
+        } catch (err) {
+            logger.warn(`${this.indexerName}: epochIndex() read failed, defaulting to 0`, {
+                error: err instanceof Error ? err.message : String(err),
+            });
+            return 0n;
+        }
+    }
+
+    private async handleWinRecorded(args: Record<string, unknown>, currentCycle: bigint): Promise<void> {
         const user = (args.user as string).toLowerCase();
         const delta = BigInt(args.delta as bigint);
+        // Dual-write: lifetime cumulative + per-cycle. The lifetime row is
+        // kept for an eventual Hall of Fame surface (cf. plan §1 context).
         await this.scoreRepo.upsertScore(user, delta);
+        await this.scoreRepo.upsertCycleScore(currentCycle, user, delta);
     }
 
     private async handleEpochClosed(

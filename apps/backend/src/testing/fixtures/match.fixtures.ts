@@ -1,5 +1,4 @@
-import { Match, type MatchOdds } from '@chiliztv/domain/matches/entities/Match';
-import { DEFAULT_FIXTURE_ODDS, mergeOdds } from './odds.fixtures';
+import { Match } from '@chiliztv/domain/matches/entities/Match';
 
 export interface MatchFixtureOverride {
     apiFootballId?: number;
@@ -9,7 +8,8 @@ export interface MatchFixtureOverride {
     kickoffAt?: Date;
     score?: { home: number; away: number };
     bettingContractAddress?: string;
-    odds?: Partial<MatchOdds>;
+    homeForm?: string | null;
+    awayForm?: string | null;
     venue?: string;
 }
 
@@ -63,7 +63,8 @@ function buildMatch(args: BuildArgs, override?: MatchFixtureOverride): Match {
         venue: override?.venue ?? DEFAULT_VENUE,
         homeScore: score?.home,
         awayScore: score?.away,
-        odds: mergeOdds(DEFAULT_FIXTURE_ODDS, override?.odds),
+        homeForm: override?.homeForm ?? null,
+        awayForm: override?.awayForm ?? null,
         bettingContractAddress: override?.bettingContractAddress,
     });
 }

@@ -25,7 +25,11 @@ import {LeaderboardRewards} from "../src/leaderboard/LeaderboardRewards.sol";
  *           2. StreamWalletFactory  — Deploys StreamWallet proxies.
  *           3. ChilizSwapRouter     — Token-to-USDC swap adapter for both modules.
  *           4. LeaderboardRewards   — UUPS proxy. Receives 1% of every pool
- *                                      and distributes via epoch + merkle.
+ *                                      and distributes pro-rata per epoch.
+ *                                      Init runs both V1 `initialize(...)` and
+ *                                      V2 `initializeV2()` so fresh deploys
+ *                                      land directly on the on-chain pro-rata
+ *                                      model with a 30-day epoch clock.
  *
  *         Plus all the wiring required to leave the system bet-ready in a single run:
  *           - factory.setWiring(usdc, feeRecipient, swapRouter)
@@ -163,10 +167,19 @@ contract DeployAll is Script {
         console.log("");
     }
 
-    /// @dev Deploys the LeaderboardRewards behind an ERC1967 proxy. The
-    ///      deployer is the admin; the treasury (Safe) is granted ORACLE_ROLE
-    ///      so it can post merkle roots from the off-chain ranker. Production
-    ///      should grant ORACLE_ROLE to a dedicated oracle EOA after deploy.
+    /// @dev Deploys the LeaderboardRewards behind an ERC1967 proxy and
+    ///      runs both initializers in order:
+    ///        - `initialize(usdc, admin, oracle)` — V1 marker, grants roles,
+    ///          binds the USDC token.
+    ///        - `initializeV2()` — V2 marker, anchors `epochStartTime` at
+    ///          `block.timestamp` and sets `epochDuration` to 30 days so
+    ///          the first auto-advance fires at the expected boundary.
+    ///      Skipping the V2 init leaves `epochStartTime = epochDuration = 0`,
+    ///      which causes every `recordWin` to advance the epoch in a tight
+    ///      loop — see V2 contract docs.
+    ///
+    ///      ORACLE_ROLE is still granted to the treasury for V1 compatibility
+    ///      (no entry point uses it in V2); admin can revoke it post-deploy.
     function _deployLeaderboard() internal {
         console.log("[4/4] LEADERBOARD REWARDS");
         console.log("=========================");
@@ -175,13 +188,15 @@ contract DeployAll is Script {
             LeaderboardRewards.initialize.selector,
             usdcAddress,
             deployer,   // admin (can transfer later)
-            treasury    // oracle placeholder — rotate to dedicated key post-deploy
+            treasury    // legacy ORACLE_ROLE recipient; unused in V2
         );
         leaderboard = LeaderboardRewards(address(new ERC1967Proxy(address(impl), initData)));
+        leaderboard.initializeV2();
         console.log("LeaderboardRewards   :", address(leaderboard));
         console.log("  Implementation     :", address(impl));
         console.log("  Admin              :", deployer);
         console.log("  Oracle (initial)   :", treasury);
+        console.log("  Epoch duration     :", uint256(leaderboard.epochDuration()), "seconds");
         console.log("");
     }
 

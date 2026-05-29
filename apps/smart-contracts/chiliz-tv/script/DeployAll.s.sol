@@ -130,7 +130,7 @@ contract DeployAll is Script {
     // ══════════════════════════════════════════════════════════════════════════
 
     function _deployPariFactory() internal {
-        console.log("[1/3] PARI MATCH FACTORY");
+        console.log("[1/4] PARI MATCH FACTORY");
         console.log("========================");
         pariFactory = new PariMatchFactory();
         console.log("PariMatchFactory    :", address(pariFactory));
@@ -140,7 +140,7 @@ contract DeployAll is Script {
     }
 
     function _deployStreamingFactory() internal {
-        console.log("[2/3] STREAM WALLET FACTORY");
+        console.log("[2/4] STREAM WALLET FACTORY");
         console.log("===========================");
         streamFactory = new StreamWalletFactory(
             deployer, treasury, platformFeeBps, kayenRouter, usdcAddress

@@ -20,7 +20,9 @@ import {StreamWalletFactory}  from "../streamer/StreamWalletFactory.sol";
  * @dev Handles token-to-USDC swaps for both the pari-mutuel betting module
  *      and the streaming module (donations / subscriptions). No LP vault
  *      involved — USDC flows directly into the match contract (the escrow)
- *      on the betting path, and directly to streamers on the streaming path.
+ *      on the betting path, and into the streamer's `StreamWallet` (the
+ *      per-streamer escrow lazily deployed by `StreamWalletFactory`) on the
+ *      streaming path. This contract never holds USDC at rest.
  *
  * Supported Payment Paths (all settle in USDC):
  * ══════════════════════════════════════════════════════════════════════════
@@ -30,9 +32,9 @@ import {StreamWalletFactory}  from "../streamer/StreamWalletFactory.sol";
  *   USDC direct   ->         PariMatch.placeBetUSDCFor  (placeBetWithUSDC)
  *
  * STREAMING (donations & subscriptions):
- *   CHZ  (native) -> USDC -> fee split -> streamer / treasury
- *   ERC20         -> USDC -> fee split -> streamer / treasury
- *   USDC direct   ->         fee split -> streamer / treasury
+ *   CHZ  (native) -> USDC -> fee split -> StreamWallet escrow / treasury
+ *   ERC20         -> USDC -> fee split -> StreamWallet escrow / treasury
+ *   USDC direct   ->         fee split -> StreamWallet escrow / treasury
  *
  * Security notes:
  *   - This contract requires SWAP_ROUTER_ROLE on each target PariMatch proxy.

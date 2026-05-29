@@ -52,8 +52,10 @@ interface IPariMatchFactoryView {
  * V1 used an off-chain ranker + merkle distribution. V2 deletes that path and
  * keeps everything on-chain. Storage layout is preserved: the legacy
  * cumulative `_score` mapping at slot 2 is left untouched (orphaned, harmless)
- * and the new state lives at slots 7–10. The `Epoch.merkleRoot` field is also
- * preserved (slot reservation) but never written or read post-V2.
+ * and the new state lives at slots 7–9 (slot 7 packs `epochStartTime` and
+ * `epochDuration`; slots 8 and 9 hold the two new mappings). The
+ * `Epoch.merkleRoot` field is also preserved (slot reservation) but never
+ * written or read post-V2.
  *
  * Trust model
  * ────────────
@@ -169,8 +171,9 @@ contract LeaderboardRewards is
 
     event Initialized(address indexed usdc, address indexed admin);
 
-    /// @notice Cumulative score for `user` in `epochId` increased by `delta`.
-    ///         `newEpochScore` is the post-increment total for that epoch.
+    /// @notice Per-epoch score for `user` in `epochId` increased by `delta`.
+    ///         `newEpochScore` is the post-increment total *for that epoch
+    ///         only* — V2 scores do not carry over across epoch boundaries.
     event WinRecorded(
         address indexed match_,
         address indexed user,
@@ -226,9 +229,11 @@ contract LeaderboardRewards is
         _disableInitializers();
     }
 
-    /// @notice One-shot V1 initialization for the UUPS proxy. Kept for the
-    ///         original deployment record; V2 proxies re-run `initializeV2`
-    ///         instead via `upgradeToAndCall`.
+    /// @notice One-shot V1 initialization for the UUPS proxy. Always runs at
+    ///         proxy construction time — V2 builds on top of it by calling
+    ///         `initializeV2()` afterwards. The V1 marker (set by the
+    ///         `initializer` modifier) is a prerequisite for the V2
+    ///         `reinitializer(2)` to advance.
     function initialize(address _usdc, address _admin, address _oracle) external initializer {
         if (_usdc == address(0))  revert ZeroAddress();
         if (_admin == address(0)) revert ZeroAddress();
@@ -250,11 +255,16 @@ contract LeaderboardRewards is
         emit Initialized(_usdc, _admin);
     }
 
-    /// @notice V2 initializer. Run once via `upgradeToAndCall` from the
-    ///         upgrade script. Idempotent across re-upgrades thanks to the
-    ///         `reinitializer(2)` guard.
-    /// @dev    Anchors the epoch clock at the upgrade timestamp and sets the
-    ///         default 30-day duration. Doesn't touch any V1 state.
+    /// @notice V2 initializer. Run once per proxy via one of two paths:
+    ///         (a) on an existing V1 proxy, atomically through the upgrade
+    ///         script's `upgradeToAndCall(newImpl, initializeV2())`; (b) on a
+    ///         fresh proxy, immediately after construction in
+    ///         `DeployAll._deployLeaderboard()`. The `reinitializer(2)` guard
+    ///         is idempotent across re-upgrades.
+    /// @dev    Anchors the epoch clock at the call timestamp and sets the
+    ///         default 30-day duration. Doesn't touch any V1 state, so
+    ///         existing `_score` entries (if any) remain readable but
+    ///         unreferenced by V2 logic.
     function initializeV2() external reinitializer(2) {
         epochStartTime = uint64(block.timestamp);
         epochDuration  = DEFAULT_EPOCH_DURATION;

@@ -177,14 +177,23 @@ contract StreamWallet is Initializable, OwnableUpgradeable, UUPSUpgradeable, Ree
     //////////////////////////////////////////////////////////////*/
 
     /**
-     * @notice Record a subscription and distribute funds
-     * @param subscriber The subscriber address
-     * @param amount The subscription amount in fan tokens
-     * @param duration The subscription duration in seconds
-     * @param amountOutMin Minimum USDC to receive from swap (slippage protection)
-     * @param token The fan token address to pull and swap
-     * @return platformFee The fee portion in fan tokens
-     * @return streamerAmount The streamer portion in fan tokens
+     * @notice Record a subscription and distribute funds. Streamer portion
+     *         is swapped to USDC and escrowed in this contract; streamer
+     *         withdraws via `withdrawRevenue`. Fee portion is swapped to
+     *         USDC and forwarded directly to `treasury`.
+     * @param subscriber   The subscriber address
+     * @param amount       The subscription amount in fan tokens
+     * @param duration     The subscription duration in seconds
+     * @param amountOutMin Minimum USDC to receive from the streamer-portion
+     *                     swap (slippage protection). Set to 0 to disable.
+     * @param deadline     UNIX timestamp deadline forwarded to the Kayen
+     *                     router; reverts with `DeadlinePassed` after.
+     * @param token        The fan token address to pull and swap
+     * @return platformFee The fee portion of the input, denominated in fan
+     *                     tokens (pre-swap).
+     * @return streamerAmount The streamer portion of the input, denominated
+     *                     in fan tokens (pre-swap). The USDC actually
+     *                     escrowed is logged in `SubscriptionRecorded`.
      */
     function recordSubscription(
         address subscriber,
@@ -213,7 +222,7 @@ contract StreamWallet is Initializable, OwnableUpgradeable, UUPSUpgradeable, Ree
             // Extend from current expiry (don't lose remaining time)
             expiryTime = sub.expiryTime + duration;
         } else {
-            // New subscription or expired â€” start from now
+            // New subscription or expired — start from now
             expiryTime = block.timestamp + duration;
         }
 
@@ -276,7 +285,7 @@ contract StreamWallet is Initializable, OwnableUpgradeable, UUPSUpgradeable, Ree
     /**
      * @notice Record a subscription from the swap router (swap already completed)
      * @dev Only callable by factory or authorized swap router. No token transfers
-     *      or swaps occur here â€” purely state tracking.
+     *      or swaps occur here — purely state tracking.
      * @param subscriber The subscriber address
      * @param totalUsdcAmount The total USDC amount (before fee split, for metrics)
      * @param duration The subscription duration in seconds
@@ -318,7 +327,7 @@ contract StreamWallet is Initializable, OwnableUpgradeable, UUPSUpgradeable, Ree
     /**
      * @notice Record a donation from the swap router (swap already completed)
      * @dev Only callable by factory or authorized swap router. No token transfers
-     *      or swaps occur here â€” purely state tracking.
+     *      or swaps occur here — purely state tracking.
      * @param donor The donor address
      * @param totalUsdcAmount The total USDC donated (before fee split, for metrics)
      * @param platformFee The actual platform fee taken by the router
@@ -345,13 +354,21 @@ contract StreamWallet is Initializable, OwnableUpgradeable, UUPSUpgradeable, Ree
     //////////////////////////////////////////////////////////////*/
 
     /**
-     * @notice Accept a donation with optional message
-     * @param amount The donation amount in fan tokens
-     * @param message Optional message from donor
-     * @param amountOutMin Minimum USDC to receive from swap (slippage protection)
-     * @param token The fan token address to pull and swap
-     * @return platformFee The fee portion in fan tokens
-     * @return streamerAmount The streamer portion in fan tokens
+     * @notice Accept a donation with an optional message. The entire input
+     *         is swapped to USDC up-front; the fee portion of the USDC is
+     *         forwarded to `treasury`, the streamer portion stays escrowed
+     *         in this contract and is released via `withdrawRevenue`.
+     * @param amount       The donation amount in fan tokens
+     * @param message      Optional message from donor
+     * @param amountOutMin Minimum USDC to receive from the swap (slippage
+     *                     protection). Applied to the whole-pool swap, not
+     *                     to each post-split leg.
+     * @param deadline     UNIX timestamp deadline forwarded to the Kayen
+     *                     router; reverts with `DeadlinePassed` after.
+     * @param token        The fan token address to pull and swap.
+     * @return platformFee The fee portion of the swap output, in USDC.
+     * @return streamerAmount The streamer portion of the swap output, in
+     *                     USDC. Stays in this contract until withdrawn.
      */
     function donate(
         uint256 amount,
@@ -368,14 +385,21 @@ contract StreamWallet is Initializable, OwnableUpgradeable, UUPSUpgradeable, Ree
     }
 
     /**
-     * @notice Accept a donation on behalf of a specific donor (called by factory)
-     * @param donor The actual donor address (for correct attribution)
-     * @param amount The donation amount in fan tokens
-     * @param message Optional message from donor
-     * @param amountOutMin Minimum USDC to receive from swap (slippage protection)
-     * @param token The fan token address to pull and swap
-     * @return platformFee The fee portion in fan tokens
-     * @return streamerAmount The streamer portion in fan tokens
+     * @notice Accept a donation on behalf of a specific donor (called by
+     *         factory). Same USDC-side semantics as `donate`: the swap output
+     *         is split, the fee portion goes to `treasury`, the streamer
+     *         portion is escrowed for `withdrawRevenue`.
+     * @param donor        The actual donor address (for correct attribution
+     *                     in `lifetimeDonations` and the emitted event).
+     * @param amount       The donation amount in fan tokens.
+     * @param message      Optional message from donor.
+     * @param amountOutMin Minimum USDC to receive from the swap (slippage).
+     * @param deadline     UNIX timestamp deadline forwarded to the Kayen
+     *                     router; reverts with `DeadlinePassed` after.
+     * @param token        The fan token address to pull and swap.
+     * @return platformFee The fee portion of the swap output, in USDC.
+     * @return streamerAmount The streamer portion of the swap output, in
+     *                     USDC. Stays in this contract until withdrawn.
      */
     function donateFor(
         address donor,

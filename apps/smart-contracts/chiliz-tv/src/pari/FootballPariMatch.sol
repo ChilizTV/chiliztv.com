@@ -25,11 +25,15 @@ import {PariMatchBase} from "./PariMatchBase.sol";
  *        FIRST_SCORER   player ID, 1..255 (0 reserved for "no goals")
  *        GOALS_EXACT    bucketed total goals: outcome = min(homeGoals + awayGoals, line);
  *                       line is the cap of the highest bucket (e.g. line=5 → 0,1,2,3,4,5+)
+ *        DOUBLE_CHANCE  0 = No / 1 = Yes. The DC variant is encoded in `line`:
+ *                       0 = 1X (Home or Draw), 1 = 12 (Home or Away), 2 = 2X (Away or Draw).
+ *                       Each variant is its own Yes/No market — three sub-markets per match.
  *
  *      Line semantics:
  *        - GOALS_TOTAL: 1/10-goal units. Use half-goal lines (15, 25, 35, ...) to
  *          avoid pushes. Whole-number lines are accepted but settle as Under on tie.
  *        - GOALS_EXACT: integer in [1, 255]. Highest bucket is "≥line".
+ *        - DOUBLE_CHANCE: integer in [0, 2]. See selection-encoding table.
  */
 contract FootballPariMatch is PariMatchBase {
 

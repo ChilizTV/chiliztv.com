@@ -23,6 +23,11 @@ export function UsernameSetupGuard(): React.JSX.Element | null {
 
     const [value, setValue] = useState('');
     const [error, setError] = useState<string | null>(null);
+    // Local latch — once the upsert returns 200 we hide the modal
+    // immediately even if the cached profile hasn't refreshed yet.
+    // Prevents the "modal stays open after submit" race when the
+    // background refetch is slow or silently fails.
+    const [dismissed, setDismissed] = useState(false);
 
     const needsSetup =
         isAuthenticated &&
@@ -31,7 +36,7 @@ export function UsernameSetupGuard(): React.JSX.Element | null {
         !!wallet &&
         !profile?.username;
 
-    if (!needsSetup) return null;
+    if (!needsSetup || dismissed) return null;
 
     const handleSubmit = (e: FormEvent) => {
         e.preventDefault();
@@ -44,6 +49,7 @@ export function UsernameSetupGuard(): React.JSX.Element | null {
         upsert.mutate(
             { username: trimmed, avatarUrl: null },
             {
+                onSuccess: () => setDismissed(true),
                 onError: () => setError('Failed to save — please try again'),
             },
         );

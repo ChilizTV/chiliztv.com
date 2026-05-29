@@ -55,9 +55,11 @@ export function useUserProfilesBatch(walletAddresses: ReadonlyArray<string | und
 }
 
 /**
- * Upsert the connected user's profile from Dynamic Labs metadata. On
- * success we invalidate the single-profile cache for that wallet so any
- * mounted hook re-renders with the fresh username/avatar.
+ * Upsert the connected user's profile from Dynamic Labs metadata. The
+ * response already carries the fresh row — we write it into the cache
+ * synchronously so `useUserProfile` re-renders the new username on the
+ * very next React tick, without waiting for a background refetch.
+ * Invalidations stay so any sibling consumers refresh too.
  */
 export function useUpsertUserProfile() {
     const qc = useQueryClient();
@@ -65,6 +67,7 @@ export function useUpsertUserProfile() {
         mutationFn: (body: UpsertProfileBody) => usersApi.upsertProfile(body),
         onSuccess: (resp) => {
             const wallet = resp.profile.walletAddress.toLowerCase();
+            qc.setQueryData(['user-profile', wallet], resp.profile);
             qc.invalidateQueries({ queryKey: ['user-profile', wallet] });
             qc.invalidateQueries({ queryKey: ['user-profiles-batch'] });
         },

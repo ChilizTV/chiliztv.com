@@ -25,10 +25,16 @@ export interface CancelMarketsResult {
 export interface FootballScoreInput {
   homeGoals: number;
   awayGoals: number;
-  htHomeGoals: number;
-  htAwayGoals: number;
-  /** 0 = unknown — FIRST_SCORER markets are skipped when unknown. */
-  firstScorerId: number;
+  /**
+   * Optional. HALFTIME / FIRST_SCORER markets are no longer seeded on new
+   * proxies — API-Football basic endpoint doesn't expose HT goals reliably and
+   * FIRST_SCORER needs a paid endpoint. Adapters default missing fields to 0;
+   * legacy contracts still seeded with those markets rely on PariMatchBase
+   * void protection to refund stakers.
+   */
+  htHomeGoals?: number;
+  htAwayGoals?: number;
+  firstScorerId?: number;
 }
 
 export interface IBlockchainService {

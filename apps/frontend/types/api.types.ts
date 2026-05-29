@@ -38,6 +38,12 @@ export interface Match {
   /** Latest W/D/L results per side (oldest → newest, up to 5 chars). Null when no API data. */
   homeForm: string | null;
   awayForm: string | null;
+  /**
+   * Backend signal that API-Football is in degraded mode (circuit open or
+   * daily quota exhausted). When true, the score may be stale — UI renders a
+   * "Stale data" badge so the user doesn't trust the displayed value blindly.
+   */
+  dataStale?: boolean;
 }
 
 /**

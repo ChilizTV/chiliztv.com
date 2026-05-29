@@ -21,10 +21,14 @@ function delay(ms: number = TX_DELAY_MS): Promise<void> {
 export interface FootballScore {
     homeGoals: number;
     awayGoals: number;
-    htHomeGoals: number;
-    htAwayGoals: number;
-    /** 0 = unknown — FIRST_SCORER markets are skipped when unknown. */
-    firstScorerId: number;
+    /**
+     * Optional. HALFTIME / FIRST_SCORER markets are no longer seeded on new
+     * proxies; legacy contracts rely on PariMatchBase void protection to
+     * refund stakers when these are omitted (winningPool == 0 → cancel).
+     */
+    htHomeGoals?: number;
+    htAwayGoals?: number;
+    firstScorerId?: number;
 }
 
 /**
@@ -113,9 +117,9 @@ export class PariMatchResolutionAdapter {
                 args: [{
                     homeGoals: score.homeGoals,
                     awayGoals: score.awayGoals,
-                    htHomeGoals: score.htHomeGoals,
-                    htAwayGoals: score.htAwayGoals,
-                    firstScorerId: score.firstScorerId,
+                    htHomeGoals: score.htHomeGoals ?? 0,
+                    htAwayGoals: score.htAwayGoals ?? 0,
+                    firstScorerId: score.firstScorerId ?? 0,
                 }],
                 chain: this.chain,
             });

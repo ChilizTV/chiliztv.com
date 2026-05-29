@@ -4,6 +4,7 @@ import Image from "next/image";
 import { useState } from "react";
 import { ArrowLeft } from "lucide-react";
 import { TeamFormBadge } from "@/components/shared/TeamFormBadge";
+import { StaleDataBadge } from "@/components/shared/StaleDataBadge";
 import { Eyebrow, Pill, PulseDot } from "../primitives";
 
 const LIVE_STATUSES = new Set(["1H", "2H", "ET", "BT", "P", "HT", "LIVE"]);
@@ -25,6 +26,8 @@ interface LiveHeroProps {
   kickoffAt?: string;
   league?: string;
   onChainMatch?: boolean;
+  /** Backend signal that API-Football is in degraded mode — score may be stale. */
+  dataStale?: boolean;
   onBack?: () => void;
 }
 
@@ -125,6 +128,7 @@ export function LiveHero({
   kickoffAt,
   league,
   onChainMatch = false,
+  dataStale = false,
   onBack,
 }: LiveHeroProps) {
   const isLive = !!status && LIVE_STATUSES.has(status);
@@ -152,6 +156,12 @@ export function LiveHero({
             )}
             {isFT && <span className="text-white/55">Full time</span>}
             {isUpcoming && <span className="text-white/55">{formatKickoff(kickoffAt)}</span>}
+            {dataStale && (
+              <>
+                <span className="text-white/30">·</span>
+                <StaleDataBadge stale />
+              </>
+            )}
           </Eyebrow>
 
           <div className="mt-4 flex items-center gap-5 sm:gap-7">

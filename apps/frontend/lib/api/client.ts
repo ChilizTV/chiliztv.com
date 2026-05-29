@@ -43,6 +43,23 @@ export function normalizeFormatA<T>(raw: unknown, payloadKey: string): T {
   return normalizeFormatB<T>(raw);
 }
 
+/**
+ * `dataStale: true` may live either at the envelope level (`match` single) or
+ * on each list entry (`matches: [...]`). Scan both shapes cheaply — only one
+ * boolean read per response, so cost is negligible.
+ */
+function detectStaleFlag(data: unknown): boolean {
+  if (!data || typeof data !== 'object') return false;
+  const obj = data as Record<string, unknown>;
+  if ((obj.match as Record<string, unknown> | undefined)?.dataStale === true) return true;
+  const matches = obj.matches;
+  if (Array.isArray(matches) && matches.length > 0) {
+    const first = matches[0] as Record<string, unknown> | undefined;
+    if (first?.dataStale === true) return true;
+  }
+  return false;
+}
+
 export function handleFormatBError(raw: unknown): never {
   if (
     raw !== null &&
@@ -111,6 +128,19 @@ class ApiClient {
           'error' in data
         ) {
           handleFormatBError(data);
+        }
+        // Observability: when a match endpoint reports degraded upstream
+        // (`dataStale: true`), log it once per response so prod monitoring can
+        // surface the frequency. Bounded by the existing console — no Sentry
+        // dep needed for v1.
+        if (data && typeof data === 'object') {
+          const stale = detectStaleFlag(data);
+          if (stale && response.config?.url?.startsWith('/matches')) {
+            console.warn('[api-football] degraded upstream', {
+              path: response.config.url,
+              ts: Date.now(),
+            });
+          }
         }
         return response;
       },

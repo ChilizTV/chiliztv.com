@@ -1,10 +1,11 @@
 import { inject, injectable } from 'tsyringe';
-import axios from 'axios';
+import axios, { AxiosInstance } from 'axios';
 import { TOKENS } from '@chiliztv/domain/shared/tokens';
 import { IFootballApiService, RawMatch } from '@chiliztv/domain/shared/ports/IFootballApiService';
 import { MatchFetchWindow } from '@chiliztv/domain/matches/value-objects/MatchFetchWindow';
 import type { IClock } from '@chiliztv/domain/shared/ports/IClock';
 import type { ICacheService } from '@chiliztv/domain/shared/ports/ICacheService';
+import type { ILockService } from '@chiliztv/domain/shared/ports/ILockService';
 import { ApiFootballMatch } from '../types/ApiFootball.types';
 import { logger } from '../../logging/logger';
 
@@ -12,6 +13,23 @@ const FORM_CACHE_TTL_SECONDS = 3600;       // 1h — form moves max once per 3-7
 const FORM_NEGATIVE_TTL_SECONDS = 600;     // 10 min — team has no completed fixtures
 const FORM_JITTER_PCT = 15;
 const FINISHED_STATUSES = new Set(['FT', 'AET', 'PEN']);
+
+const QUOTA_COUNTER_TTL_SECONDS = 36 * 3600; // 36h — survives daily reset, auto-expires
+const QUOTA_WARN_PCT = 80;
+const QUOTA_ERROR_PCT = 95;
+
+const MAX_RETRY_ATTEMPTS = 3;
+const RETRY_BACKOFFS_MS = [1000, 2000, 4000];
+const RETRY_JITTER_PCT = 20;
+
+const CIRCUIT_FAILURE_THRESHOLD = 5;
+const CIRCUIT_OPEN_DURATION_MS = 5 * 60 * 1000;
+
+const LAST_FETCH_CACHE_KEY = 'apifootball:lastfetch:matches';
+const LAST_FETCH_CACHE_TTL_SECONDS = 6 * 3600;
+
+const FETCH_LOCK_KEY = 'lock:apifootball:fetch';
+const FETCH_LOCK_TTL_SECONDS = 90;
 
 /**
  * FootballApiAdapterImpl
@@ -35,30 +53,214 @@ export class FootballApiAdapterImpl implements IFootballApiService {
         135  // Serie A
     ];
 
-    private isFetching = false;
+    private readonly client: AxiosInstance;
+    /**
+     * Set when API-Football returns `x-ratelimit-requests-remaining: 0`. Cleared
+     * automatically when the UTC date rolls over (the quota window resets daily
+     * at 00:00 UTC per api-sports.io billing).
+     */
+    private quotaExhausted = false;
+    private quotaExhaustedAtUTCDate: string | null = null;
+    /**
+     * Consecutive non-quota failures. Quota-induced 429/403 must not count
+     * toward the circuit (those have their own daily window).
+     */
+    private circuitFailures = 0;
+    /** Wall-clock time after which the circuit half-opens (one trial allowed). */
+    private circuitOpenUntil: Date | null = null;
 
     constructor(
         @inject(TOKENS.IClock) private readonly clock: IClock,
         @inject(TOKENS.ICacheService) private readonly cache: ICacheService,
+        @inject(TOKENS.ILockService) private readonly lockService: ILockService,
     ) {
         if (!this.API_KEY) {
             logger.warn('API_FOOTBALL_KEY not configured — FootballApiAdapterImpl will not function');
         }
+
+        this.client = axios.create({
+            baseURL: this.BASE_URL,
+            timeout: 10_000,
+            headers: this.API_KEY
+                ? {
+                      'x-rapidapi-key': this.API_KEY,
+                      'x-rapidapi-host': 'v3.football.api-sports.io',
+                  }
+                : {},
+        });
+        this.attachInterceptors();
+    }
+
+    /**
+     * Request: increments the daily Redis counter so `/health/metrics` can
+     * surface usage cross-instance. Response: reads the upstream rate-limit
+     * headers and flips `quotaExhausted` when remaining hits zero — subsequent
+     * public-method calls short-circuit before making a paid call.
+     */
+    private attachInterceptors(): void {
+        this.client.interceptors.request.use(async (config) => {
+            try {
+                await this.cache.incr(
+                    `metrics:apifootball:reqs:${this.todayUTCKey()}`,
+                    QUOTA_COUNTER_TTL_SECONDS,
+                );
+            } catch (err) {
+                // Quota tracking is observability, never block a real call on it.
+                logger.warn('quota INCR failed', { error: err instanceof Error ? err.message : String(err) });
+            }
+            return config;
+        });
+
+        this.client.interceptors.response.use(
+            (response) => {
+                const remaining = Number(response.headers['x-ratelimit-requests-remaining'] ?? -1);
+                const limit = Number(response.headers['x-ratelimit-requests-limit'] ?? -1);
+                if (remaining >= 0 && limit > 0) {
+                    const usedPct = ((limit - remaining) / limit) * 100;
+                    if (remaining === 0) {
+                        logger.error('API-Football quota exhausted — switching to cache-only until UTC midnight', { limit });
+                        this.quotaExhausted = true;
+                        this.quotaExhaustedAtUTCDate = this.todayUTCKey();
+                    } else if (usedPct >= QUOTA_ERROR_PCT) {
+                        logger.error('API-Football quota >95% used', { remaining, limit, usedPct });
+                    } else if (usedPct >= QUOTA_WARN_PCT) {
+                        logger.warn('API-Football quota >80% used', { remaining, limit, usedPct });
+                    }
+                }
+                this.recordSuccess();
+                return response;
+            },
+            async (error) => {
+                const status: number | undefined = error?.response?.status;
+                // Never retry on quota/auth — those need human intervention, not louder retries.
+                const isQuotaOrAuth = status === 401 || status === 403 || status === 429;
+                const isRetryable = !isQuotaOrAuth && (!status || (status >= 500 && status < 600));
+                const config = error?.config ?? {};
+                config.__retryCount = (config.__retryCount ?? 0) + 1;
+
+                if (isRetryable && config.__retryCount <= MAX_RETRY_ATTEMPTS) {
+                    const backoffBase = RETRY_BACKOFFS_MS[config.__retryCount - 1] ?? RETRY_BACKOFFS_MS[RETRY_BACKOFFS_MS.length - 1];
+                    const jitter = Math.random() * (RETRY_JITTER_PCT / 100) * backoffBase;
+                    const wait = backoffBase + jitter;
+                    logger.warn('API-Football retry', {
+                        attempt: config.__retryCount,
+                        backoffMs: Math.round(wait),
+                        status: status ?? 'network',
+                    });
+                    await new Promise((r) => setTimeout(r, wait));
+                    return this.client.request(config);
+                }
+
+                // Exhausted retries or non-retryable → circuit accounting (skip quota/auth).
+                if (!isQuotaOrAuth) {
+                    this.recordFailure();
+                }
+                return Promise.reject(error);
+            },
+        );
+    }
+
+    private recordSuccess(): void {
+        if (this.circuitFailures > 0 || this.circuitOpenUntil) {
+            logger.info('API-Football circuit reset on success', { previousFailures: this.circuitFailures });
+        }
+        this.circuitFailures = 0;
+        this.circuitOpenUntil = null;
+    }
+
+    private recordFailure(): void {
+        this.circuitFailures += 1;
+        if (this.circuitFailures >= CIRCUIT_FAILURE_THRESHOLD && !this.circuitOpenUntil) {
+            this.circuitOpenUntil = new Date(this.clock.now().getTime() + CIRCUIT_OPEN_DURATION_MS);
+            logger.error('API-Football circuit opened', {
+                failures: this.circuitFailures,
+                openUntil: this.circuitOpenUntil.toISOString(),
+            });
+        }
+    }
+
+    /**
+     * `true` while the circuit is open. Auto half-opens after the cooldown so a
+     * single trial call decides whether to re-close (success) or extend the
+     * cooldown (next failure re-arms the timer in `recordFailure`).
+     */
+    private isCircuitOpen(): boolean {
+        if (!this.circuitOpenUntil) return false;
+        if (this.clock.now() >= this.circuitOpenUntil) {
+            logger.info('API-Football circuit half-open (cooldown elapsed, trying again)');
+            this.circuitOpenUntil = null;
+            return false;
+        }
+        return true;
+    }
+
+    /**
+     * Composed degraded-mode signal for the DTO `dataStale` flag (wired in 1.6).
+     * Either condition means the next public-method call won't hit the upstream.
+     */
+    isDataStale(): boolean {
+        return this.isCircuitOpen() || this.isQuotaBlocked();
+    }
+
+    private todayUTCKey(): string {
+        const now = this.clock.now();
+        const y = now.getUTCFullYear();
+        const m = String(now.getUTCMonth() + 1).padStart(2, '0');
+        const d = String(now.getUTCDate()).padStart(2, '0');
+        return `${y}-${m}-${d}`;
+    }
+
+    /**
+     * Auto-reset the quota flag when the UTC day rolls over (api-sports.io
+     * quota window is 24h aligned to UTC midnight). Callers must hit this
+     * before issuing any paid request so the flag clears proactively.
+     */
+    private isQuotaBlocked(): boolean {
+        if (!this.quotaExhausted) return false;
+        const today = this.todayUTCKey();
+        if (today !== this.quotaExhaustedAtUTCDate) {
+            this.quotaExhausted = false;
+            this.quotaExhaustedAtUTCDate = null;
+            logger.info('API-Football quota window reset (new UTC day)');
+            return false;
+        }
+        return true;
     }
 
     // ─── IFootballApiService ──────────────────────────────────────────────────
 
     async fetchMatches(daysAhead: number = MatchFetchWindow.FETCH_DAYS_AHEAD): Promise<RawMatch[]> {
-        if (this.isFetching) {
-            logger.warn('Already fetching matches, skipping');
-            return [];
-        }
         if (!this.API_KEY) {
             logger.error('API_FOOTBALL_KEY not configured');
             return [];
         }
+        if (this.isQuotaBlocked()) {
+            logger.warn('fetchMatches degraded — quota exhausted, serving last known snapshot');
+            return this.readStaleFetchSnapshot();
+        }
+        if (this.isCircuitOpen()) {
+            logger.warn('fetchMatches degraded — circuit open, serving last known snapshot');
+            return this.readStaleFetchSnapshot();
+        }
 
-        this.isFetching = true;
+        // Distributed single-flight: only one instance fetches per window.
+        // Contention → other instances skip and serve the last-good cache so
+        // we never burn two slots of quota for the same tick across the fleet.
+        const result = await this.lockService.withLock({
+            key: FETCH_LOCK_KEY,
+            ttlSeconds: FETCH_LOCK_TTL_SECONDS,
+            onContention: 'skip',
+            onAcquired: async () => this.fetchMatchesInner(daysAhead),
+        });
+
+        if (!result.ran) {
+            logger.info('fetchMatches skipped — another worker holds the lock');
+            return this.readStaleFetchSnapshot();
+        }
+        return result.result;
+    }
+
+    private async fetchMatchesInner(daysAhead: number): Promise<RawMatch[]> {
         try {
             const now = this.clock.now();
             const from = this.formatDate(MatchFetchWindow.fetchFrom(now));
@@ -66,8 +268,7 @@ export class FootballApiAdapterImpl implements IFootballApiService {
 
             logger.info('Fetching matches from API-Football', { from, to, daysAhead });
 
-            const response = await axios.get(`${this.BASE_URL}/fixtures`, {
-                headers: this.headers(),
+            const response = await this.client.get('/fixtures', {
                 params: { from, to, status: 'NS-LIVE-FT' },
             });
 
@@ -76,14 +277,32 @@ export class FootballApiAdapterImpl implements IFootballApiService {
 
             logger.info('Matches fetched', { total: all.length, filtered: filtered.length });
 
-            return filtered.map(m => this.toRawMatch(m));
+            const raws = filtered.map(m => this.toRawMatch(m));
+            // Persist last good snapshot so callers can serve it during circuit-open / quota-exhausted windows.
+            void this.cache.set(LAST_FETCH_CACHE_KEY, raws, LAST_FETCH_CACHE_TTL_SECONDS).catch((err) =>
+                logger.warn('lastFetch cache write failed', { error: err instanceof Error ? err.message : String(err) }),
+            );
+            return raws;
         } catch (error) {
             logger.error('Error fetching matches', {
                 error: error instanceof Error ? error.message : 'Unknown error',
             });
+            return this.readStaleFetchSnapshot();
+        }
+    }
+
+    /**
+     * Last successful `fetchMatches` payload — used when the live API is
+     * unreachable (circuit open, quota exhausted, or transient error after
+     * retries). Empty array on cache miss; callers handle empty gracefully.
+     */
+    private async readStaleFetchSnapshot(): Promise<RawMatch[]> {
+        try {
+            const hit = await this.cache.get<RawMatch[]>(LAST_FETCH_CACHE_KEY);
+            return hit.hit ? hit.value : [];
+        } catch (err) {
+            logger.warn('lastFetch cache read failed', { error: err instanceof Error ? err.message : String(err) });
             return [];
-        } finally {
-            this.isFetching = false;
         }
     }
 
@@ -102,11 +321,13 @@ export class FootballApiAdapterImpl implements IFootballApiService {
             negativeTtlSeconds: FORM_NEGATIVE_TTL_SECONDS,
             jitterPct: FORM_JITTER_PCT,
             loader: async () => {
+                if (this.isQuotaBlocked()) {
+                    logger.warn('getTeamForm skipped — quota exhausted', { teamId });
+                    return null;
+                }
                 try {
-                    const response = await axios.get(`${this.BASE_URL}/fixtures`, {
-                        headers: this.headers(),
+                    const response = await this.client.get('/fixtures', {
                         params: { team: teamId, last: 5 },
-                        timeout: 10_000,
                     });
                     const fixtures: ApiFootballMatch[] = response.data?.response ?? [];
                     if (fixtures.length === 0) return null;
@@ -130,13 +351,6 @@ export class FootballApiAdapterImpl implements IFootballApiService {
     }
 
     // ─── Private helpers ──────────────────────────────────────────────────────
-
-    private headers(): Record<string, string> {
-        return {
-            'x-rapidapi-key': this.API_KEY!,
-            'x-rapidapi-host': 'v3.football.api-sports.io',
-        };
-    }
 
     /** W/D/L from the team's perspective, empty string if the match isn't a finished result. */
     private deriveResult(fixture: ApiFootballMatch, teamId: number): 'W' | 'D' | 'L' | '' {

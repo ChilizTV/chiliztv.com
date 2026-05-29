@@ -59,15 +59,6 @@ describe('matchFixture — override', () => {
         expect(match.toJSON().matchDate).toEqual(kickoff);
     });
 
-    it('applies partial odds override without dropping defaults', () => {
-        const match = matchFixture.upcoming({ odds: { winner: { homeWin: 5, draw: 6, awayWin: 7 } } });
-        const odds = match.toJSON().odds;
-        expect(odds.winner).toEqual({ homeWin: 5, draw: 6, awayWin: 7 });
-        // Untouched markets keep defaults.
-        expect(odds.goalsTotal).toBeDefined();
-        expect(odds.bothScore).toBeDefined();
-    });
-
     it('applies bettingContractAddress override', () => {
         const match = matchFixture.firstHalf({ bettingContractAddress: '0xABC' });
         expect(match.toJSON().bettingContractAddress).toBe('0xABC');

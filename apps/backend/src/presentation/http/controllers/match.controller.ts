@@ -2,6 +2,8 @@ import { Request, Response, NextFunction } from 'express';
 import { injectable, inject } from 'tsyringe';
 import { TOKENS } from '@chiliztv/domain/shared/tokens';
 import type { IClock } from '@chiliztv/domain/shared/ports/IClock';
+import type { IFootballApiService } from '@chiliztv/domain/shared/ports/IFootballApiService';
+import type { Match } from '@chiliztv/domain/matches/entities/Match';
 import { GetAllMatchesUseCase } from '../../../application/matches/use-cases/GetAllMatchesUseCase';
 import { GetLiveMatchesUseCase } from '../../../application/matches/use-cases/GetLiveMatchesUseCase';
 import { GetUpcomingMatchesUseCase } from '../../../application/matches/use-cases/GetUpcomingMatchesUseCase';
@@ -32,15 +34,28 @@ export class MatchController {
     private readonly getMarketPoolsUseCase: GetMarketPoolsUseCase,
     @inject(TOKENS.IClock)
     private readonly clock: IClock,
+    @inject(TOKENS.IFootballApiService)
+    private readonly footballApi: IFootballApiService,
   ) {}
+
+  /**
+   * Stamp the upstream degraded-mode flag onto each match payload so the
+   * frontend can render a "Stale data" badge when API-Football is unreachable
+   * or quota-exhausted. The signal is global (not per-match) so every match in
+   * the same response carries the same value — cheap, no extra round-trip.
+   */
+  private serialize(match: Match, stale: boolean): Record<string, unknown> {
+    return { ...match.toJSON(), dataStale: stale };
+  }
 
   async getAllMatches(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const matches = await this.getAllMatchesUseCase.execute();
+      const stale = this.footballApi.isDataStale();
 
       res.json({
         success: true,
-        matches: matches.map(m => m.toJSON()),
+        matches: matches.map(m => this.serialize(m, stale)),
         count: matches.length,
         timestamp: this.clock.now().getTime(),
       });
@@ -52,10 +67,11 @@ export class MatchController {
   async getLiveMatches(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const matches = await this.getLiveMatchesUseCase.execute();
+      const stale = this.footballApi.isDataStale();
 
       res.json({
         success: true,
-        matches: matches.map(m => m.toJSON()),
+        matches: matches.map(m => this.serialize(m, stale)),
         count: matches.length,
         timestamp: this.clock.now().getTime(),
       });
@@ -67,10 +83,11 @@ export class MatchController {
   async getUpcomingMatches(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const matches = await this.getUpcomingMatchesUseCase.execute();
+      const stale = this.footballApi.isDataStale();
 
       res.json({
         success: true,
-        matches: matches.map(m => m.toJSON()),
+        matches: matches.map(m => this.serialize(m, stale)),
         count: matches.length,
         timestamp: this.clock.now().getTime(),
       });
@@ -83,10 +100,11 @@ export class MatchController {
     try {
       const id = parseInt(req.params.id);
       const match = await this.getMatchByIdUseCase.execute(id);
+      const stale = this.footballApi.isDataStale();
 
       res.json({
         success: true,
-        match: match.toJSON(),
+        match: this.serialize(match, stale),
       });
     } catch (error) {
       next(error);
@@ -97,10 +115,11 @@ export class MatchController {
     try {
       const leagueId = parseInt(req.params.league);
       const matches = await this.getMatchesByLeagueUseCase.execute(leagueId);
+      const stale = this.footballApi.isDataStale();
 
       res.json({
         success: true,
-        matches: matches.map(m => m.toJSON()),
+        matches: matches.map(m => this.serialize(m, stale)),
         count: matches.length,
       });
     } catch (error) {

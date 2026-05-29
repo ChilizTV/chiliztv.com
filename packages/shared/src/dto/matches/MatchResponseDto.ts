@@ -49,6 +49,12 @@ export interface MatchResponseDto {
   homeForm: string | null;
   awayForm: string | null;
   bettingContractAddress?: string;
+  /**
+   * `true` when the API-Football upstream is in degraded mode (circuit open or
+   * daily quota exhausted) and scores may be stale. Optional for back-compat —
+   * older clients ignore it; the new badge UI renders an amber pill when set.
+   */
+  dataStale?: boolean;
   /** ISO 8601 — sérialisé depuis Date */
   createdAt: string;
 }

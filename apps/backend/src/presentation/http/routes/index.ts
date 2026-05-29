@@ -12,3 +12,4 @@ export { betRoutes } from './bet.routes';
 export { userRoutes } from './user.routes';
 export { pricesRoutes } from './prices.routes';
 export { leaderboardRoutes } from './leaderboard.routes';
+export { metricsRoutes } from './metrics.routes';

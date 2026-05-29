@@ -4,7 +4,7 @@ import { TOKENS } from '@chiliztv/domain/shared/tokens';
 import { Match } from '@chiliztv/domain/matches/entities/Match';
 import { IMatchRepository, MatchStats } from '@chiliztv/domain/matches/repositories/IMatchRepository';
 import { MatchFetchWindow } from '@chiliztv/domain/matches/value-objects/MatchFetchWindow';
-import { LIVE_STATUSES } from '@chiliztv/domain/matches/policies/BettablePolicy';
+import { LIVE_STATUSES, BLOCKED_STATUSES, UPCOMING_STATUSES } from '@chiliztv/domain/matches/policies/BettablePolicy';
 import type { IClock } from '@chiliztv/domain/shared/ports/IClock';
 import { logger } from '../../logging/logger';
 
@@ -137,6 +137,41 @@ export class SupabaseMatchRepository implements IMatchRepository {
     if (error) {
       logger.error('Failed to find live matches', { error: error.message });
       throw new Error('Failed to find live matches');
+    }
+
+    return rows ? rows.map(row => this.toDomain(row)) : [];
+  }
+
+  /**
+   * Candidates for `CloseLiveMarketsJob`: matches with a deployed contract whose
+   * status is live, blocked (PST/CANC/ABD) or upcoming-within-kickoff-buffer.
+   *
+   * Bounded to a 6h look-back window via `match_date >= now - 6h` so the partial
+   * index `idx_matches_status_date` (migration 031) is leveraged and finished
+   * matches drop out of the candidate set naturally once they age past the
+   * window (ResolveMarketsJob owns the post-FT path).
+   *
+   * NOTE: the `betting_contract_address IS NOT NULL` predicate below MUST match
+   * the partial index predicate BYTE-FOR-BYTE. Any cosmetic variation kills the
+   * planner. Verify with EXPLAIN ANALYZE before deploying.
+   */
+  async findOpenContractsCandidates(now: Date, kickoffBufferSeconds: number): Promise<Match[]> {
+    const lookback = new Date(now.getTime() - 6 * 60 * 60 * 1000);
+    const upcomingHorizon = new Date(now.getTime() + kickoffBufferSeconds * 1000);
+    const eligibleStatuses = [...LIVE_STATUSES, ...BLOCKED_STATUSES, ...UPCOMING_STATUSES];
+
+    const { data: rows, error } = await supabase
+      .from('matches')
+      .select('*')
+      .not('betting_contract_address', 'is', null)
+      .in('status', eligibleStatuses)
+      .gte('match_date', lookback.toISOString())
+      .lte('match_date', upcomingHorizon.toISOString())
+      .order('match_date', { ascending: true });
+
+    if (error) {
+      logger.error('Failed to find open-contract candidates', { error: error.message });
+      throw new Error('Failed to find open-contract candidates');
     }
 
     return rows ? rows.map(row => this.toDomain(row)) : [];

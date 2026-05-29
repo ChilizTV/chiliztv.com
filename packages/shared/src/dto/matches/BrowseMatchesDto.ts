@@ -33,4 +33,10 @@ export interface BrowseLeagueDto {
 export interface BrowseMatchesResponseDto {
   success: boolean;
   leagues: BrowseLeagueDto[];
+  /**
+   * `true` when API-Football is in degraded mode (circuit open or quota
+   * exhausted). Set once on the envelope — applies to every match in the
+   * response. Optional for back-compat with older clients.
+   */
+  dataStale?: boolean;
 }

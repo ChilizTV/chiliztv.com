@@ -268,6 +268,7 @@ export default function LiveDetailsPage({ id }: LiveDetailsPageProps) {
         kickoffAt={matchData.startTime}
         league={matchData.league}
         onChainMatch={!!matchData.contractAddress}
+        dataStale={matchData.dataStale}
         onBack={() => router.push("/live")}
       />
 

@@ -207,9 +207,9 @@ export class ViemBlockchainService implements IBlockchainService {
                 args: [{
                     homeGoals: score.homeGoals,
                     awayGoals: score.awayGoals,
-                    htHomeGoals: score.htHomeGoals,
-                    htAwayGoals: score.htAwayGoals,
-                    firstScorerId: score.firstScorerId,
+                    htHomeGoals: score.htHomeGoals ?? 0,
+                    htAwayGoals: score.htAwayGoals ?? 0,
+                    firstScorerId: score.firstScorerId ?? 0,
                 }],
             });
             const receipt = await this.publicClient.waitForTransactionReceipt({ hash, timeout: 180_000 });

@@ -27,15 +27,12 @@ import { logger } from '../../infrastructure/logging/logger';
 async function main(): Promise<void> {
     const args = process.argv.slice(2);
     if (args.length < 3) {
-        console.error('Usage: pnpm match:resolve <matchId> <homeGoals> <awayGoals> [htHome] [htAway] [firstScorerId]');
+        console.error('Usage: pnpm match:resolve <matchId> <homeGoals> <awayGoals>');
         process.exit(1);
     }
     const matchId = Number(args[0]);
     const homeGoals = Number(args[1]);
     const awayGoals = Number(args[2]);
-    const htHomeGoals = args[3] !== undefined ? Number(args[3]) : 0;
-    const htAwayGoals = args[4] !== undefined ? Number(args[4]) : 0;
-    const firstScorerId = args[5] !== undefined ? Number(args[5]) : 0;
 
     if (!Number.isFinite(matchId) || !Number.isFinite(homeGoals) || !Number.isFinite(awayGoals)) {
         console.error('Invalid numeric arg — matchId / goals must be finite numbers');
@@ -59,9 +56,6 @@ async function main(): Promise<void> {
     const score: FootballScoreInput = {
         homeGoals,
         awayGoals,
-        htHomeGoals,
-        htAwayGoals,
-        firstScorerId,
     };
 
     logger.info('match:resolve — closing open markets first', {

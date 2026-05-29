@@ -27,4 +27,11 @@ export interface IFootballApiService {
    * Returns null when API-Football has no finished fixtures for this team.
    */
   getTeamForm(teamId: number): Promise<string | null>;
+  /**
+   * `true` when the adapter is currently serving cached/stale data because
+   * the upstream is unreachable (circuit open) or the daily quota is
+   * exhausted. Consumers should surface this on response DTOs so the UI can
+   * render a "Stale data" badge instead of pretending the score is current.
+   */
+  isDataStale(): boolean;
 }

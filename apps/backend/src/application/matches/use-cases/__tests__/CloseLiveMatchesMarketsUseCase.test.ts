@@ -34,7 +34,7 @@ function makeMatch(opts: {
 }
 
 describe('CloseLiveMatchesMarketsUseCase', () => {
-    let matchRepository: { findAll: ReturnType<typeof vi.fn> };
+    let matchRepository: { findOpenContractsCandidates: ReturnType<typeof vi.fn> };
     let blockchainService: {
         closeOpenMarketsForMatch: ReturnType<typeof vi.fn>;
         cancelOpenMarketsForMatch: ReturnType<typeof vi.fn>;
@@ -42,7 +42,7 @@ describe('CloseLiveMatchesMarketsUseCase', () => {
     let useCase: CloseLiveMatchesMarketsUseCase;
 
     beforeEach(() => {
-        matchRepository = { findAll: vi.fn() };
+        matchRepository = { findOpenContractsCandidates: vi.fn() };
         blockchainService = {
             closeOpenMarketsForMatch: vi.fn().mockResolvedValue({ closed: 1, skipped: 0 }),
             cancelOpenMarketsForMatch: vi.fn().mockResolvedValue({ cancelled: 1, skipped: 0 }),
@@ -58,7 +58,7 @@ describe('CloseLiveMatchesMarketsUseCase', () => {
     });
 
     it('closes a match in 1H (live)', async () => {
-        matchRepository.findAll.mockResolvedValue([
+        matchRepository.findOpenContractsCandidates.mockResolvedValue([
             makeMatch({ id: 1, status: '1H', minutesFromNow: -10 }),
         ]);
         const r = await useCase.execute();
@@ -68,7 +68,7 @@ describe('CloseLiveMatchesMarketsUseCase', () => {
     });
 
     it('closes a match in HT (halftime)', async () => {
-        matchRepository.findAll.mockResolvedValue([
+        matchRepository.findOpenContractsCandidates.mockResolvedValue([
             makeMatch({ id: 2, status: 'HT', minutesFromNow: -50 }),
         ]);
         const r = await useCase.execute();
@@ -77,7 +77,7 @@ describe('CloseLiveMatchesMarketsUseCase', () => {
     });
 
     it('closes NS at T-90s (within 120s kickoff buffer)', async () => {
-        matchRepository.findAll.mockResolvedValue([
+        matchRepository.findOpenContractsCandidates.mockResolvedValue([
             makeMatch({ id: 3, status: 'NS', minutesFromNow: 1.5 }),
         ]);
         const r = await useCase.execute();
@@ -86,7 +86,7 @@ describe('CloseLiveMatchesMarketsUseCase', () => {
     });
 
     it('does NOT close NS at T-3min (outside buffer)', async () => {
-        matchRepository.findAll.mockResolvedValue([
+        matchRepository.findOpenContractsCandidates.mockResolvedValue([
             makeMatch({ id: 4, status: 'NS', minutesFromNow: 3 }),
         ]);
         const r = await useCase.execute();
@@ -96,7 +96,7 @@ describe('CloseLiveMatchesMarketsUseCase', () => {
     });
 
     it('does NOT close a match in FT (handled by ResolveFinishedMatchesUseCase)', async () => {
-        matchRepository.findAll.mockResolvedValue([
+        matchRepository.findOpenContractsCandidates.mockResolvedValue([
             makeMatch({ id: 5, status: 'FT', minutesFromNow: -120 }),
         ]);
         const r = await useCase.execute();
@@ -105,7 +105,7 @@ describe('CloseLiveMatchesMarketsUseCase', () => {
     });
 
     it('skips matches without a betting contract', async () => {
-        matchRepository.findAll.mockResolvedValue([
+        matchRepository.findOpenContractsCandidates.mockResolvedValue([
             makeMatch({ id: 6, status: '1H', minutesFromNow: -10, contract: null }),
         ]);
         const r = await useCase.execute();
@@ -114,7 +114,7 @@ describe('CloseLiveMatchesMarketsUseCase', () => {
     });
 
     it('cancels (not closes) a CANC match', async () => {
-        matchRepository.findAll.mockResolvedValue([
+        matchRepository.findOpenContractsCandidates.mockResolvedValue([
             makeMatch({ id: 7, status: 'CANC', minutesFromNow: -10 }),
         ]);
         const r = await useCase.execute();
@@ -124,7 +124,7 @@ describe('CloseLiveMatchesMarketsUseCase', () => {
     });
 
     it('cancels an ABD match', async () => {
-        matchRepository.findAll.mockResolvedValue([
+        matchRepository.findOpenContractsCandidates.mockResolvedValue([
             makeMatch({ id: 8, status: 'ABD', minutesFromNow: -10 }),
         ]);
         const r = await useCase.execute();
@@ -133,7 +133,7 @@ describe('CloseLiveMatchesMarketsUseCase', () => {
     });
 
     it('closes (not cancels) a PST match — manual cancel left to admin', async () => {
-        matchRepository.findAll.mockResolvedValue([
+        matchRepository.findOpenContractsCandidates.mockResolvedValue([
             makeMatch({ id: 9, status: 'PST', minutesFromNow: -10 }),
         ]);
         const r = await useCase.execute();
@@ -143,7 +143,7 @@ describe('CloseLiveMatchesMarketsUseCase', () => {
     });
 
     it('handles mixed scenarios in one tick', async () => {
-        matchRepository.findAll.mockResolvedValue([
+        matchRepository.findOpenContractsCandidates.mockResolvedValue([
             makeMatch({ id: 10, status: '1H', minutesFromNow: -10 }),
             makeMatch({ id: 11, status: 'NS', minutesFromNow: 30 }), // way upcoming
             makeMatch({ id: 12, status: 'FT', minutesFromNow: -120 }),
@@ -161,7 +161,7 @@ describe('CloseLiveMatchesMarketsUseCase', () => {
         blockchainService.closeOpenMarketsForMatch
             .mockRejectedValueOnce(new Error('RPC down'))
             .mockResolvedValueOnce({ closed: 1, skipped: 0 });
-        matchRepository.findAll.mockResolvedValue([
+        matchRepository.findOpenContractsCandidates.mockResolvedValue([
             makeMatch({ id: 14, status: '1H', minutesFromNow: -10 }),
             makeMatch({ id: 15, status: 'HT', minutesFromNow: -50 }),
         ]);

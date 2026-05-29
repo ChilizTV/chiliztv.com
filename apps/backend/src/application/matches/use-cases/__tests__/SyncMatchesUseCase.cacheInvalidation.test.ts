@@ -44,6 +44,7 @@ function fakeFootballApi(impl: { matches: RawMatch[]; forms?: Map<number, string
   return {
     fetchMatches: vi.fn().mockResolvedValue(impl.matches),
     getTeamForm: vi.fn(async (teamId: number) => impl.forms?.get(teamId) ?? null),
+    isDataStale: vi.fn().mockReturnValue(false),
   };
 }
 

@@ -62,6 +62,10 @@ const envSchema = z.object({
   ACCESS_CODE_HASH: z.string().min(64),
   // Secret for signing the cwk_access session cookie (HS256 JWT). Min 32 chars.
   ACCESS_CODE_COOKIE_SECRET: z.string().min(32),
+
+  // Bearer token gating GET /health/metrics. Generate with `openssl rand -base64 48`.
+  // Optional — when unset the endpoint refuses all callers (defense in depth).
+  METRICS_TOKEN: z.string().min(32).optional().or(z.literal('').transform(() => undefined)),
 });
 
 export type Environment = z.infer<typeof envSchema>;

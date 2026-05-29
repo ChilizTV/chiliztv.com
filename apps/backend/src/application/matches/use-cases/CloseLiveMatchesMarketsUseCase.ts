@@ -42,15 +42,21 @@ export class CloseLiveMatchesMarketsUseCase {
     async execute(): Promise<CloseLiveMatchesMarketsResult> {
         const kickoffBufferSec = readBufferFromEnv() ?? CloseLiveMatchesMarketsUseCase.DEFAULT_KICKOFF_BUFFER_SEC;
         const now = this.clock.now();
-        const all = await this.matchRepository.findAll();
+        // DB-side filter via partial index `idx_matches_status_date`
+        // (migration 031). Cuts the candidate set from "every match in the
+        // 7-day window" to ~10-20% — typically 10-30 rows steady state.
+        const candidates = await this.matchRepository.findOpenContractsCandidates(now, kickoffBufferSec);
 
         let scanned = 0;
         let closed = 0;
         let cancelled = 0;
         let errors = 0;
 
-        for (const match of all) {
+        for (const match of candidates) {
             const json = match.toJSON();
+            // Defensive: DB filter already excludes null contracts, but a
+            // race between sync (which writes the contract) and this read
+            // could surface a NULL — keep the guard.
             const contract = json.bettingContractAddress;
             if (!contract || String(contract).trim() === '') continue;
 

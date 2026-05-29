@@ -57,13 +57,6 @@ export class ResolveFinishedMatchesUseCase {
                     {
                         homeGoals: json.score!.home!,
                         awayGoals: json.score!.away!,
-                        // Halftime + first-scorer not exposed by API-Football's
-                        // basic fixture endpoint; HALFTIME / FIRST_SCORER
-                        // markets either stay Closed or auto-cancel via
-                        // PariMatchBase's void protection.
-                        htHomeGoals: 0,
-                        htAwayGoals: 0,
-                        firstScorerId: 0,
                     },
                 );
                 marketsResolved += count;

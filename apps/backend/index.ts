@@ -1,5 +1,5 @@
 // Same image is deployed to chiliztv-api and chiliztv-workers; PROCESS_ROLE
-// (read further down) decides which set of services boot.
+// (read further down) decides which set of services boot. 
 import 'reflect-metadata';
 import express from 'express';
 import cors from "cors";
@@ -30,7 +30,7 @@ import { RedisWarmupService } from './src/infrastructure/cache/RedisWarmupServic
 import { waitForRedisReady, type RedisClient } from './src/infrastructure/cache/RedisClient';
 config();
 setupDependencyInjection();
-import { authRoutes, accessRoutes, predictionRoutes, matchRoutes, chatRoutes, waitlistRoutes, streamRoutes, streamWalletRoutes, fanTokensRoutes, followRoutes, betRoutes, userRoutes, pricesRoutes, leaderboardRoutes } from './src/presentation/http/routes';
+import { authRoutes, accessRoutes, predictionRoutes, matchRoutes, chatRoutes, waitlistRoutes, streamRoutes, streamWalletRoutes, fanTokensRoutes, followRoutes, betRoutes, userRoutes, pricesRoutes, leaderboardRoutes, metricsRoutes } from './src/presentation/http/routes';
 import { cloudflareStreamWebhookRoutes } from './src/presentation/http/routes/cloudflare-stream-webhook.routes';
 
 // Controls which responsibilities this process takes on.
@@ -76,6 +76,10 @@ app.get('/health', (req, res) => {
         version: '2.0.0',
     });
 });
+
+// Mounted on both API and worker so a worker-only Fly app is still scrapable.
+// The route itself is Bearer-token-gated, so exposure is opt-in via env.
+app.use('/health', metricsRoutes);
 
 if (PROCESS_ROLE === 'api' || PROCESS_ROLE === 'all') {
     // Public routes (no authentication required)

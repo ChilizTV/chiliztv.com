@@ -21,6 +21,17 @@ export interface IMatchRepository {
   findByLeagueId(leagueId: number): Promise<Match[]>;
   findLive(): Promise<Match[]>;
   findUpcoming(limit?: number): Promise<Match[]>;
+  /**
+   * Candidates for `CloseLiveMarketsJob` — matches with a deployed contract
+   * whose status is live/blocked OR are within `kickoffBufferSeconds` of
+   * kickoff. The implementation MUST filter `betting_contract_address IS NOT
+   * NULL` to match the partial index `idx_matches_status_date`; any other
+   * predicate (e.g. `LENGTH(...) > 0`) defeats the planner.
+   *
+   * @param now Current clock — passed in so MockClock can drive tests.
+   * @param kickoffBufferSeconds Seconds before kickoff to include upcoming matches.
+   */
+  findOpenContractsCandidates(now: Date, kickoffBufferSeconds: number): Promise<Match[]>;
   save(match: Match): Promise<Match>;
   saveMany(matches: Match[]): Promise<Match[]>;
   update(match: Match): Promise<Match>;

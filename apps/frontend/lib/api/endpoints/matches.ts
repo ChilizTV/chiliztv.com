@@ -28,6 +28,7 @@ function transformMatch(m: MatchResponseDto): Match {
     contractAddress: m.bettingContractAddress,
     homeForm: m.homeForm,
     awayForm: m.awayForm,
+    dataStale: m.dataStale ?? false,
   };
 }
 

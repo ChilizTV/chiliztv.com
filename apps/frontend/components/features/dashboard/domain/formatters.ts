@@ -36,14 +36,18 @@ export function truncAddr(addr?: string | null): string {
     return `${addr.slice(0, 6)}…${addr.slice(-4)}`;
 }
 
-/** "5m ago" / "3h ago" / "2d ago", "—" if invalid. */
+/** "just now" / "5m ago" / "3h ago" / "2d ago" / "3mo ago" / "1y ago", "—" if invalid.
+ *  Negative deltas (server timestamp ahead of client clock by a few seconds)
+ *  collapse to "just now" rather than rendering as "-Ns ago". */
 export function timeAgo(ts: number | null | undefined): string {
     if (ts == null || !Number.isFinite(ts)) return '—';
     const s = Math.floor((Date.now() - ts) / 1000);
-    if (s < 60) return `${s}s ago`;
+    if (s < 60) return 'just now';
     if (s < 3_600) return `${Math.floor(s / 60)}m ago`;
     if (s < 86_400) return `${Math.floor(s / 3_600)}h ago`;
-    return `${Math.floor(s / 86_400)}d ago`;
+    if (s < 2_592_000) return `${Math.floor(s / 86_400)}d ago`;
+    if (s < 31_536_000) return `${Math.floor(s / 2_592_000)}mo ago`;
+    return `${Math.floor(s / 31_536_000)}y ago`;
 }
 
 /** Cooldown countdown — "Ready" at 0. */

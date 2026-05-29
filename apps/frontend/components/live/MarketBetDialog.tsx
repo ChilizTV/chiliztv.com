@@ -73,7 +73,11 @@ type Phase = "pick" | "stake" | "review" | "success" | "failure";
 
 const NATIVE_DECIMALS = 18;
 const FAN_TOKEN_DECIMALS = 18;
-const DEADLINE_MIN = 20; // minutes
+// 60 min — generous enough to cover slow signs on wallets that can't auto-estimate
+// gas on Spicy (MetaMask shows "Network fee — unavailable" and the user has to
+// configure gas manually, which routinely takes >20 min). Frontrunning protection
+// on Kayen testnet pools is negligible, so a wider window has no downside.
+const DEADLINE_MIN = 60; // minutes
 const DEFAULT_SLIPPAGE_BPS = 50; // 0.5%
 const SLIPPAGE_PRESETS_BPS = [10, 50, 100] as const;
 // Default fee — mirrors PariMatchBase.sol:91 (feeBps configurable, default 500 = 5%).

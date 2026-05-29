@@ -10,6 +10,7 @@ import {
   streamCreationLimiter,
   webhookLimiter,
   adminLimiter,
+  RATE_LIMIT_DISABLED,
 } from '../rate-limit.middleware';
 
 // vitest.config sets env.REDIS_URL = '' so the limiters are built with the
@@ -107,15 +108,21 @@ describe('rate-limit middleware', () => {
     expect(res.statusCode).toBe(200);
   });
 
-  it('webhookLimiter keys by the webhook-signature header when present', async () => {
-    const headerSpy = vi.fn().mockImplementation((name: string) =>
-      name.toLowerCase() === 'webhook-signature' ? 'sig=abc-123-xyz' : undefined,
-    );
-    const req = makeReq({ ip: '10.0.0.3', header: headerSpy });
-    const res = makeRes();
-    await callLimiter(webhookLimiter as LimiterCall, req, res);
-    expect(headerSpy).toHaveBeenCalledWith('webhook-signature');
-  });
+  // The webhook key-generator only fires when the limiter actually runs.
+  // While `RATE_LIMIT_DISABLED` is on, `commonSkip` returns true before any
+  // per-limiter logic, so this assertion can't possibly succeed — skip it.
+  it.skipIf(RATE_LIMIT_DISABLED)(
+    'webhookLimiter keys by the webhook-signature header when present',
+    async () => {
+      const headerSpy = vi.fn().mockImplementation((name: string) =>
+        name.toLowerCase() === 'webhook-signature' ? 'sig=abc-123-xyz' : undefined,
+      );
+      const req = makeReq({ ip: '10.0.0.3', header: headerSpy });
+      const res = makeRes();
+      await callLimiter(webhookLimiter as LimiterCall, req, res);
+      expect(headerSpy).toHaveBeenCalledWith('webhook-signature');
+    },
+  );
 
   it('adminLimiter keys by the authenticated walletAddress when present, falling back to IP', async () => {
     const reqWithUser = makeReq({

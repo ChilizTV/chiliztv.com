@@ -11,9 +11,11 @@ const isDevelopment = env.NODE_ENV === 'development';
 /**
  * TEMPORARY KILL SWITCH — flip to `true` to short-circuit every limiter
  * below via `skip: () => true`. Windows / max values are kept intact so the
- * revert is one line.
+ * revert is one line. Exported so the test suite can `skipIf` cases that
+ * exercise per-limiter internals (keyGenerator, store) while the switch
+ * is on, instead of failing CI.
  */
-const RATE_LIMIT_DISABLED = true;
+export const RATE_LIMIT_DISABLED = true;
 
 /**
  * Whitelist a few well-known IPs (monitoring probes, Sentry crons, on-call

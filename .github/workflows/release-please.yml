@@ -24,6 +24,12 @@ jobs:
       - uses: googleapis/release-please-action@v4
         id: release
         with:
+          # PAT (not GITHUB_TOKEN): the default token can't trigger downstream
+          # workflows, so the `release.yml` tag-push pipeline never fires when
+          # the release PR is merged. A fine-grained PAT with contents+PR
+          # write scopes pushes the tag under a user identity, which DOES
+          # trigger workflows.
+          token: ${{ secrets.RELEASE_PLEASE_TOKEN }}
           release-type: node
           # Squash merge is enforced on main — PR title becomes the commit message
           # and is parsed by release-please to bump MAJOR/MINOR/PATCH accordingly.

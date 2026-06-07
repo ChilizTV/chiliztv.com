@@ -1,4 +1,4 @@
-# Contributing to ChilizTV Backend
+# Contributing to Betcast Backend
 
 Thank you for your interest in contributing! This guide will help you set up the project locally using Docker.
 

@@ -7,9 +7,22 @@ export function Hero() {
         <div className="relative py-25 md:py-35">
           <div
             aria-hidden
-            className="font-display pointer-events-none absolute top-1/2 -right-10 z-0 -translate-y-1/2 font-black uppercase text-[#E8001D]"
+            className="font-display pointer-events-none absolute top-1/2 left-1/2 z-0 -translate-x-1/2 -translate-y-1/2 font-black uppercase whitespace-nowrap text-[#E8001D]"
             style={{
-              fontSize: "clamp(280px, 42vw, 540px)",
+              fontSize: "clamp(280px, 36vw, 520px)",
+              lineHeight: 0.85,
+              letterSpacing: "-0.05em",
+              opacity: 0.12,
+            }}
+          >
+            Cast
+          </div>
+
+          <div
+            aria-hidden
+            className="font-display pointer-events-none absolute top-1/2 right-0 z-1 -translate-y-1/2 font-black uppercase text-[#E8001D]"
+            style={{
+              fontSize: "clamp(180px, 30vw, 350px)",
               lineHeight: 0.85,
               letterSpacing: "-0.05em",
               opacity: 0.95,
@@ -33,7 +46,7 @@ export function Hero() {
             >
               New to
               <br />
-              ChilizTV?
+              Betcast?
               <br />
               <span className="text-[#E8001D]">Start</span>{" "}
               <span

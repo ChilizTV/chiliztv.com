@@ -18,7 +18,7 @@ const STEPS: Step[] = [
     title: "Pick the Custom service",
     body: (
       <p className="m-0">
-        Set <strong className="font-medium text-white">Service</strong> to <strong className="font-medium text-white">Custom…</strong> — don&apos;t use Twitch / YouTube presets. ChilizTV speaks RTMP directly, so the custom path is the right one.
+        Set <strong className="font-medium text-white">Service</strong> to <strong className="font-medium text-white">Custom…</strong> — don&apos;t use Twitch / YouTube presets. Betcast speaks RTMP directly, so the custom path is the right one.
       </p>
     ),
   },

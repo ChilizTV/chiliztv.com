@@ -1,4 +1,4 @@
-# ChilizTV — Functional Documentation
+# Betcast — Functional Documentation
 
 > **Version**: 1.0  
 > **Status**: Production-ready on Chiliz Chain  
@@ -8,7 +8,7 @@
 
 ## Table of Contents
 
-- [1. What is ChilizTV?](#1-what-is-chiliztv)
+- [1. What is Betcast?](#1-what-is-betcast)
 - [2. The Opportunity](#2-the-opportunity)
 - [3. Key Features](#3-key-features)
 - [4. How It Works](#4-how-it-works)
@@ -22,9 +22,9 @@
 
 ---
 
-## 1. What is ChilizTV?
+## 1. What is Betcast?
 
-**ChilizTV** is a sports entertainment platform built on the **Chiliz Chain** that combines **sports betting** and **live-streaming monetization** into one unified experience.
+**Betcast** is a sports entertainment platform built on the **Chiliz Chain** that combines **sports betting** and **live-streaming monetization** into one unified experience.
 
 - **Sports fans** bet on football and basketball matches using CHZ, fan tokens, or USDC.
 - **Streamers** earn revenue through donations and subscriptions from their audience.
@@ -45,9 +45,9 @@ Users pay with whichever token they hold — CHZ, their favorite club's fan toke
 | **Streamer monetization is disconnected** | Sports content creators lack tools tied to the fan economy |
 | **Centralized custody risk** | User funds sit in a single company's bank account with no public accountability |
 
-### ChilizTV's Answer
+### Betcast's Answer
 
-ChilizTV solves these problems by building on blockchain, where:
+Betcast solves these problems by building on blockchain, where:
 
 - **Every bet, payout, and fee is publicly verifiable** — no black box.
 - **Fan tokens get real utility** — use your FC Barcelona, PSG, or Juventus token to bet, donate, and subscribe.
@@ -56,7 +56,7 @@ ChilizTV solves these problems by building on blockchain, where:
 
 ### Why Chiliz?
 
-The Chiliz Chain is purpose-built for sports and entertainment. It hosts **40+ official fan tokens** from major clubs worldwide. ChilizTV gives those tokens a real purpose — not just collectibles, but active tools for betting and creator support.
+The Chiliz Chain is purpose-built for sports and entertainment. It hosts **40+ official fan tokens** from major clubs worldwide. Betcast gives those tokens a real purpose — not just collectibles, but active tools for betting and creator support.
 
 ---
 
@@ -93,7 +93,7 @@ Users never need to manually swap tokens. Whether betting or tipping a streamer,
 
 ```
 ┌──────────────────────────────────────────────────────────────┐
-│                      ChilizTV Platform                        │
+│                      Betcast Platform                        │
 ├──────────────────┬───────────────────┬───────────────────────┤
 │    BETTING       │    STREAMING      │    PAYMENTS           │
 │                  │                   │                       │
@@ -111,7 +111,7 @@ Users never need to manually swap tokens. Whether betting or tipping a streamer,
 
 ```mermaid
 flowchart LR
-    User["🏃 Fan"] -->|"Bets with CHZ,\nfan token, or USDC"| Platform["⚙️ ChilizTV"]
+    User["🏃 Fan"] -->|"Bets with CHZ,\nfan token, or USDC"| Platform["⚙️ Betcast"]
     Platform -->|"Converts to USDC\n(if needed)"| DEX["🔄 Kayen DEX"]
     DEX --> Match["🏟️ Match Contract"]
     Match -->|"Locks odds,\nrecords bet"| Match
@@ -122,7 +122,7 @@ flowchart LR
 
 ```mermaid
 flowchart LR
-    Fan["🎉 Fan"] -->|"Donates or subscribes\nwith any token"| Platform["⚙️ ChilizTV"]
+    Fan["🎉 Fan"] -->|"Donates or subscribes\nwith any token"| Platform["⚙️ Betcast"]
     Platform -->|"Converts to USDC"| DEX["🔄 Kayen DEX"]
     DEX --> Split["📊 Fee Split"]
     Split -->|"5% fee"| Treasury["🏦 Platform Treasury"]
@@ -139,7 +139,7 @@ Every match is backed by a **shared liquidity pool** (LiquidityPool). All bets f
 
 ### 5.1 Placing a Bet
 
-1. A fan opens ChilizTV and selects a football or basketball match.
+1. A fan opens Betcast and selects a football or basketball match.
 2. They choose a market (e.g., "Home team wins at 2.20x odds").
 3. They pay with CHZ, a fan token, or USDC — the platform converts automatically.
 4. Their odds are **locked at the moment of placement** — later changes don't affect them.
@@ -149,7 +149,7 @@ Every match is backed by a **shared liquidity pool** (LiquidityPool). All bets f
 
 ### 5.2 Supporting a Streamer
 
-1. A fan watches a sports streamer on ChilizTV.
+1. A fan watches a sports streamer on Betcast.
 2. They send a **donation** (one-time tip) or start a **subscription** using any token they hold.
 3. The platform takes a small fee (e.g., 5%) and the streamer receives the rest.
 4. The streamer can withdraw their earnings at any time.
@@ -179,7 +179,7 @@ All bettors receive a **full refund** of their original stake — automatically,
 
 ### Fan Token Utility
 
-ChilizTV gives **real, active utility** to fan tokens. Holders of FC Barcelona, PSG, Juventus, or any other club's token can:
+Betcast gives **real, active utility** to fan tokens. Holders of FC Barcelona, PSG, Juventus, or any other club's token can:
 
 - **Bet on matches** directly with their fan tokens.
 - **Donate to streamers** using fan tokens.
@@ -209,7 +209,7 @@ The platform is designed to grow. Here's what's coming:
 |-----------|-----------|-------------|
 | **More sports** | Ready | Adding new sports (tennis, MMA, esports, etc.) is straightforward — the core betting engine already supports it |
 | **Live in-play betting** | Ready | The system already supports suspending and reopening markets during a match for real-time betting |
-| **Multi-chain deployment** | Ready | ChilizTV can be deployed to other blockchains (Base, Arbitrum, etc.) with minimal changes |
+| **Multi-chain deployment** | Ready | Betcast can be deployed to other blockchains (Base, Arbitrum, etc.) with minimal changes |
 | **Parlay / multi-bets** | Planned | Combine bets across multiple matches for higher payouts |
 | **NFT-gated features** | Planned | Premium markets or exclusive streamer content for NFT holders |
 | **Tipping leaderboards** | Ready | Show top donors per streamer — the data is already tracked on-chain |
@@ -234,7 +234,7 @@ flowchart TB
         USDC_pay["USDC"]
     end
 
-    subgraph Platform["⚙️ ChilizTV Platform"]
+    subgraph Platform["⚙️ Betcast Platform"]
         CSR["Swap Router\n(auto-converts tokens)"]
         Kayen["Kayen DEX"]
         Factory["Match Factory"]
@@ -309,7 +309,7 @@ Every bet, every payout, every fee is recorded on the public blockchain. Solvenc
 
 ### Differentiation
 
-ChilizTV is not just another betting platform. It is:
+Betcast is not just another betting platform. It is:
 1. **On-chain transparent** — Users can verify everything.
 2. **Multi-token native** — Pay with CHZ, fan tokens, or stablecoins seamlessly.
 3. **Dual-product** — Betting + streaming in one unified system.
@@ -322,7 +322,7 @@ ChilizTV is not just another betting platform. It is:
 
 ### 11.1 Treasury Seed Funding — 10,000 to 50,000 USDC Grant
 
-ChilizTV's betting system uses a **shared liquidity pool model**: a single ERC-4626 vault holds all USDC. Match contracts hold no funds of their own. This is what makes the platform trustworthy — bettors can verify on-chain that the pool can cover every accepted bet before the bet is recorded.
+Betcast's betting system uses a **shared liquidity pool model**: a single ERC-4626 vault holds all USDC. Match contracts hold no funds of their own. This is what makes the platform trustworthy — bettors can verify on-chain that the pool can cover every accepted bet before the bet is recorded.
 
 However, variance is inherent to sports betting. In any given week, bettors may win more than expected. The industry standard for bookmaker margin (also called "overround" or "vig") is **4% to 14% of the total betting pool per match** — meaning for every $100 wagered across all outcomes, the operator expects to retain $8–$11 on average. But this is a *statistical average* over time. Individual matches can swing heavily toward bettors, especially in early stages with lower volumes.
 
@@ -343,20 +343,20 @@ This is not an operating expense. It is **collateral** — a solvency buffer tha
 
 ### 11.2 Communication & Visibility Support
 
-ChilizTV is a **two-sided platform**: it needs both **streamers creating content** and **viewers engaging** (betting, donating, subscribing). Building this ecosystem requires visibility within the Chiliz community.
+Betcast is a **two-sided platform**: it needs both **streamers creating content** and **viewers engaging** (betting, donating, subscribing). Building this ecosystem requires visibility within the Chiliz community.
 
 **What we need:**
 
-Support from Chiliz in amplifying ChilizTV to the fan token community:
+Support from Chiliz in amplifying Betcast to the fan token community:
 
 | Ask | Impact |
 |-----|--------|
-| **Social media co-promotion** | Announce ChilizTV on Chiliz official channels to reach the existing fan token holder base |
+| **Social media co-promotion** | Announce Betcast on Chiliz official channels to reach the existing fan token holder base |
 | **Streamer onboarding** | Help connect us with sports content creators who are already active in the Chiliz/Socios ecosystem |
-| **Event visibility** | Feature ChilizTV at Chiliz ecosystem events, partner showcases, or fan token campaigns |
-| **Ecosystem listing** | Include ChilizTV in the official Chiliz ecosystem page / app directory |
+| **Event visibility** | Feature Betcast at Chiliz ecosystem events, partner showcases, or fan token campaigns |
+| **Ecosystem listing** | Include Betcast in the official Chiliz ecosystem page / app directory |
 | **Fan token partnerships** | Introductions to club partners for co-branded betting events (e.g., "FC Barcelona match day" with $BAR token betting) |
 
-ChilizTV gives **real utility to fan tokens** — not just holding or trading, but active engagement through betting and streamer support. This aligns directly with Chiliz's mission to increase fan token usage. With Chiliz visibility, we can bootstrap the user base needed to make the platform self-sustaining.
+Betcast gives **real utility to fan tokens** — not just holding or trading, but active engagement through betting and streamer support. This aligns directly with Chiliz's mission to increase fan token usage. With Chiliz visibility, we can bootstrap the user base needed to make the platform self-sustaining.
 
 ---

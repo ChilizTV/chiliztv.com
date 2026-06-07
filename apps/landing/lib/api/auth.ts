@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const AUTH_TOKEN_KEY = 'chiliztv_auth_token';
+const AUTH_TOKEN_KEY = 'betcast_auth_token';
 
 export async function authenticateWallet(walletAddress: string): Promise<string> {
   const response = await axios.post<{ token: string }>(

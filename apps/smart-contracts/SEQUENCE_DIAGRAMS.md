@@ -1,4 +1,4 @@
-# ChilizTV â€” Complete Sequence Diagrams
+# Betcast â€” Complete Sequence Diagrams
 
 > All flows derived from contract source code. Covers **deployment**, **betting**, **streaming (donations & subscriptions)**, **payout/liquidity pool**, and **failure routes**.
 
@@ -6,7 +6,7 @@
 
 ## Table of Contents
 
-- [ChilizTV â€” Complete Sequence Diagrams](#chiliztv--complete-sequence-diagrams)
+- [Betcast â€” Complete Sequence Diagrams](#betcast--complete-sequence-diagrams)
   - [Table of Contents](#table-of-contents)
   - [1. System Deployment](#1-system-deployment)
   - [2. Betting Happy Path](#2-betting-happy-path)
@@ -27,7 +27,7 @@ Complete deployment of every contract in the correct order.
 
 ```mermaid
 sequenceDiagram
-    title ChilizTV â€” Full System Deployment
+    title Betcast â€” Full System Deployment
 
     actor Deployer as Deployer (Admin)
 

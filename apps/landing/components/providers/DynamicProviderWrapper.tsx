@@ -11,8 +11,8 @@ import { WagmiProviderWrapper } from "./WagmiProviderWrapper";
 
 const LOGO_URL =
   typeof window !== "undefined"
-    ? `${window.location.origin}/Logo_FINAL.svg`
-    : "https://chiliztv.com/Logo_FINAL.svg";
+    ? `${window.location.origin}/betcast-mark.svg`
+    : "https://betcast.tv/betcast-mark.svg";
 
 export default function DynamicProviderWrapper({
   children,
@@ -41,7 +41,7 @@ export default function DynamicProviderWrapper({
       "walletconnect",
       "phantom",
     ]),
-    appName: "ChilizTV",
+    appName: "Betcast",
     initialAuthenticationMode: "connect-and-sign" as const,
     overrides: {
       evmNetworks: [

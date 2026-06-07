@@ -31,17 +31,15 @@ export function Header() {
       <div className="container mx-auto px-6 py-4">
         <div className="flex items-center justify-between">
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-4 cursor-pointer">
+          <Link href="/" className="flex items-center cursor-pointer" aria-label="Betcast home">
             <Image
-              src="/Logo_FINAL.svg"
-              alt="ChilizTV Logo"
-              width={40}
-              height={40}
-              className="rounded-full shadow-lg transition-transform hover:scale-105"
+              src="/betcast-logo.svg"
+              alt="Betcast"
+              width={163}
+              height={28}
+              priority
+              className="h-7 w-auto transition-transform hover:-translate-y-px"
             />
-            <div className="font-display text-[24px] font-extrabold uppercase tracking-[0.01em] leading-none text-white">
-              Chiliz<span className="text-[#E8001D]">TV</span>
-            </div>
           </Link>
 
           {/* Desktop Navigation */}

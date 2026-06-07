@@ -1,6 +1,6 @@
 # Streaming Architecture
 
-ChilizTV supports two ingest methods: **OBS Studio** (RTMP) and **browser-based** (WebRTC/WHIP). Both feed into mediamtx, which outputs LL-HLS to viewers.
+Betcast supports two ingest methods: **OBS Studio** (RTMP) and **browser-based** (WebRTC/WHIP). Both feed into mediamtx, which outputs LL-HLS to viewers.
 
 ```
 OBS (RTMP)  ──┐

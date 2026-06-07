@@ -38,7 +38,7 @@ export async function POST(req: NextRequest) {
         const configStore = new DefaultConfigStore(disclosures_config);
 
         const selfBackendVerifier = new SelfBackendVerifier(
-        "chiliztv",
+        "betcast",
         process.env.NEXT_PUBLIC_SELF_ENDPOINT ?? "",
         true,
         AllIds,

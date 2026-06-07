@@ -25,11 +25,11 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "ChilizTV — Live Sports SocialFi Streaming Platform",
+  title: "Betcast — Live Sports SocialFi Streaming Platform",
   description:
-    "Watch live football matches and place on-chain predictions with ChilizTV. The first SocialFi streaming platform on Chiliz Chain.",
+    "Watch live football matches and place on-chain predictions with Betcast. The first SocialFi streaming platform on Chiliz Chain.",
   icons: {
-    icon: "/Logo_FINAL.svg",
+    icon: "/favicon.svg",
     apple: "/apple-touch-icon.png",
   },
 };

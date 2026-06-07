@@ -28,8 +28,8 @@ export default function DynamicSolanaWalletProvider({ children }: Readonly<{ chi
         environmentId: environmentId,
         walletConnectors: [EthereumWalletConnectors],
         walletsFilter: SortWallets(['socios', 'metamask', 'coinbase', 'walletconnect', 'phantom']),
-        appName: 'ChilizTV',
-        appLogoUrl: '/Logo_FINAL.svg',
+        appName: 'Betcast',
+        appLogoUrl: '/betcast-mark.svg',
 
         initialAuthenticationMode: 'connect-and-sign' as const,
         overrides: {
@@ -46,7 +46,7 @@ export default function DynamicSolanaWalletProvider({ children }: Readonly<{ chi
                         symbol: 'CHZ',
                         decimals: 18,
                     },
-                    iconUrls: ['/Logo_FINAL.svg'],
+                    iconUrls: ['/betcast-mark.svg'],
                     isTestnet: true,
                 },
                 {
@@ -61,7 +61,7 @@ export default function DynamicSolanaWalletProvider({ children }: Readonly<{ chi
                         symbol: 'CHZ',
                         decimals: 18,
                     },
-                    iconUrls: ['/Logo_FINAL.svg'],
+                    iconUrls: ['/betcast-mark.svg'],
                     isTestnet: false,
                 }
             ],

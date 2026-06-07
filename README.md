@@ -1,8 +1,8 @@
-# chiliztv.com
+# Betcast
 
-Source code for chiliztv.com — a pnpm + turbo monorepo with a Next.js
-frontend, an Express/TypeScript backend, Foundry smart contracts, and shared
-packages.
+Source code for Betcast (formerly chiliztv.com) — a pnpm + turbo monorepo
+with a Next.js frontend, an Express/TypeScript backend, Foundry smart
+contracts, and shared packages.
 
 ## Layout
 

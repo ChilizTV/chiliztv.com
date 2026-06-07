@@ -1,7 +1,7 @@
-# ChilizTV — Frontend
+# Betcast — Frontend
 
 Next.js 15 / React 19 / wagmi v2 / Dynamic Labs / Tailwind. Talks to the
-ChilizTV smart contracts on Chiliz Spicy testnet (88882) by default,
+Betcast smart contracts on Chiliz Spicy testnet (88882) by default,
 mainnet (88888) when `NEXT_PUBLIC_NETWORK=mainnet`.
 
 ---

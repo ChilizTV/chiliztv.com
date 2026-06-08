@@ -14,7 +14,7 @@ export function ChapterProduct() {
         Sports meet <span className="text-[#E8001D]">on-chain economics.</span>
       </ChapterHeading>
       <ChapterLead>
-        Betcast is a fan-first SocialFi platform on Chiliz Chain. Two primitives any user can pick up in minutes.
+        PredCast is a fan-first SocialFi platform on Chiliz Chain. Two primitives any user can pick up in minutes.
       </ChapterLead>
       <div className="grid grid-cols-1 border-t border-l border-[#1E1E1E] lg:grid-cols-2">
         {TILES.map(({ n, title, body }) => (

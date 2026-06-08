@@ -67,7 +67,7 @@ export class AccessController {
         sameSite: 'lax',
         maxAge: COOKIE_TTL_MS,
         path: '/',
-        domain: env.NODE_ENV === 'production' ? '.betcast.tv' : undefined,
+        domain: env.NODE_ENV === 'production' ? '.predcast.tv' : undefined,
       });
 
       res.json({ success: true });

@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const AUTH_TOKEN_KEY = 'betcast_auth_token';
+const AUTH_TOKEN_KEY = 'predcast_auth_token';
 
 /**
  * @notice Authenticates user wallet and retrieves JWT token

@@ -28,8 +28,8 @@ export default function DynamicSolanaWalletProvider({ children }: Readonly<{ chi
         environmentId: environmentId,
         walletConnectors: [EthereumWalletConnectors],
         walletsFilter: SortWallets(['socios', 'metamask', 'coinbase', 'walletconnect', 'phantom']),
-        appName: 'Betcast',
-        appLogoUrl: '/betcast-mark.svg',
+        appName: 'PredCast',
+        appLogoUrl: '/predcast-mark.svg',
 
         initialAuthenticationMode: 'connect-and-sign' as const,
         overrides: {
@@ -46,7 +46,7 @@ export default function DynamicSolanaWalletProvider({ children }: Readonly<{ chi
                         symbol: 'CHZ',
                         decimals: 18,
                     },
-                    iconUrls: ['/betcast-mark.svg'],
+                    iconUrls: ['/predcast-mark.svg'],
                     isTestnet: true,
                 },
                 {
@@ -61,7 +61,7 @@ export default function DynamicSolanaWalletProvider({ children }: Readonly<{ chi
                         symbol: 'CHZ',
                         decimals: 18,
                     },
-                    iconUrls: ['/betcast-mark.svg'],
+                    iconUrls: ['/predcast-mark.svg'],
                     isTestnet: false,
                 }
             ],

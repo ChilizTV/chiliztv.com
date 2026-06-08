@@ -3,7 +3,7 @@ import Link from "next/link";
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
 
-const X_URL = "https://x.com/betcast";
+const X_URL = "https://x.com/predcast";
 const DISCORD_URL = "https://discord.gg";
 
 const NAV_LINKS: { label: string; href: string; external?: boolean }[] = [
@@ -62,11 +62,11 @@ export function Footer() {
       <footer className="relative border-t border-[#1E1E1E]">
         <div className="mx-auto flex max-w-[1400px] flex-col items-start gap-6 px-8 py-10 lg:flex-row lg:items-center lg:justify-between lg:px-14">
           {/* Brand */}
-          <Link href="/" className="flex items-center" aria-label="Betcast home">
+          <Link href="/" className="flex items-center" aria-label="PredCast home">
             <Image
-              src="/betcast-logo.svg"
-              alt="Betcast"
-              width={140}
+              src="/predcast-logo.svg"
+              alt="PredCast"
+              width={156}
               height={24}
               className="h-6 w-auto"
             />
@@ -97,10 +97,10 @@ export function Footer() {
 
           {/* Socials */}
           <div className="flex items-center gap-3">
-            <SocialIconBtn href={X_URL} label="Betcast on X" icon={X_ICON} />
+            <SocialIconBtn href={X_URL} label="PredCast on X" icon={X_ICON} />
             <SocialIconBtn
               href={DISCORD_URL}
-              label="Betcast on Discord"
+              label="PredCast on Discord"
               icon={DISCORD_ICON}
             />
           </div>
@@ -110,7 +110,7 @@ export function Footer() {
         <div className="border-t border-[#161616]">
           <div className="mx-auto flex max-w-[1400px] px-8 py-4 sm:px-14">
             <span className="font-mono-ctv text-[9px] uppercase tracking-[0.18em] text-white/30">
-              © {new Date().getFullYear()} Betcast · all rights reserved
+              © {new Date().getFullYear()} PredCast · all rights reserved
             </span>
           </div>
         </div>

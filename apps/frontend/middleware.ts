@@ -3,7 +3,7 @@ import { NextResponse, type NextRequest } from 'next/server';
 const LANDING_URL =
   process.env.LANDING_URL ??
   (process.env.NODE_ENV === 'production'
-    ? 'https://betcast.tv'
+    ? 'https://predcast.tv'
     : 'http://localhost:3002');
 
 // Public-access toggle — when "true", the access-code gate is bypassed.

@@ -40,7 +40,7 @@ export function WhitepaperPage() {
               className="text-[11px] font-bold tracking-[0.16em] uppercase"
               style={{ color: "#E8001D" }}
             >
-              Betcast Whitepaper
+              PredCast Whitepaper
             </span>
           </div>
 
@@ -54,7 +54,7 @@ export function WhitepaperPage() {
           </h1>
 
           <p className="text-[17px] text-white/60 max-w-xl leading-relaxed">
-            A comprehensive overview of the Betcast protocol — prediction markets,
+            A comprehensive overview of the PredCast protocol — prediction markets,
             live streaming, on-chain liquidity, and fan-first economics.
           </p>
 

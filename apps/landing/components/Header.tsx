@@ -31,11 +31,11 @@ export function Header() {
       <div className="container mx-auto px-6 py-4">
         <div className="flex items-center justify-between">
           {/* Logo */}
-          <Link href="/" className="flex items-center cursor-pointer" aria-label="Betcast home">
+          <Link href="/" className="flex items-center cursor-pointer" aria-label="PredCast home">
             <Image
-              src="/betcast-logo.svg"
-              alt="Betcast"
-              width={163}
+              src="/predcast-logo.svg"
+              alt="PredCast"
+              width={182}
               height={28}
               priority
               className="h-7 w-auto transition-transform hover:-translate-y-px"

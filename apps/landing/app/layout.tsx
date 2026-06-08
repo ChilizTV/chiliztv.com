@@ -25,9 +25,9 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Betcast — Live Sports SocialFi Streaming Platform",
+  title: "PredCast — Live Sports SocialFi Streaming Platform",
   description:
-    "Watch live football matches and place on-chain predictions with Betcast. The first SocialFi streaming platform on Chiliz Chain.",
+    "Watch live football matches and place on-chain predictions with PredCast. The first SocialFi streaming platform on Chiliz Chain.",
   icons: {
     icon: "/favicon.svg",
     apple: "/apple-touch-icon.png",

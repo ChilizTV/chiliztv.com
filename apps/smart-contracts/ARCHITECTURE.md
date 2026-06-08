@@ -1,4 +1,4 @@
-# Betcast Smart Contracts Architecture
+# PredCast Smart Contracts Architecture
 
 This document illustrates the complete architecture of the **Chiliz-TV Dual System**:
 
@@ -50,7 +50,7 @@ This document illustrates the complete architecture of the **Chiliz-TV Dual Syst
 
 ```mermaid
 sequenceDiagram
-    title Betcast Betting System - Complete Lifecycle (UUPS Proxy)
+    title PredCast Betting System - Complete Lifecycle (UUPS Proxy)
     
     actor Admin as System Admin
     actor Resolver as Resolver/Backend
@@ -218,7 +218,7 @@ sequenceDiagram
 
 ```mermaid
 sequenceDiagram
-    title Betcast Streaming System - Complete Lifecycle (UUPS Proxy, factory-gated)
+    title PredCast Streaming System - Complete Lifecycle (UUPS Proxy, factory-gated)
 
     actor Admin as System Admin
     actor Streamer as Streamer
@@ -591,4 +591,4 @@ forge coverage
 
 **Last Updated**: 2026-06-17  
 **Version**: 5.0 (USDC-only settlement + Swap Routers + Dynamic Odds + LiquidityPool)  
-**Author**: Betcast Development Team
+**Author**: PredCast Development Team

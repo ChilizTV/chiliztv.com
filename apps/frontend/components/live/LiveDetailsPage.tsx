@@ -389,7 +389,7 @@ export default function LiveDetailsPage({ id }: LiveDetailsPageProps) {
 
         <footer className="mt-12 border-t border-[#1E1E1E] pt-6 text-center">
           <div className="font-mono-ctv text-[10px] uppercase tracking-[0.18em] text-white/35">
-            Betcast · self-hosted livestreams · settle on Chiliz
+            PredCast · self-hosted livestreams · settle on Chiliz
           </div>
         </footer>
       </main>

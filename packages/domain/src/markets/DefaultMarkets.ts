@@ -1,6 +1,6 @@
 /**
  * Canonical lineup of markets seeded on every freshly-deployed
- * FootballPariMatch contract. Betcast exposes EXACTLY these 6 product
+ * FootballPariMatch contract. PredCast exposes EXACTLY these 6 product
  * types (8 markets because GOALS_TOTAL has 2 lines and DOUBLE_CHANCE has 3
  * variants):
  *

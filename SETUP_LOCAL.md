@@ -1,6 +1,6 @@
 # Setup local — backend dev
 
-Guide étape par étape pour lancer le backend Betcast en local avec Redis et Supabase isolés de staging/prod.
+Guide étape par étape pour lancer le backend PredCast en local avec Redis et Supabase isolés de staging/prod.
 
 Document généré le 16 mai 2026.
 
@@ -112,7 +112,7 @@ Cette commande drop la DB locale, la recrée, et rejoue les 21 migrations dans `
 pnpm dev:redis:start
 ```
 
-Lance le conteneur `betcast-redis-local` via `compose.local.yml`. ~5 secondes pour pull l'image `redis:7.4-alpine` la première fois.
+Lance le conteneur `predcast-redis-local` via `compose.local.yml`. ~5 secondes pour pull l'image `redis:7.4-alpine` la première fois.
 
 ### 2.5 Vérifier que tout est OK
 
@@ -203,7 +203,7 @@ REDIS_URL=redis://localhost:6379
 
 # JWT local-only - distinct from staging
 JWT_SECRET=<colle la sortie de `openssl rand -base64 48`>
-JWT_ISSUER=betcast-local
+JWT_ISSUER=predcast-local
 
 # Cookie secret local-only - distinct from staging
 ACCESS_CODE_COOKIE_SECRET=<colle la sortie de `openssl rand -base64 32`>
@@ -361,7 +361,7 @@ pnpm dev:stop                # stop tout le stack sans wipe
 Cas rares où la reset complète demande de nuke les conteneurs Docker :
 
 - **Image Supabase corrompue après upgrade Supabase CLI** — `supabase stop --no-backup` puis `supabase start` re-pull les images.
-- **Conteneur Redis dans un état bizarre** — `docker rm -f betcast-redis-local` puis `pnpm dev:redis:start`.
+- **Conteneur Redis dans un état bizarre** — `docker rm -f predcast-redis-local` puis `pnpm dev:redis:start`.
 - **Port 54321 ou 6379 occupé par un autre processus** — `lsof -i :54321` pour identifier le coupable, puis `kill` ou changer le port dans `config.toml`/`compose.local.yml`.
 
 ---
@@ -385,8 +385,8 @@ Cas rares où la reset complète demande de nuke les conteneurs Docker :
 ### 7.2 Logs utiles pour debug
 
 ```bash
-docker logs betcast-redis-local                  # logs Redis
-docker logs -f betcast-redis-local               # tail live
+docker logs predcast-redis-local                  # logs Redis
+docker logs -f predcast-redis-local               # tail live
 supabase logs                                     # logs combines Supabase stack
 pnpm dev:doctor                                   # snapshot sante
 ```
@@ -397,7 +397,7 @@ Procédure de dernier recours qui repart vraiment de zéro :
 
 ```bash
 pnpm dev:stop
-docker rm -f betcast-redis-local                 # purge container Redis
+docker rm -f predcast-redis-local                 # purge container Redis
 cd apps/backend
 supabase stop --no-backup                         # purge volumes Supabase
 cd ../..
@@ -418,7 +418,7 @@ pnpm dev:local
 | Composant | Où ça tourne | Géré par |
 |---|---|---|
 | Backend Node (Express + tsyringe) | Host (ton Mac directement) | `pnpm dev:local` + tsx watch |
-| Redis 7.4-alpine | Container Docker `betcast-redis-local` | `compose.local.yml` |
+| Redis 7.4-alpine | Container Docker `predcast-redis-local` | `compose.local.yml` |
 | Supabase stack (Postgres + Realtime + Auth + Storage + GoTrue + PostgREST + Edge runtime) | 6-7 containers Docker | Supabase CLI native (`supabase start`) |
 | Supabase Studio (optionnel) | Container Docker | Supabase CLI, désactivé par défaut |
 
@@ -435,7 +435,7 @@ Côté backend, les jobs cron (`SyncMatchesJob`, `ComputeApyJob`, etc.) tournent
 | Port | Service | Origine |
 |---|---|---|
 | 3001 | Backend Node (HTTP) | Configurable via `PORT` dans `.env` |
-| 6379 | Redis | `compose.local.yml` (`betcast-redis-local`) |
+| 6379 | Redis | `compose.local.yml` (`predcast-redis-local`) |
 | 54321 | Supabase API gateway (PostgREST) | Supabase CLI default |
 | 54322 | Supabase Postgres direct | Supabase CLI default |
 | 54323 | Supabase Studio (si activé) | Supabase CLI default |

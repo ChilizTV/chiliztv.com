@@ -46,7 +46,7 @@ export function Hero() {
             >
               New to
               <br />
-              Betcast?
+              PredCast?
               <br />
               <span className="text-[#E8001D]">Start</span>{" "}
               <span

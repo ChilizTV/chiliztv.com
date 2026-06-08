@@ -1,9 +1,9 @@
-name: betcast-local
+name: predcast-local
 
 services:
   redis:
     image: redis:7.4-alpine
-    container_name: betcast-redis-local
+    container_name: predcast-redis-local
     ports:
       - "6379:6379"
     command:

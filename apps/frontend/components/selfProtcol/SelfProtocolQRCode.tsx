@@ -35,10 +35,10 @@ export default function SelfProtocolQRCode({
   // Build the Self Protocol app instance
   const selfApp = new SelfAppBuilder({
     version: 2,
-    appName: "Betcast",
-    scope: "betcast",
-    logoBase64: "https://betcast.tv/betcast-mark.svg",
-    endpoint: "https://betcast.tv/api/verifier",
+    appName: "PredCast",
+    scope: "predcast",
+    logoBase64: "https://predcast.tv/predcast-mark.svg",
+    endpoint: "https://predcast.tv/api/verifier",
     endpointType: "staging_https",
     userId,
     userIdType: "hex",

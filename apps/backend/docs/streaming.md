@@ -1,6 +1,6 @@
 # Streaming Architecture
 
-Betcast supports two ingest methods: **OBS Studio** (RTMP) and **browser-based** (WebRTC/WHIP). Both feed into mediamtx, which outputs LL-HLS to viewers.
+PredCast supports two ingest methods: **OBS Studio** (RTMP) and **browser-based** (WebRTC/WHIP). Both feed into mediamtx, which outputs LL-HLS to viewers.
 
 ```
 OBS (RTMP)  ──┐

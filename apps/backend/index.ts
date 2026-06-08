@@ -1,4 +1,4 @@
-// Same image is deployed to betcast-api and betcast-workers; PROCESS_ROLE
+// Same image is deployed to predcast-api and predcast-workers; PROCESS_ROLE
 // (read further down) decides which set of services boot. 
 import 'reflect-metadata';
 import express from 'express';

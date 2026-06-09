@@ -32,6 +32,16 @@ const LAST_FETCH_CACHE_TTL_SECONDS = 6 * 3600;
 const FETCH_LOCK_KEY = 'lock:apifootball:fetch';
 const FETCH_LOCK_TTL_SECONDS = 90;
 
+// Per-league fan-out throttle for `/fixtures` calls. API-Football enforces
+// a per-minute (and burst) rate limit (300 req/min on Pro, 450 on Ultra).
+// A 45-way naive `Promise.all` fires within ~100ms and exceeds any plan's
+// burst budget — observed in prod with 100% of league calls returning
+// `Too many requests`, matchesFetched=0, and the World Cup invisible on
+// /browse. Target throughput: ~4 req/s sustained = 240/min, safely under
+// Pro's 300/min cap while keeping a full sync below ~15s.
+const PER_LEAGUE_FETCH_CONCURRENCY = 3;
+const PER_LEAGUE_FETCH_GAP_MS = 250;
+
 /**
  * FootballApiAdapterImpl
  * Implements IFootballApiService port.
@@ -270,9 +280,11 @@ export class FootballApiAdapterImpl implements IFootballApiService {
             // Season convention differs per competition family — see `seasonForLeague`.
             // `/fixtures?from=&to=&season=` alone returns an empty array — the
             // endpoint requires `league` (or `team`) as a discriminator. We fire
-            // one call per allow-listed league in parallel and concat results.
-            const perLeague = await Promise.all(
-                this.ALLOWED_LEAGUE_IDS.map((league) => {
+            // one call per allow-listed league, THROTTLED (see mapThrottled docs
+            // for the rate-limit rationale).
+            const perLeague = await mapThrottled(
+                this.ALLOWED_LEAGUE_IDS,
+                (league) => {
                     const season = seasonForLeague(league, now);
                     return this.client
                         .get('/fixtures', { params: { from, to, season, league } })
@@ -293,7 +305,11 @@ export class FootballApiAdapterImpl implements IFootballApiService {
                             });
                             return [] as ApiFootballMatch[];
                         });
-                }),
+                },
+                {
+                    concurrency: PER_LEAGUE_FETCH_CONCURRENCY,
+                    minDelayMsBetweenStarts: PER_LEAGUE_FETCH_GAP_MS,
+                },
             );
             const all = perLeague.flat();
 
@@ -534,4 +550,53 @@ function seasonForLeague(leagueId: number, now: Date): number {
         return now.getUTCFullYear();
     }
     return currentEuropeanSeason(now);
+}
+
+/**
+ * Throttled equivalent of `Promise.all(items.map(fn))`.
+ *
+ * Caps the number of in-flight promises at `concurrency` AND enforces a
+ * minimum spacing of `minDelayMsBetweenStarts` between request *starts*.
+ * Required for the per-league `/fixtures` fan-out: a naive parallel burst
+ * blows through API-Football's rate limit (300 req/min on Pro) and every
+ * call comes back `Too many requests`.
+ *
+ * Result order matches `items`. Throws if `fn` throws (caller wraps in
+ * try/catch in the existing adapter — we don't swallow here).
+ *
+ * Slot reservation is deterministic — each item claims `nextStartAt`, then
+ * bumps it by `minDelayMsBetweenStarts`. Workers race for the next slot via
+ * `nextIndex++` (atomic in single-threaded JS). The sleep that follows is
+ * relative to the reserved slot, not to "now", so even if a previous call
+ * was slow, the next one still starts on its scheduled tick.
+ */
+async function mapThrottled<TIn, TOut>(
+    items: ReadonlyArray<TIn>,
+    fn: (item: TIn) => Promise<TOut>,
+    opts: { concurrency: number; minDelayMsBetweenStarts: number },
+): Promise<TOut[]> {
+    const results: TOut[] = new Array(items.length);
+    let nextIndex = 0;
+    let nextStartAt = Date.now();
+
+    const worker = async (): Promise<void> => {
+        while (true) {
+            const i = nextIndex++;
+            if (i >= items.length) return;
+
+            const slotStartAt = nextStartAt;
+            nextStartAt = slotStartAt + opts.minDelayMsBetweenStarts;
+
+            const waitMs = slotStartAt - Date.now();
+            if (waitMs > 0) {
+                await new Promise<void>((r) => setTimeout(r, waitMs));
+            }
+
+            results[i] = await fn(items[i]);
+        }
+    };
+
+    const workerCount = Math.min(opts.concurrency, items.length);
+    await Promise.all(Array.from({ length: workerCount }, () => worker()));
+    return results;
 }

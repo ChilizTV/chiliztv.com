@@ -1,6 +1,6 @@
 // Built and deployed by deploy-app.yml (Vercel). The standalone output below
 // is what the Vercel runtime serves; see also Dockerfile target=frontend for 
-// the legacy container build kept for parity.
+// the legacy container build kept for parity. 
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { NextConfig } from 'next';

@@ -11,6 +11,7 @@ import {
   BrowseMatchesResponseDto,
   BrowseLeagueDto,
   BrowseMatchDto,
+  MatchScoreBreakdownDto,
   StreamPreviewDto,
 } from '@chiliztv/shared/dto/matches/BrowseMatchesDto';
 import { MatchCacheKeys, MatchCacheTtl } from '../MatchCacheKeys';
@@ -90,6 +91,28 @@ export class GetBrowseMatchesUseCase {
         };
       });
 
+      // Score breakdown — emitted only for matches that went to AET or PEN
+      // (`props.aet*Score` or `props.pen*Score` non-null). Null otherwise to
+      // keep the wire shape minimal for the 99% FT matches in the response.
+      const ninetyHome = props.score?.home;
+      const ninetyAway = props.score?.away;
+      const hasAet = props.aetHomeScore != null && props.aetAwayScore != null;
+      const hasPen = props.penHomeScore != null && props.penAwayScore != null;
+      let scoreBreakdown: MatchScoreBreakdownDto | null = null;
+      if (ninetyHome != null && ninetyAway != null && (hasAet || hasPen)) {
+        scoreBreakdown = {
+          ninety: { home: ninetyHome, away: ninetyAway },
+          ...(hasAet && { aet: { home: props.aetHomeScore as number, away: props.aetAwayScore as number } }),
+          ...(hasPen && { pen: { home: props.penHomeScore as number, away: props.penAwayScore as number } }),
+        };
+      }
+
+      // For AET/PEN matches, expose the AET aggregate as the headline `score`
+      // — that's what the fmtMatchScore helper expects as the displayed value.
+      // Falls back to the 90' score otherwise.
+      const headlineScore = props.finalScore as { home: number; away: number } | null | undefined
+        ?? (ninetyHome != null && ninetyAway != null ? { home: ninetyHome, away: ninetyAway } : null);
+
       const browseMatch: BrowseMatchDto = {
         id: props.apiFootballId as number, // integer used in /live/:id URL (getMatchById does parseInt)
         homeTeam: {
@@ -104,9 +127,9 @@ export class GetBrowseMatchesUseCase {
           ? props.matchDate.toISOString()
           : String(props.matchDate),
         status: props.status,
-        score: props.score
-          ? { home: props.score.home, away: props.score.away }
-          : null,
+        score: headlineScore,
+        scoreBreakdown,
+        isKnockout: props.isKnockout === true,
         homeForm: props.homeForm ?? null,
         awayForm: props.awayForm ?? null,
         elapsed: props.elapsed ?? null,

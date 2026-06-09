@@ -68,7 +68,9 @@ export class TestMatchLifecycleCommand {
         const ownerAddress = this.deploymentAdapter.getAdminAddress();
         logger.info('Deploying FootballMatch contract');
         const contractAddress = await this.deploymentAdapter.deployFootballMatch(matchName, ownerAddress);
-        await this.deploymentAdapter.setupDefaultMarkets(contractAddress);
+        await this.deploymentAdapter.setupDefaultMarkets(contractAddress, {
+            isKnockout: match.toJSON().isKnockout === true,
+        });
 
         const updated = this.cloneWith(match, { bettingContractAddress: contractAddress });
         await this.matchRepository.update(updated);

@@ -17,17 +17,21 @@ import {PariMatchBase} from "./PariMatchBase.sol";
  *            input, computing the winning outcome per market type.
  *
  *      Selection encoding (per market type):
- *        WINNER         0 = Home / 1 = Draw / 2 = Away
- *        GOALS_TOTAL    0 = Under / 1 = Over (line in 1/10-goal units, e.g. 25 = 2.5)
- *        BOTH_SCORE     0 = No / 1 = Yes
- *        HALFTIME       0 = Home / 1 = Draw / 2 = Away
- *        CORRECT_SCORE  encoded as clamp(home,9)*10 + clamp(away,9), 0..99
- *        FIRST_SCORER   player ID, 1..255 (0 reserved for "no goals")
- *        GOALS_EXACT    bucketed total goals: outcome = min(homeGoals + awayGoals, line);
- *                       line is the cap of the highest bucket (e.g. line=5 → 0,1,2,3,4,5+)
- *        DOUBLE_CHANCE  0 = No / 1 = Yes. The DC variant is encoded in `line`:
- *                       0 = 1X (Home or Draw), 1 = 12 (Home or Away), 2 = 2X (Away or Draw).
- *                       Each variant is its own Yes/No market — three sub-markets per match.
+ *        WINNER             0 = Home / 1 = Draw / 2 = Away   (settled on 90' score only)
+ *        GOALS_TOTAL        0 = Under / 1 = Over (line in 1/10-goal units, e.g. 25 = 2.5)
+ *        BOTH_SCORE         0 = No / 1 = Yes
+ *        HALFTIME           0 = Home / 1 = Draw / 2 = Away
+ *        CORRECT_SCORE      encoded as clamp(home,9)*10 + clamp(away,9), 0..99
+ *        FIRST_SCORER       player ID, 1..255 (0 reserved for "no goals")
+ *        GOALS_EXACT        bucketed total goals: outcome = min(homeGoals + awayGoals, line);
+ *                           line is the cap of the highest bucket (e.g. line=5 → 0,1,2,3,4,5+)
+ *        DOUBLE_CHANCE      0 = No / 1 = Yes. The DC variant is encoded in `line`:
+ *                           0 = 1X (Home or Draw), 1 = 12 (Home or Away), 2 = 2X (Away or Draw).
+ *                           Each variant is its own Yes/No market — three sub-markets per match.
+ *        FULL_TIME_WINNER   0 = Home / 1 = Away (binary — no draw possible). Settles on the
+ *                           true final winner: penalty-shootout result if any, else extra-time
+ *                           aggregate, else 90' score. Knockout-only — the backend seeds this
+ *                           market exclusively when `isKnockoutMatch(fixture) == true`.
  *
  *      Line semantics:
  *        - GOALS_TOTAL: 1/10-goal units. Use half-goal lines (15, 25, 35, ...) to
@@ -54,6 +58,14 @@ contract FootballPariMatch is PariMatchBase {
     ///         math is identical to BTTS — one outcome per market — so the
     ///         three DC variants are three separate markets at setup time.
     bytes32 public constant MARKET_DOUBLE_CHANCE = keccak256("DOUBLE_CHANCE");
+    /// @notice Final winner of the match including extra time AND penalty
+    ///         shootout (knockout-only). Binary outcomes 0=Home, 1=Away —
+    ///         by construction there is always a winner after 30min ET + PEN.
+    ///         Distinct from MARKET_WINNER which settles strictly on the 90'
+    ///         score (bookmaker convention: 1-1 at 90' settles WINNER=Draw
+    ///         even if home wins 3-2 in extra time). Seeded by the backend
+    ///         only when `isKnockoutMatch(fixture) == true`.
+    bytes32 public constant MARKET_FULL_TIME_WINNER = keccak256("FULL_TIME_WINNER");
 
     // ═══════════════════════════════════════════════════════════════════════
     // TYPES
@@ -63,13 +75,33 @@ contract FootballPariMatch is PariMatchBase {
     /// @dev    `firstScorerId == 0` means "unknown / not provided".
     ///         FIRST_SCORER markets are skipped (left in Closed state) when 0.
     ///         Player IDs 1..255 are the legitimate scorers.
+    ///
+    ///         AET / PEN fields (added after the initial v1 contract spec —
+    ///         struct is calldata-only so no storage layout impact):
+    ///           - `aetHomeGoals` / `aetAwayGoals` = aggregate score after
+    ///             extra time. For matches that didn't reach AET, the backend
+    ///             passes `aetHomeGoals = homeGoals` and `aetAwayGoals = awayGoals`.
+    ///           - `penWinner` = winner of the penalty shootout. Encoded as
+    ///             0=Home, 1=Away, 255=NOT_APPLICABLE (no shootout occurred).
+    ///         These fields are consumed exclusively by MARKET_FULL_TIME_WINNER.
+    ///         The classic MARKET_WINNER and other 90'-derived markets continue
+    ///         to use `homeGoals`/`awayGoals`.
     struct FootballScore {
         uint8 homeGoals;
         uint8 awayGoals;
         uint8 htHomeGoals;
         uint8 htAwayGoals;
         uint8 firstScorerId;
+        uint8 aetHomeGoals;
+        uint8 aetAwayGoals;
+        uint8 penWinner;
     }
+
+    /// @notice Sentinel value for `FootballScore.penWinner` meaning "the
+    ///         match did NOT reach a penalty shootout". Distinct from 0=Home
+    ///         and 1=Away so the resolver can tell "no shootout" from a
+    ///         legitimate Home shootout win.
+    uint8 internal constant PEN_WINNER_NONE = 255;
 
     // ═══════════════════════════════════════════════════════════════════════
     // EVENTS
@@ -81,6 +113,9 @@ contract FootballPariMatch is PariMatchBase {
         uint8 htHomeGoals,
         uint8 htAwayGoals,
         uint8 firstScorerId,
+        uint8 aetHomeGoals,
+        uint8 aetAwayGoals,
+        uint8 penWinner,
         uint256 marketsResolved
     );
 
@@ -109,7 +144,8 @@ contract FootballPariMatch is PariMatchBase {
             || marketType == MARKET_CORRECT_SCORE
             || marketType == MARKET_FIRST_SCORER
             || marketType == MARKET_GOALS_EXACT
-            || marketType == MARKET_DOUBLE_CHANCE;
+            || marketType == MARKET_DOUBLE_CHANCE
+            || marketType == MARKET_FULL_TIME_WINNER;
     }
 
     function _getMaxOutcome(bytes32 marketType, int16 line) internal pure override returns (uint8) {
@@ -128,6 +164,7 @@ contract FootballPariMatch is PariMatchBase {
             if (line < 0 || line > 2) revert InvalidLine(marketType, line);
             return 1;   // 0=No 1=Yes
         }
+        if (marketType == MARKET_FULL_TIME_WINNER) return 1; // 0=Home 1=Away (binary — no draw possible after PEN)
         revert InvalidMarketType(marketType);
     }
 
@@ -156,7 +193,8 @@ contract FootballPariMatch is PariMatchBase {
         }
         emit MatchScoreResolved(
             s.homeGoals, s.awayGoals, s.htHomeGoals, s.htAwayGoals,
-            s.firstScorerId, marketsResolved
+            s.firstScorerId, s.aetHomeGoals, s.aetAwayGoals, s.penWinner,
+            marketsResolved
         );
     }
 
@@ -257,6 +295,26 @@ contract FootballPariMatch is PariMatchBase {
              || (dc == 1 && (homeWin || awayWin))  // 12
              || (dc == 2 && (awayWin || draw));    // 2X
             return (covered ? uint64(1) : uint64(0), true);
+        }
+
+        if (t == MARKET_FULL_TIME_WINNER) {
+            // Priority 1 — penalty shootout. PEN_WINNER_NONE (=255) means the
+            // match never reached a shootout; any other value is the winner.
+            if (s.penWinner == 0) return (0, true);             // Home won shootout
+            if (s.penWinner == 1) return (1, true);             // Away won shootout
+            // Priority 2 — extra-time aggregate (or 90' when match didn't go
+            // to AET, in which case the backend passed aetHomeGoals = homeGoals).
+            if (s.aetHomeGoals > s.aetAwayGoals) return (0, true);
+            if (s.aetHomeGoals < s.aetAwayGoals) return (1, true);
+            // Degenerate: aggregate is tied AND no penWinner. Should never
+            // happen for a knockout fixture (rules force a winner via AET or
+            // PEN). CRITICAL: return (0, false) and NOT revert — a revert
+            // here would propagate up `resolveByScore` and abort ALL other
+            // markets in the batch (stakers on WINNER, BTTS, O/U etc. would
+            // be blocked from claiming). With (0, false) the market is
+            // skipped and stays Closed; the operator can settle it manually
+            // via `resolveMarket` or cancel for refund via void protection.
+            return (0, false);
         }
 
         return (0, false);

@@ -34,6 +34,31 @@ export interface MatchProps {
    */
   htHomeScore?: number | null;
   htAwayScore?: number | null;
+  /**
+   * Aggregate score after extra time (90' + ET). NULL for FT matches that
+   * never reached AET. Used by display layer ("3 — 2 a.e.t.") and by
+   * FULL_TIME_WINNER market resolution (knockout-only).
+   */
+  aetHomeScore?: number | null;
+  aetAwayScore?: number | null;
+  /**
+   * Penalty shootout result (e.g. 5-4). NULL when the fixture didn't reach
+   * a shootout. The score reflects the shootout itself, NOT an aggregate.
+   * Used by display ("5 — 4 pen (1 — 1)") and to derive FULL_TIME_WINNER
+   * when the match went all the way to penalties.
+   */
+  penHomeScore?: number | null;
+  penAwayScore?: number | null;
+  /**
+   * `true` when the fixture can potentially go to extra time / penalties
+   * (cup competitions, knockout phases of league formats). Computed ONCE at
+   * match create via the `KnockoutMatchPolicy` and never updated on
+   * subsequent re-syncs — see migration 035 and SyncMatchesUseCase for the
+   * rationale (proxy is deployed at create time with or without the
+   * FULL_TIME_WINNER market; flipping the flag post-deploy would create
+   * entity↔contract drift).
+   */
+  isKnockout?: boolean;
   bettingContractAddress?: string;
   createdAt: Date;
   updatedAt: Date;
@@ -64,7 +89,71 @@ export class Match {
   }
 
   isFinished(): boolean {
-    return this.props.status === 'FT';
+    // FT (90'), AET (after extra time), PEN (after penalty shootout) — all
+    // terminal states where the score is final and markets can be settled.
+    return this.props.status === 'FT' || this.props.status === 'AET' || this.props.status === 'PEN';
+  }
+
+  /** `true` when the match reached extra time (AET) or penalty shootout (PEN). */
+  wentToExtraTime(): boolean {
+    return this.props.status === 'AET' || this.props.status === 'PEN';
+  }
+
+  /** `true` when the match was decided by a penalty shootout. */
+  wentToPenalties(): boolean {
+    return this.props.status === 'PEN';
+  }
+
+  /**
+   * Returns the **physical** final score after extra time.
+   *
+   * Convention: for AET/PEN matches, returns the AET aggregate (1-1 at 90' +
+   * 2-1 scored in extra time → `{home:3, away:2}`). Does NOT include the
+   * penalty shootout result in the goal count — that's exposed separately via
+   * {@link getPenaltyWinner}.
+   *
+   * Display rule: this score is what gets shown as `3 — 2 a.e.t.` in the UI.
+   *
+   * Settlement rule: the existing WINNER market still uses the 90' score
+   * ({@link getHomeScore} / {@link getAwayScore}), NOT this method, to match
+   * bookmaker convention. Use this only for display and for FULL_TIME_WINNER
+   * market resolution.
+   *
+   * Falls back to the 90' score when AET fields are absent (FT match or pre-
+   * migration row).
+   */
+  getFinalScore(): { home: number; away: number } | null {
+    const home90 = this.props.homeScore;
+    const away90 = this.props.awayScore;
+    if (this.wentToExtraTime()) {
+      const aetHome = this.props.aetHomeScore;
+      const aetAway = this.props.aetAwayScore;
+      if (aetHome != null && aetAway != null) {
+        return { home: aetHome, away: aetAway };
+      }
+    }
+    if (home90 == null || away90 == null) return null;
+    return { home: home90, away: away90 };
+  }
+
+  /**
+   * Returns `'home'` / `'away'` when the match was decided on penalties and
+   * the shootout score is known; `null` otherwise (FT, AET-resolved, or PEN
+   * with missing shootout score). Used by FULL_TIME_WINNER market resolution.
+   */
+  getPenaltyWinner(): 'home' | 'away' | null {
+    if (!this.wentToPenalties()) return null;
+    const home = this.props.penHomeScore;
+    const away = this.props.penAwayScore;
+    if (home == null || away == null) return null;
+    if (home > away) return 'home';
+    if (away > home) return 'away';
+    return null; // degenerate — shootouts can't tie
+  }
+
+  /** `true` for matches that can potentially go to AET/PEN (cups + league knockout phases). */
+  isKnockout(): boolean {
+    return this.props.isKnockout === true;
   }
 
   updateScore(homeScore: number, awayScore: number): void {
@@ -137,6 +226,50 @@ export class Match {
     return this.props.htAwayScore ?? null;
   }
 
+  getAetHomeScore(): number | null {
+    return this.props.aetHomeScore ?? null;
+  }
+
+  getAetAwayScore(): number | null {
+    return this.props.aetAwayScore ?? null;
+  }
+
+  getPenHomeScore(): number | null {
+    return this.props.penHomeScore ?? null;
+  }
+
+  getPenAwayScore(): number | null {
+    return this.props.penAwayScore ?? null;
+  }
+
+  /**
+   * Monotone setter for the extra-time aggregate score — same null-guard
+   * semantics as {@link setHalftimeScore}. Returns `true` if anything changed.
+   */
+  setExtratimeScore(homeScore: number | null | undefined, awayScore: number | null | undefined): boolean {
+    if (homeScore === null || homeScore === undefined) return false;
+    if (awayScore === null || awayScore === undefined) return false;
+    if (this.props.aetHomeScore === homeScore && this.props.aetAwayScore === awayScore) return false;
+    this.props.aetHomeScore = homeScore;
+    this.props.aetAwayScore = awayScore;
+    this.props.updatedAt = new Date();
+    return true;
+  }
+
+  /**
+   * Monotone setter for the penalty shootout result — same null-guard
+   * semantics as {@link setHalftimeScore}. Returns `true` if anything changed.
+   */
+  setPenaltyScore(homeScore: number | null | undefined, awayScore: number | null | undefined): boolean {
+    if (homeScore === null || homeScore === undefined) return false;
+    if (awayScore === null || awayScore === undefined) return false;
+    if (this.props.penHomeScore === homeScore && this.props.penAwayScore === awayScore) return false;
+    this.props.penHomeScore = homeScore;
+    this.props.penAwayScore = awayScore;
+    this.props.updatedAt = new Date();
+    return true;
+  }
+
   /**
    * Monotone setter for the halftime score — same null-guard semantics as
    * {@link setElapsed}. Only persists when BOTH home AND away are real
@@ -189,6 +322,13 @@ export class Match {
       elapsed: this.props.elapsed ?? null,
       htHomeScore: this.props.htHomeScore ?? null,
       htAwayScore: this.props.htAwayScore ?? null,
+      aetHomeScore: this.props.aetHomeScore ?? null,
+      aetAwayScore: this.props.aetAwayScore ?? null,
+      penHomeScore: this.props.penHomeScore ?? null,
+      penAwayScore: this.props.penAwayScore ?? null,
+      isKnockout: this.props.isKnockout === true,
+      finalScore: this.getFinalScore(),
+      penaltyWinner: this.getPenaltyWinner(),
       bettingContractAddress: this.props.bettingContractAddress,
       createdAt: this.props.createdAt,
       updatedAt: this.props.updatedAt,

@@ -5,6 +5,7 @@ import { IFootballApiService, RawMatch } from '@chiliztv/domain/shared/ports/IFo
 import { IBlockchainService } from '@chiliztv/domain/shared/ports/IBlockchainService';
 import { MatchFetchWindow } from '@chiliztv/domain/matches/value-objects/MatchFetchWindow';
 import { Match } from '@chiliztv/domain/matches/entities/Match';
+import { isKnockoutMatch } from '@chiliztv/domain/matches/policies/KnockoutMatchPolicy';
 import type { IClock } from '@chiliztv/domain/shared/ports/IClock';
 import type { ICacheService } from '@chiliztv/domain/shared/ports/ICacheService';
 import { FIXED_LIST_KEYS, MatchCacheKeys } from '../MatchCacheKeys';
@@ -177,6 +178,36 @@ export class SyncMatchesUseCase {
         const htHomeToPersist  = raw.htHomeScore ?? existingJson.htHomeScore ?? null;
         const htAwayToPersist  = raw.htAwayScore ?? existingJson.htAwayScore ?? null;
 
+        // Drift detection — recompute the knockout flag from the fresh API
+        // payload and log a warn if it diverged from what was frozen at create.
+        // The DB value is NEVER updated on re-sync: the on-chain proxy is
+        // already deployed with or without the FULL_TIME_WINNER market and
+        // can't be retro-fitted. Drift typically means API-Football reclassified
+        // a fixture (rare — happens on competition format changes mid-season).
+        const freshKnockout = isKnockoutMatch({
+            league: { type: raw.leagueType ?? undefined, round: raw.leagueRound ?? undefined },
+        });
+        const existingIsKnockout = existingJson.isKnockout === true;
+        if (existingIsKnockout !== freshKnockout) {
+            logger.warn('Match knockout flag drift detected — API-Football changed league.round after match creation', {
+                matchId: existingJson.id,
+                apiFootballId: raw.apiFootballId,
+                leagueId: raw.leagueId,
+                newRound: raw.leagueRound,
+                newType: raw.leagueType,
+                oldKnockout: existingIsKnockout,
+                freshKnockout,
+            });
+        }
+
+        // Preserve AET/PEN scores monotonically across re-sync ticks — the
+        // upstream sometimes briefly nulls these between the live and
+        // post-FT cleanups (same pattern as ht_*_score and elapsed).
+        const aetHomeToPersist = raw.aetHomeScore ?? existingJson.aetHomeScore ?? null;
+        const aetAwayToPersist = raw.aetAwayScore ?? existingJson.aetAwayScore ?? null;
+        const penHomeToPersist = raw.penHomeScore ?? existingJson.penHomeScore ?? null;
+        const penAwayToPersist = raw.penAwayScore ?? existingJson.penAwayScore ?? null;
+
         const updated = Match.reconstitute({
             id:                     existingJson.id,
             apiFootballId:          raw.apiFootballId,
@@ -201,6 +232,12 @@ export class SyncMatchesUseCase {
             elapsed:                elapsedToPersist,
             htHomeScore:            htHomeToPersist,
             htAwayScore:            htAwayToPersist,
+            aetHomeScore:           aetHomeToPersist,
+            aetAwayScore:           aetAwayToPersist,
+            penHomeScore:           penHomeToPersist,
+            penAwayScore:           penAwayToPersist,
+            // Frozen at create — DO NOT recompute from `raw` here.
+            isKnockout:             existingIsKnockout,
             bettingContractAddress: existing.getBettingContractAddress(),
             createdAt:              existingJson.createdAt,
             updatedAt:              this.clock.now(),
@@ -215,6 +252,15 @@ export class SyncMatchesUseCase {
         homeForm: string | null,
         awayForm: string | null,
     ): Promise<boolean> {
+        // Compute the knockout flag ONCE here, at create. The result is
+        // frozen on the row (migration 035 — `is_knockout`) and never updated
+        // on subsequent re-syncs to avoid entity↔contract drift (the proxy
+        // is seeded with or without the FULL_TIME_WINNER market at this
+        // moment and cannot be retro-fitted later).
+        const isKnockout = isKnockoutMatch({
+            league: { type: raw.leagueType ?? undefined, round: raw.leagueRound ?? undefined },
+        });
+
         const newMatch = Match.create({
             id:            raw.apiFootballId,
             apiFootballId: raw.apiFootballId,
@@ -239,6 +285,11 @@ export class SyncMatchesUseCase {
             elapsed:       raw.elapsed ?? null,
             htHomeScore:   raw.htHomeScore ?? null,
             htAwayScore:   raw.htAwayScore ?? null,
+            aetHomeScore:  raw.aetHomeScore ?? null,
+            aetAwayScore:  raw.aetAwayScore ?? null,
+            penHomeScore:  raw.penHomeScore ?? null,
+            penAwayScore:  raw.penAwayScore ?? null,
+            isKnockout,
         });
 
         const saved = await this.matchRepository.save(newMatch);
@@ -251,9 +302,12 @@ export class SyncMatchesUseCase {
                 ownerAddress
             );
 
-            // Seed the 3 default markets (WINNER + GOALS_TOTAL + BOTH_SCORE).
-            // No odds are pushed on-chain — parimutuel derives them from pools.
-            await this.blockchainService.setupDefaultMarkets(contractAddress);
+            // Seed the canonical market lineup (8 base markets, +
+            // FULL_TIME_WINNER for knockout fixtures). No odds are pushed
+            // on-chain — parimutuel derives them from pools. The knockout
+            // flag was frozen above by isKnockoutMatch(raw) and decides the
+            // 8 vs 9 market lineup for the lifetime of this proxy.
+            await this.blockchainService.setupDefaultMarkets(contractAddress, { isKnockout });
 
             // Use `toRaw()` — it returns flat MatchProps and is symmetric with
             // `reconstitute`. `toJSON()` would nest teams/league and the spread

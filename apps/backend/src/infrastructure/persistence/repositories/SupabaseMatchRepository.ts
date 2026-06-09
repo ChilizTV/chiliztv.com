@@ -25,6 +25,13 @@ interface MatchRow {
   elapsed_minutes: number | null;
   ht_home_score: number | null;
   ht_away_score: number | null;
+  // Migration 035 — optional on the read side to tolerate pre-migration rows
+  // and Supabase's "missing column → undefined" REST behaviour.
+  aet_home_score?: number | null;
+  aet_away_score?: number | null;
+  pen_home_score?: number | null;
+  pen_away_score?: number | null;
+  is_knockout?: boolean | null;
   betting_contract_address?: string | null;
   created_at: string;
   updated_at: string;
@@ -385,6 +392,11 @@ export class SupabaseMatchRepository implements IMatchRepository {
       elapsed: row.elapsed_minutes,
       htHomeScore: row.ht_home_score,
       htAwayScore: row.ht_away_score,
+      aetHomeScore: row.aet_home_score ?? null,
+      aetAwayScore: row.aet_away_score ?? null,
+      penHomeScore: row.pen_home_score ?? null,
+      penAwayScore: row.pen_away_score ?? null,
+      isKnockout: row.is_knockout === true,
       bettingContractAddress: row.betting_contract_address || undefined,
       createdAt: new Date(row.created_at),
       updatedAt: new Date(row.updated_at),
@@ -417,6 +429,11 @@ export class SupabaseMatchRepository implements IMatchRepository {
       elapsed_minutes: json.elapsed ?? null,
       ht_home_score: json.htHomeScore ?? null,
       ht_away_score: json.htAwayScore ?? null,
+      aet_home_score: json.aetHomeScore ?? null,
+      aet_away_score: json.aetAwayScore ?? null,
+      pen_home_score: json.penHomeScore ?? null,
+      pen_away_score: json.penAwayScore ?? null,
+      is_knockout: json.isKnockout === true,
       // Normalize to lowercase so it joins against `bets.contract_address`
       // (which the indexer always writes lowercased). Mixed-case rows that
       // predate this fix break the join and surface as "Unknown match".

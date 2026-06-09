@@ -35,6 +35,22 @@ export interface FootballScoreInput {
   htHomeGoals?: number;
   htAwayGoals?: number;
   firstScorerId?: number;
+  /**
+   * Aggregate score after extra time (90' + ET). When the match never went
+   * to AET, callers SHOULD pass `aetHomeGoals = homeGoals` (and likewise
+   * away) so FULL_TIME_WINNER resolves consistently with the 90' winner.
+   * Adapters default to the 90' score when omitted.
+   * Only consumed by the FULL_TIME_WINNER market — has zero effect on the
+   * other 8 market types.
+   */
+  aetHomeGoals?: number;
+  aetAwayGoals?: number;
+  /**
+   * Winner of the penalty shootout, encoded 0=Home, 1=Away. Pass 255
+   * (= PEN_WINNER_NONE in the contract) when no shootout occurred — that's
+   * the adapter default when omitted.
+   */
+  penWinner?: number;
 }
 
 /**
@@ -52,8 +68,18 @@ export enum MarketState {
 
 export interface IBlockchainService {
   deployBettingContract(matchName: string, ownerAddress: string, oracleAddress?: string): Promise<DeployContractResult>;
-  /** Seed and open the canonical 8-market lineup on a freshly-deployed proxy. */
-  setupDefaultMarkets(contractAddress: string): Promise<void>;
+  /**
+   * Seed and open the canonical market lineup on a freshly-deployed proxy.
+   * The lineup is 8 markets for regular fixtures, or 9 (adds FULL_TIME_WINNER
+   * at marketId 8) when `opts.isKnockout` is true. Callers MUST pass the
+   * knockout flag from the Match entity — it's frozen at create and drives
+   * whether the FULL_TIME_WINNER market exists for this proxy's lifetime.
+   *
+   * The `opts` parameter is optional for backwards compatibility with legacy
+   * call-sites (defaults to `{isKnockout: false}` = 8 markets). New code
+   * should always pass the flag explicitly.
+   */
+  setupDefaultMarkets(contractAddress: string, opts?: { isKnockout: boolean }): Promise<void>;
   /** Resolve every closeable market via `resolveByScore`. Returns count transitioned to Resolved. */
   resolveMarketsByScore(contractAddress: string, score: FootballScoreInput): Promise<number>;
   /**

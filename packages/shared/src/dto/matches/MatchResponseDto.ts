@@ -59,6 +59,29 @@ export interface MatchResponseDto {
    */
   htHomeScore: number | null;
   htAwayScore: number | null;
+  /**
+   * Aggregate score after extra time (90' + ET). NULL for FT matches that
+   * never reached AET. Optional in the wire shape — tolerates cached
+   * payloads emitted before the AET/PEN rollout (the Redis TTL bridges
+   * ~60-180s of `undefined`). Consumers MUST handle both null and undefined.
+   */
+  aetHomeScore?: number | null;
+  aetAwayScore?: number | null;
+  /**
+   * Penalty shootout result (e.g. 5-4). NULL when the match didn't reach
+   * a shootout. Reflects the shootout itself, NOT an aggregate.
+   * Optional in the wire shape (same rationale as `aet*Score`).
+   */
+  penHomeScore?: number | null;
+  penAwayScore?: number | null;
+  /**
+   * `true` when the fixture can potentially go to AET / penalties (cups +
+   * league knockout phases). Drives the presence of the FULL_TIME_WINNER
+   * market on-chain. Computed once at match create; never updated after.
+   * Optional in the wire shape — pre-rollout cached payloads omit it and
+   * consumers should treat absence as `false`.
+   */
+  isKnockout?: boolean;
   bettingContractAddress?: string;
   /**
    * `true` when the API-Football upstream is in degraded mode (circuit open or

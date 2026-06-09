@@ -50,7 +50,11 @@ export class SetupMarketsCommand {
                     }
 
                     // Parimutuel — no odds parameter (pools emerge from stakes).
-                    await this.deploymentAdapter.setupDefaultMarkets(contractAddress);
+                    // Pass the knockout flag so the FULL_TIME_WINNER market is
+                    // included (9 markets total) when the fixture is knockout.
+                    await this.deploymentAdapter.setupDefaultMarkets(contractAddress, {
+                        isKnockout: matchJson.isKnockout === true,
+                    });
 
                     logger.info('Markets configured successfully', { matchId: match.getId() });
                     setupCount++;

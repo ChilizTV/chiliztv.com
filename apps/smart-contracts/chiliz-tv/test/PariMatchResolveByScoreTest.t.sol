@@ -221,7 +221,10 @@ contract PariMatchResolveByScoreTest is Test {
             awayGoals:    1,
             htHomeGoals:  1,
             htAwayGoals:  0,
-            firstScorerId: 7
+            firstScorerId: 7,
+            aetHomeGoals: 0,
+            aetAwayGoals: 0,
+            penWinner:    255
         });
 
         vm.prank(oracle);
@@ -260,7 +263,10 @@ contract PariMatchResolveByScoreTest is Test {
         FootballPariMatch.FootballScore memory s = FootballPariMatch.FootballScore({
             homeGoals: 1, awayGoals: 0,
             htHomeGoals: 1, htAwayGoals: 0,
-            firstScorerId: 0  // unknown
+            firstScorerId: 0,  // unknown
+            aetHomeGoals: 0,
+            aetAwayGoals: 0,
+            penWinner:    255
         });
 
         vm.prank(oracle);
@@ -288,7 +294,10 @@ contract PariMatchResolveByScoreTest is Test {
         FootballPariMatch.FootballScore memory s = FootballPariMatch.FootballScore({
             homeGoals: 1, awayGoals: 0,
             htHomeGoals: 0, htAwayGoals: 0,
-            firstScorerId: 0
+            firstScorerId: 0,
+            aetHomeGoals: 0,
+            aetAwayGoals: 0,
+            penWinner:    255
         });
 
         vm.prank(oracle);
@@ -329,7 +338,10 @@ contract PariMatchResolveByScoreTest is Test {
         FootballPariMatch.FootballScore memory s = FootballPariMatch.FootballScore({
             homeGoals: 1, awayGoals: 0,
             htHomeGoals: 0, htAwayGoals: 0,
-            firstScorerId: 0
+            firstScorerId: 0,
+            aetHomeGoals: 0,
+            aetAwayGoals: 0,
+            penWinner:    255
         });
 
         uint256[] memory ids = new uint256[](2);
@@ -353,7 +365,10 @@ contract PariMatchResolveByScoreTest is Test {
         FootballPariMatch.FootballScore memory s = FootballPariMatch.FootballScore({
             homeGoals: 2, awayGoals: 1, // total = 3 > 2.5 -> Over
             htHomeGoals: 0, htAwayGoals: 0,
-            firstScorerId: 0
+            firstScorerId: 0,
+            aetHomeGoals: 0,
+            aetAwayGoals: 0,
+            penWinner:    255
         });
 
         (uint64 outcome, bool ok) = foot.computeOutcome(m, s);
@@ -382,7 +397,10 @@ contract PariMatchResolveByScoreTest is Test {
         FootballPariMatch.FootballScore memory s = FootballPariMatch.FootballScore({
             homeGoals: 12, awayGoals: 15, // both clamp to 9 -> 99
             htHomeGoals: 0, htAwayGoals: 0,
-            firstScorerId: 0
+            firstScorerId: 0,
+            aetHomeGoals: 0,
+            aetAwayGoals: 0,
+            penWinner:    255
         });
 
         vm.prank(oracle); foot.resolveByScore(s);
@@ -641,7 +659,10 @@ contract PariMatchResolveByScoreTest is Test {
         vm.stopPrank();
 
         FootballPariMatch.FootballScore memory s = FootballPariMatch.FootballScore({
-            homeGoals: 2, awayGoals: 0, htHomeGoals: 1, htAwayGoals: 0, firstScorerId: 0
+            homeGoals: 2, awayGoals: 0, htHomeGoals: 1, htAwayGoals: 0, firstScorerId: 0,
+            aetHomeGoals: 0,
+            aetAwayGoals: 0,
+            penWinner:    255
         });
         vm.prank(oracle);
         foot.resolveByScore(s);
@@ -665,7 +686,10 @@ contract PariMatchResolveByScoreTest is Test {
         vm.stopPrank();
 
         FootballPariMatch.FootballScore memory s = FootballPariMatch.FootballScore({
-            homeGoals: 2, awayGoals: 2, htHomeGoals: 1, htAwayGoals: 1, firstScorerId: 0
+            homeGoals: 2, awayGoals: 2, htHomeGoals: 1, htAwayGoals: 1, firstScorerId: 0,
+            aetHomeGoals: 0,
+            aetAwayGoals: 0,
+            penWinner:    255
         });
         vm.prank(oracle);
         foot.resolveByScore(s);
@@ -689,7 +713,10 @@ contract PariMatchResolveByScoreTest is Test {
         vm.stopPrank();
 
         FootballPariMatch.FootballScore memory s = FootballPariMatch.FootballScore({
-            homeGoals: 0, awayGoals: 2, htHomeGoals: 0, htAwayGoals: 1, firstScorerId: 0
+            homeGoals: 0, awayGoals: 2, htHomeGoals: 0, htAwayGoals: 1, firstScorerId: 0,
+            aetHomeGoals: 0,
+            aetAwayGoals: 0,
+            penWinner:    255
         });
         vm.prank(oracle);
         foot.resolveByScore(s);
@@ -709,7 +736,10 @@ contract PariMatchResolveByScoreTest is Test {
     function test_Football_DoubleChance_ComputeOutcome_View() public {
         uint256 m = _addAndOpenFoot(F_DOUBLE_CHANCE, 0);  // 1X
         FootballPariMatch.FootballScore memory s = FootballPariMatch.FootballScore({
-            homeGoals: 1, awayGoals: 0, htHomeGoals: 0, htAwayGoals: 0, firstScorerId: 0
+            homeGoals: 1, awayGoals: 0, htHomeGoals: 0, htAwayGoals: 0, firstScorerId: 0,
+            aetHomeGoals: 0,
+            aetAwayGoals: 0,
+            penWinner:    255
         });
         (uint64 outcome, bool ok) = foot.computeOutcome(m, s);
         assertTrue(ok);

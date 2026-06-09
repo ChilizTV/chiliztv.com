@@ -49,7 +49,13 @@ export class DeployMissingContractsCommand {
                     );
 
                     // Parimutuel — no odds parameter (pools emerge from stakes).
-                    await this.deploymentAdapter.setupDefaultMarkets(contractAddress);
+                    // Knockout flag comes from the Match entity (frozen at create
+                    // by KnockoutMatchPolicy) and decides whether the proxy gets
+                    // the extra FULL_TIME_WINNER market (9 markets vs 8).
+                    const matchJsonForFlag = match.toJSON();
+                    await this.deploymentAdapter.setupDefaultMarkets(contractAddress, {
+                        isKnockout: matchJsonForFlag.isKnockout === true,
+                    });
 
                     // Update match with contract address
                     const updatedMatch = match.toJSON();

@@ -49,7 +49,11 @@ export interface UseLeaderboardClaimResult {
  * anti-double-submit guard while `isPending` / `isConfirming`.
  */
 export function useLeaderboardClaim(args: UseLeaderboardClaimArgs): UseLeaderboardClaimResult {
-    const { wallet, epochId, amount, proof, claimExpiry, alreadyClaimed } = args;
+    const { wallet, epochId, claimExpiry, alreadyClaimed } = args;
+    // `amount` and `proof` are kept on the args interface for backwards
+    // compatibility with call-sites that still pass them, but the on-chain
+    // `claim(epochId)` derives the amount itself from `_epochScores[epochId]`
+    // and doesn't take a Merkle proof — the pro-rata math is fully on-chain.
     const qc = useQueryClient();
 
     const now = Date.now();
@@ -59,9 +63,7 @@ export function useLeaderboardClaim(args: UseLeaderboardClaimArgs): UseLeaderboa
     const simulation = useLeaderboardRewardsSimulateClaim({
         address: chilizConfig.leaderboardRewards,
         chainId: chilizConfig.chainId,
-        args: simulationEnabled
-            ? [BigInt(epochId), amount, proof as Hex[]]
-            : undefined,
+        args: simulationEnabled ? [BigInt(epochId)] : undefined,
         account: wallet,
         query: { enabled: simulationEnabled },
     });

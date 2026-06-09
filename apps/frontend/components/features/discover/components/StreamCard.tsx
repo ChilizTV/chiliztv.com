@@ -3,7 +3,15 @@
 import { useRouter } from "next/navigation";
 import { BorderBeam, CardBody, CardContainer, CardItem } from "@chiliztv/ui";
 import { fmtViewers, type StreamerCard } from "../domain";
+import { fmtMatchScore } from "@chiliztv/domain/matches/format/matchScore";
 import { LiveBadge } from "./LiveBadge";
+
+/** Compact uppercase suffix for the score badge ("AET" / "PEN"), no parenthetical. */
+function compactScoreSuffix(variant: ReturnType<typeof fmtMatchScore>['variant']): string | null {
+  if (variant === 'aet') return 'AET';
+  if (variant === 'pen') return 'PEN';
+  return null;
+}
 
 const STREAM_GRADIENTS = [
   "linear-gradient(135deg,#1a0a2e 0%,#0d1b2a 100%)",
@@ -114,22 +122,38 @@ export function StreamCard({ stream }: { stream: StreamerCard }) {
               {fmtViewers(stream.viewers)}
             </div>
 
-            {stream.score && (
-              <div
-                className="absolute inset-x-2.5 bottom-2.5 flex items-center justify-between gap-2 rounded-md border border-[#1E1E1E] bg-black/70 px-2.5 py-1.5"
-                style={{ backdropFilter: "blur(4px)" }}
-              >
-                <span className="font-mono-ctv truncate text-[9px] font-bold uppercase tracking-[0.14em] text-white/65">
-                  {stream.homeTeam}
-                </span>
-                <span className="font-display flex-shrink-0 text-[15px] font-extrabold leading-none tracking-[-0.01em] text-[#E8001D]">
-                  {stream.score.home}–{stream.score.away}
-                </span>
-                <span className="font-mono-ctv truncate text-right text-[9px] font-bold uppercase tracking-[0.14em] text-white/65">
-                  {stream.awayTeam}
-                </span>
-              </div>
-            )}
+            {stream.score && (() => {
+              const fmt = fmtMatchScore({
+                status: stream.status,
+                score: stream.score,
+                scoreBreakdown: stream.scoreBreakdown,
+              });
+              if (fmt.variant === 'none') return null;
+              const aetPenPill = compactScoreSuffix(fmt.variant);
+              return (
+                <div
+                  className="absolute inset-x-2.5 bottom-2.5 flex items-center justify-between gap-2 rounded-md border border-[#1E1E1E] bg-black/70 px-2.5 py-1.5"
+                  style={{ backdropFilter: "blur(4px)" }}
+                >
+                  <span className="font-mono-ctv truncate text-[9px] font-bold uppercase tracking-[0.14em] text-white/65">
+                    {stream.homeTeam}
+                  </span>
+                  <span className="flex shrink-0 items-baseline gap-1.5">
+                    <span className="font-display text-[15px] font-extrabold leading-none tracking-[-0.01em] text-[#E8001D]">
+                      {fmt.primary}
+                    </span>
+                    {aetPenPill && (
+                      <span className="font-mono-ctv text-[8px] font-bold uppercase tracking-[0.14em] text-white/55">
+                        {aetPenPill}
+                      </span>
+                    )}
+                  </span>
+                  <span className="font-mono-ctv truncate text-right text-[9px] font-bold uppercase tracking-[0.14em] text-white/65">
+                    {stream.awayTeam}
+                  </span>
+                </div>
+              );
+            })()}
           </div>
 
           <div className="flex items-center gap-3 px-3.5 py-3">

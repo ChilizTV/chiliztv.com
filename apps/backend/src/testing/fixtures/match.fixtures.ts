@@ -7,10 +7,16 @@ export interface MatchFixtureOverride {
     league?: { id?: number; name: string; country?: string; logo?: string };
     kickoffAt?: Date;
     score?: { home: number; away: number };
+    /** Aggregate score after extra time — needed for AET / PEN fixtures to drive FULL_TIME_WINNER. */
+    aetScore?: { home: number; away: number };
+    /** Penalty shootout result — needed for PEN fixtures. */
+    penScore?: { home: number; away: number };
     bettingContractAddress?: string;
     homeForm?: string | null;
     awayForm?: string | null;
     venue?: string;
+    /** When true, the seeded proxy includes the FULL_TIME_WINNER market (9 markets instead of 8). */
+    isKnockout?: boolean;
 }
 
 const FIXTURE_ID_START = 999000;
@@ -29,6 +35,8 @@ interface BuildArgs {
     status: string;
     kickoffOffsetMs: number;
     score?: { home: number; away: number };
+    /** Default knockout flag for this fixture kind — overridable per call via MatchFixtureOverride.isKnockout. */
+    isKnockout?: boolean;
 }
 
 const DEFAULT_HOME = { id: 5, name: 'Inter', logo: '' };
@@ -63,6 +71,11 @@ function buildMatch(args: BuildArgs, override?: MatchFixtureOverride): Match {
         venue: override?.venue ?? DEFAULT_VENUE,
         homeScore: score?.home,
         awayScore: score?.away,
+        aetHomeScore: override?.aetScore?.home ?? null,
+        aetAwayScore: override?.aetScore?.away ?? null,
+        penHomeScore: override?.penScore?.home ?? null,
+        penAwayScore: override?.penScore?.away ?? null,
+        isKnockout: override?.isKnockout ?? args.isKnockout ?? false,
         homeForm: override?.homeForm ?? null,
         awayForm: override?.awayForm ?? null,
         bettingContractAddress: override?.bettingContractAddress,
@@ -89,8 +102,13 @@ export const matchFixture = {
     suspended:       (o?: MatchFixtureOverride) => buildMatch({ status: 'SUSP',kickoffOffsetMs: -25 * MIN, score: { home: 0, away: 0 } }, o),
     interrupted:     (o?: MatchFixtureOverride) => buildMatch({ status: 'INT', kickoffOffsetMs: -25 * MIN, score: { home: 0, away: 0 } }, o),
     fullTime:        (o?: MatchFixtureOverride) => buildMatch({ status: 'FT',  kickoffOffsetMs: -2 * HOUR, score: { home: 2, away: 1 } }, o),
-    afterExtraTime:  (o?: MatchFixtureOverride) => buildMatch({ status: 'AET', kickoffOffsetMs: -3 * HOUR, score: { home: 2, away: 2 } }, o),
-    afterPenalties:  (o?: MatchFixtureOverride) => buildMatch({ status: 'PEN', kickoffOffsetMs: -3 * HOUR, score: { home: 3, away: 2 } }, o),
+    // AET / PEN fixtures default `isKnockout: true` since these statuses only
+    // occur in knockout fixtures. Override to false on a per-call basis if a
+    // test needs to exercise the "AET on a non-knockout proxy" edge.
+    afterExtraTime:  (o?: MatchFixtureOverride) => buildMatch({ status: 'AET', kickoffOffsetMs: -3 * HOUR, score: { home: 2, away: 2 }, isKnockout: true }, o),
+    afterPenalties:  (o?: MatchFixtureOverride) => buildMatch({ status: 'PEN', kickoffOffsetMs: -3 * HOUR, score: { home: 3, away: 2 }, isKnockout: true }, o),
+    /** Knockout fixture in NS — useful to exercise the 9-market seed lineup without waiting for AET/PEN status. */
+    upcomingKnockout: (o?: MatchFixtureOverride) => buildMatch({ status: 'NS', kickoffOffsetMs: 60 * MIN, isKnockout: true }, o),
     postponed:       (o?: MatchFixtureOverride) => buildMatch({ status: 'PST', kickoffOffsetMs: 24 * HOUR }, o),
     cancelled:       (o?: MatchFixtureOverride) => buildMatch({ status: 'CANC',kickoffOffsetMs: -30 * MIN }, o),
     abandoned:       (o?: MatchFixtureOverride) => buildMatch({ status: 'ABD', kickoffOffsetMs: -30 * MIN, score: { home: 1, away: 1 } }, o),

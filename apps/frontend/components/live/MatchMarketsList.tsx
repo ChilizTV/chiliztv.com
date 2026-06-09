@@ -109,6 +109,8 @@ function isHalftimeDelayed(
 
 const MARKET_ICONS: Record<MarketKey, LucideIcon> = {
   winner: Trophy,
+  // FULL_TIME_WINNER : same Trophy icon, differentiated by label "(incl. AET + PEN)".
+  fulltimewinner: Trophy,
   goalstotal: Target,
   bothscore: Users,
   halftime: Clock3,

@@ -1,30 +1,39 @@
 import { describe, it, expect } from 'vitest';
 import {
     DEFAULT_FOOTBALL_MARKETS,
+    FULL_TIME_WINNER_MARKET_ID,
     HALFTIME_MARKET_ID,
     SUPPORTED_MARKET_TYPE_NAMES,
     findDefaultMarketSpec,
+    getDefaultFootballMarkets,
     type DefaultMarketTypeName,
 } from '../DefaultMarkets';
 
 describe('DEFAULT_FOOTBALL_MARKETS — invariants', () => {
-    it('seeds exactly 8 markets (6 product types, 2 GOALS_TOTAL lines, 3 DOUBLE_CHANCE variants)', () => {
-        expect(DEFAULT_FOOTBALL_MARKETS).toHaveLength(8);
+    it('declares 9 markets total (8 base + FULL_TIME_WINNER knockout-only)', () => {
+        // 8 base markets (WINNER, HALFTIME, 2x GOALS_TOTAL, BOTH_SCORE, 3x DOUBLE_CHANCE)
+        // + 1 knockout-only market (FULL_TIME_WINNER at marketId 8).
+        // The full list is exposed by the manifest so sortMarketsByManifest
+        // can place FULL_TIME_WINNER correctly when a knockout proxy returns it.
+        // Filtering to the seeded subset is done at call time via
+        // getDefaultFootballMarkets({ isKnockout }).
+        expect(DEFAULT_FOOTBALL_MARKETS).toHaveLength(9);
     });
 
-    it('marketIds are sequential 0..7 (must match addMarketsBatch index)', () => {
+    it('marketIds are sequential 0..8 (must match addMarketsBatch index when knockout)', () => {
         DEFAULT_FOOTBALL_MARKETS.forEach((spec, i) => {
             expect(spec.marketId).toBe(i);
         });
     });
 
-    it('exposes exactly the 5 product type names allowed', () => {
+    it('exposes exactly the 6 product type names allowed', () => {
         const expected: Set<DefaultMarketTypeName> = new Set([
             'WINNER',
             'HALFTIME',
             'GOALS_TOTAL',
             'BOTH_SCORE',
             'DOUBLE_CHANCE',
+            'FULL_TIME_WINNER',
         ]);
         expect(SUPPORTED_MARKET_TYPE_NAMES).toEqual(expected);
     });
@@ -101,5 +110,30 @@ describe('findDefaultMarketSpec', () => {
     it('returns null for known name but unknown line (e.g. GOALS_TOTAL line=35 not in manifest)', () => {
         expect(findDefaultMarketSpec('GOALS_TOTAL', 35)).toBeNull();
         expect(findDefaultMarketSpec('DOUBLE_CHANCE', 3)).toBeNull();
+    });
+
+    it('resolves FULL_TIME_WINNER to marketId 8', () => {
+        expect(findDefaultMarketSpec('FULL_TIME_WINNER', 0)?.marketId).toBe(FULL_TIME_WINNER_MARKET_ID);
+        expect(FULL_TIME_WINNER_MARKET_ID).toBe(8);
+    });
+});
+
+describe('getDefaultFootballMarkets — knockout branching', () => {
+    it('returns 8 markets for a non-knockout fixture (FULL_TIME_WINNER filtered out)', () => {
+        const specs = getDefaultFootballMarkets({ isKnockout: false });
+        expect(specs).toHaveLength(8);
+        expect(specs.some(s => s.marketTypeName === 'FULL_TIME_WINNER')).toBe(false);
+    });
+
+    it('returns 9 markets for a knockout fixture (includes FULL_TIME_WINNER)', () => {
+        const specs = getDefaultFootballMarkets({ isKnockout: true });
+        expect(specs).toHaveLength(9);
+        expect(specs.some(s => s.marketTypeName === 'FULL_TIME_WINNER')).toBe(true);
+    });
+
+    it('preserves marketId ordering (the FULL_TIME_WINNER entry stays at marketId 8)', () => {
+        const knockout = getDefaultFootballMarkets({ isKnockout: true });
+        const ftWinner = knockout.find(s => s.marketTypeName === 'FULL_TIME_WINNER');
+        expect(ftWinner?.marketId).toBe(8);
     });
 });

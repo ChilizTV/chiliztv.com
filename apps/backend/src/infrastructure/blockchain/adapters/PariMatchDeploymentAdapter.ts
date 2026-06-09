@@ -7,7 +7,7 @@ import {
     PARI_MATCH_BASE_INLINE_ABI,
     chainFor,
 } from '@chiliztv/blockchain';
-import { FOOTBALL_SEEDING_PAYLOAD } from '../markets/seedingPayload';
+import { FOOTBALL_SEEDING_PAYLOAD, getFootballSeedingPayload } from '../markets/seedingPayload';
 import { logger } from '../../logging/logger';
 
 if (!process.env.PARI_MATCH_FACTORY_ADDRESS) {
@@ -113,9 +113,10 @@ export class PariMatchDeploymentAdapter {
      * behavioural-equivalence test asserts deepEqual on both `addMarketsBatch`
      * AND `openMarketsBatch` args. Don't fork the payload here.
      */
-    async setupDefaultMarkets(contractAddress: string): Promise<void> {
+    async setupDefaultMarkets(contractAddress: string, opts?: { isKnockout: boolean }): Promise<void> {
         const matchAddr = contractAddress as `0x${string}`;
-        const { hashes, lines, marketIds } = FOOTBALL_SEEDING_PAYLOAD;
+        const isKnockout = opts?.isKnockout === true;
+        const { hashes, lines, marketIds } = getFootballSeedingPayload({ isKnockout });
 
         const sendAndWait = async (fn: () => Promise<`0x${string}`>) => {
             const hash = await fn();
@@ -132,16 +133,17 @@ export class PariMatchDeploymentAdapter {
             await delay();
         };
 
-        // Batch-add all 8 markets in one tx. Gas bumped to 3M for 8 SSTORE-heavy
-        // _addMarket calls (was 1.5M for 3 markets). Verify on Anvil fork before
-        // changing if the contract internals shift.
-        logger.info('Adding default markets (8 markets, manifest order)', { contractAddress, marketsCount: hashes.length });
+        // Batch-add all markets in one tx. Knockout fixtures add a 9th
+        // market (FULL_TIME_WINNER) — extra SSTOREs need a slightly higher gas
+        // limit. Verify on Anvil fork before changing if the contract
+        // internals shift.
+        logger.info('Adding default markets', { contractAddress, marketsCount: hashes.length, isKnockout });
         await sendAndWait(() => this.walletClient.writeContract({
             address: matchAddr,
             abi: PARI_MATCH_BASE_INLINE_ABI,
             functionName: 'addMarketsBatch',
             args: [hashes, lines],
-            gas: 3_000_000n,
+            gas: isKnockout ? 3_400_000n : 3_000_000n,
         }));
 
         logger.info('Opening markets', { contractAddress, marketsCount: marketIds.length });
@@ -150,7 +152,7 @@ export class PariMatchDeploymentAdapter {
             abi: PARI_MATCH_BASE_INLINE_ABI,
             functionName: 'openMarketsBatch',
             args: [marketIds],
-            gas: 1_400_000n,
+            gas: isKnockout ? 1_600_000n : 1_400_000n,
         }));
 
         logger.info('Default markets created and opened', { contractAddress, marketsCount: hashes.length });

@@ -53,6 +53,21 @@ export interface Match {
   htHomeScore: number | null;
   htAwayScore: number | null;
   /**
+   * Aggregate score after extra time (90' + ET). NULL for FT matches that
+   * never reached AET. Optional in the wire shape — tolerates cached payloads
+   * emitted before the AET/PEN rollout.
+   */
+  aetHomeScore?: number | null;
+  aetAwayScore?: number | null;
+  /**
+   * Penalty shootout result (e.g. 5-4). NULL when the match didn't reach a
+   * shootout. Reflects the shootout itself, NOT an aggregate.
+   */
+  penHomeScore?: number | null;
+  penAwayScore?: number | null;
+  /** `true` when the fixture is knockout (cup or league knockout phase). */
+  isKnockout?: boolean;
+  /**
    * Backend signal that API-Football is in degraded mode (circuit open or
    * daily quota exhausted). When true, the score may be stale — UI renders a
    * "Stale data" badge so the user doesn't trust the displayed value blindly.

@@ -23,7 +23,7 @@ import {
     FOOTBALL_PARI_MATCH_INLINE_ABI,
     chainFor,
 } from '@chiliztv/blockchain';
-import { FOOTBALL_SEEDING_PAYLOAD } from '../markets/seedingPayload';
+import { FOOTBALL_SEEDING_PAYLOAD, getFootballSeedingPayload } from '../markets/seedingPayload';
 import { logger } from '../../logging/logger';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -113,9 +113,10 @@ export class ViemBlockchainService implements IBlockchainService {
      * The behavioural-equivalence test asserts both adapters send the same
      * args to addMarketsBatch + openMarketsBatch — don't fork the payload here.
      */
-    async setupDefaultMarkets(contractAddress: string): Promise<void> {
+    async setupDefaultMarkets(contractAddress: string, opts?: { isKnockout: boolean }): Promise<void> {
         const addr = contractAddress as `0x${string}`;
-        const { hashes, lines, marketIds } = FOOTBALL_SEEDING_PAYLOAD;
+        const isKnockout = opts?.isKnockout === true;
+        const { hashes, lines, marketIds } = getFootballSeedingPayload({ isKnockout });
 
         const sendAndWait = async (fn: () => Promise<`0x${string}`>) => {
             const hash = await fn();
@@ -126,14 +127,16 @@ export class ViemBlockchainService implements IBlockchainService {
             await delay();
         };
 
-        logger.info('Adding default parimutuel markets (8 markets, manifest order)', { contractAddress, count: hashes.length });
+        logger.info('Adding default parimutuel markets', { contractAddress, count: hashes.length, isKnockout });
+        // Knockout matches need a higher gas limit to fit the extra
+        // FULL_TIME_WINNER market in the addMarketsBatch call.
         await sendAndWait(() => this.walletClient.writeContract({
             chain: undefined,
             address: addr,
             abi: PARI_MATCH_BASE_INLINE_ABI,
             functionName: 'addMarketsBatch',
             args: [hashes, lines],
-            gas: 3_000_000n,
+            gas: isKnockout ? 3_400_000n : 3_000_000n,
         }));
 
         logger.info('Opening markets', { contractAddress, count: marketIds.length });
@@ -143,10 +146,10 @@ export class ViemBlockchainService implements IBlockchainService {
             abi: PARI_MATCH_BASE_INLINE_ABI,
             functionName: 'openMarketsBatch',
             args: [marketIds],
-            gas: 1_400_000n,
+            gas: isKnockout ? 1_600_000n : 1_400_000n,
         }));
 
-        logger.info('Default markets created and opened', { contractAddress, count: hashes.length });
+        logger.info('Default markets created and opened', { contractAddress, count: hashes.length, isKnockout });
     }
 
     async resolveMarketsByScore(contractAddress: string, score: FootballScoreInput): Promise<number> {
@@ -203,6 +206,13 @@ export class ViemBlockchainService implements IBlockchainService {
         //    computes the outcome, applies fees, and emits MarketResolved /
         //    MarketCancelled (for void markets).
         try {
+            // Default AET aggregate to the 90' score so FULL_TIME_WINNER
+            // resolves consistently with the 90' winner for non-knockout
+            // matches. penWinner=255 means "no shootout occurred".
+            const aetHomeGoals = score.aetHomeGoals ?? score.homeGoals;
+            const aetAwayGoals = score.aetAwayGoals ?? score.awayGoals;
+            const penWinner = score.penWinner ?? 255;
+
             const hash = await this.walletClient.writeContract({
                 chain: undefined,
                 address: addr,
@@ -214,6 +224,9 @@ export class ViemBlockchainService implements IBlockchainService {
                     htHomeGoals: score.htHomeGoals ?? 0,
                     htAwayGoals: score.htAwayGoals ?? 0,
                     firstScorerId: score.firstScorerId ?? 0,
+                    aetHomeGoals,
+                    aetAwayGoals,
+                    penWinner,
                 }],
             });
             const receipt = await this.publicClient.waitForTransactionReceipt({ hash, timeout: 180_000 });
@@ -296,6 +309,11 @@ export class ViemBlockchainService implements IBlockchainService {
         }
 
         try {
+            // Same defaults as the full-resolve path (see resolveMarketsByScore).
+            const aetHomeGoals = score.aetHomeGoals ?? score.homeGoals;
+            const aetAwayGoals = score.aetAwayGoals ?? score.awayGoals;
+            const penWinner = score.penWinner ?? 255;
+
             const hash = await this.walletClient.writeContract({
                 chain: undefined,
                 address: addr,
@@ -307,6 +325,9 @@ export class ViemBlockchainService implements IBlockchainService {
                     htHomeGoals: score.htHomeGoals ?? 0,
                     htAwayGoals: score.htAwayGoals ?? 0,
                     firstScorerId: score.firstScorerId ?? 0,
+                    aetHomeGoals,
+                    aetAwayGoals,
+                    penWinner,
                 }],
             });
             const receipt = await this.publicClient.waitForTransactionReceipt({ hash, timeout: 180_000 });

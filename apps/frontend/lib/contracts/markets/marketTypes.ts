@@ -8,6 +8,7 @@ import type { MarketSpec, MarketOutcome } from './types';
 // on-chain constants via the generated wagmi hooks.
 export const MARKET_TYPE_HASHES = {
     WINNER: keccak256(toBytes('WINNER')),
+    FULL_TIME_WINNER: keccak256(toBytes('FULL_TIME_WINNER')),
     GOALS_TOTAL: keccak256(toBytes('GOALS_TOTAL')),
     BOTH_SCORE: keccak256(toBytes('BOTH_SCORE')),
     HALFTIME: keccak256(toBytes('HALFTIME')),
@@ -61,11 +62,29 @@ const winnerOutcomes = (homeTeam?: string, awayTeam?: string): ReadonlyArray<Mar
 export const FOOTBALL_MARKETS: Readonly<Record<string, MarketSpec>> = {
     [MARKET_TYPE_HASHES.WINNER.toLowerCase()]: {
         key: 'winner',
-        label: 'Match Result',
-        hint: 'Home / Draw / Away',
+        label: "Match Result (90')",
+        hint: 'Home / Draw / Away — regulation time only',
         hasLine: false,
         supportsBetting: true,
         getOutcomes: (_line, homeTeam, awayTeam) => winnerOutcomes(homeTeam, awayTeam),
+    },
+    // FULL_TIME_WINNER — knockout-only market (cups + league knockout phases).
+    // Resolved on the AET aggregate or the penalty shootout winner. Binary
+    // outcomes (Home / Away) because by construction the match reaches a
+    // final winner: 30 min extra time, then PEN if still tied.
+    // Backend seeding only attaches this market when `Match.isKnockout()` is
+    // true (see KnockoutMatchPolicy in LOT 7) — for league matches it's
+    // simply absent from the on-chain market list.
+    [MARKET_TYPE_HASHES.FULL_TIME_WINNER.toLowerCase()]: {
+        key: 'fulltimewinner',
+        label: 'Final Winner (incl. AET + PEN)',
+        hint: 'Includes extra time and penalty shootout',
+        hasLine: false,
+        supportsBetting: true,
+        getOutcomes: (_line, homeTeam, awayTeam) => [
+            { selection: 0, label: homeTeam ?? 'Home', hint: 'Home wins after AET / PEN' },
+            { selection: 1, label: awayTeam ?? 'Away', hint: 'Away wins after AET / PEN' },
+        ],
     },
     [MARKET_TYPE_HASHES.HALFTIME.toLowerCase()]: {
         key: 'halftime',

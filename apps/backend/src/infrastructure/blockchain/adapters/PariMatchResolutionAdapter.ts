@@ -29,6 +29,23 @@ export interface FootballScore {
     htHomeGoals?: number;
     htAwayGoals?: number;
     firstScorerId?: number;
+    /**
+     * Aggregate score after extra time (90' + ET). When the match never went
+     * to AET, callers MUST pass `aetHomeGoals = homeGoals` (and likewise for
+     * away) — the contract uses these fields exclusively for
+     * MARKET_FULL_TIME_WINNER and they have no effect on the other markets.
+     * Defaults: when omitted, the adapter passes 0 for both, which makes
+     * FULL_TIME_WINNER resolve as a tied AET with no PEN — that case is
+     * safe (return (0, false) → market stays Closed for manual settle).
+     */
+    aetHomeGoals?: number;
+    aetAwayGoals?: number;
+    /**
+     * Winner of the penalty shootout, encoded as 0=Home, 1=Away. Use 255
+     * (= PEN_WINNER_NONE) when the match did NOT reach a penalty shootout.
+     * Default 255 when omitted.
+     */
+    penWinner?: number;
 }
 
 /**
@@ -109,6 +126,14 @@ export class PariMatchResolutionAdapter {
                 await delay();
             }
 
+            // Defaults for AET/PEN fields when caller omits them: pass the
+            // 90' score as the AET aggregate (so FULL_TIME_WINNER falls back
+            // to the 90' winner for non-knockout matches), and 255 for
+            // penWinner meaning "no shootout occurred".
+            const aetHomeGoals = score.aetHomeGoals ?? score.homeGoals;
+            const aetAwayGoals = score.aetAwayGoals ?? score.awayGoals;
+            const penWinner = score.penWinner ?? 255;
+
             const hash = await this.walletClient.writeContract({
                 account: this.walletClient.account!,
                 address: addr,
@@ -120,6 +145,9 @@ export class PariMatchResolutionAdapter {
                     htHomeGoals: score.htHomeGoals ?? 0,
                     htAwayGoals: score.htAwayGoals ?? 0,
                     firstScorerId: score.firstScorerId ?? 0,
+                    aetHomeGoals,
+                    aetAwayGoals,
+                    penWinner,
                 }],
                 chain: this.chain,
             });

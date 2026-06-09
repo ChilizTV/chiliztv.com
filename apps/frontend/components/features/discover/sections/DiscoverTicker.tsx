@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import { getMinute, isLive, type FlatMatch } from "../domain";
+import { fmtMatchScore } from "@chiliztv/domain/matches/format/matchScore";
 
 const abbr = (name: string) =>
   name.replace(/[^A-Za-z]/g, "").slice(0, 4).toUpperCase();
@@ -62,6 +63,18 @@ export function DiscoverTicker({
           const minuteValue = live ? getMinute(m.status, m.kickoffAt, now, m.elapsed) : null;
           const minuteLabel =
             minuteValue !== null ? `${minuteValue}'` : "LIVE";
+          // Ticker = compact context. We display "1-0" (no em-dash spacing)
+          // and append "AET" / "PEN" as a tiny suffix when the match went to
+          // extra time. The fmtMatchScore helper provides the variant; we
+          // keep the ticker's existing hyphen separator to save horizontal
+          // space (em-dash + spaces would push the ticker wider).
+          const scoreText = m.score ? `${m.score.home}-${m.score.away}` : "vs";
+          const fmt = fmtMatchScore({
+            status: m.status,
+            score: m.score,
+            scoreBreakdown: m.scoreBreakdown,
+          });
+          const aetPen = fmt.variant === 'aet' ? 'AET' : fmt.variant === 'pen' ? 'PEN' : null;
           return (
             <span key={`${m.id}-${i}`} className="inline-flex items-center gap-3">
               {live ? (
@@ -76,9 +89,10 @@ export function DiscoverTicker({
               )}
               <span className="font-bold text-white">
                 {abbr(m.homeTeam.name)}{" "}
-                <span className="font-bold text-[#E8001D]">
-                  {m.score ? `${m.score.home}-${m.score.away}` : "vs"}
-                </span>{" "}
+                <span className="font-bold text-[#E8001D]">{scoreText}</span>
+                {aetPen && (
+                  <span className="ml-1 font-bold text-white/50">{aetPen}</span>
+                )}{" "}
                 {abbr(m.awayTeam.name)}
               </span>
               <span className="text-[#2A2A2A]">·</span>

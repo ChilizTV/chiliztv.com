@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { useState } from "react";
 import { ArrowLeft } from "lucide-react";
+import { fmtMatchScore } from "@chiliztv/domain/matches/format/matchScore";
 import { TeamFormBadge } from "@/components/shared/TeamFormBadge";
 import { StaleDataBadge } from "@/components/shared/StaleDataBadge";
 import { Eyebrow, Pill, PulseDot } from "../primitives";
@@ -15,6 +16,15 @@ interface LiveHeroProps {
   awayTeam: string;
   homeScore?: number;
   awayScore?: number;
+  /**
+   * Optional AET/PEN breakdown. When present, the helper renders
+   * "3 — 2 a.e.t." or "5 — 4 pen (1 — 1)" under the primary score.
+   */
+  scoreBreakdown?: {
+    ninety: { home: number; away: number };
+    aet?: { home: number; away: number };
+    pen?: { home: number; away: number };
+  } | null;
   homeLogo?: string;
   awayLogo?: string;
   homeForm?: string | null;
@@ -119,6 +129,7 @@ export function LiveHero({
   awayTeam,
   homeScore = 0,
   awayScore = 0,
+  scoreBreakdown,
   homeLogo,
   awayLogo,
   homeForm,
@@ -134,6 +145,15 @@ export function LiveHero({
   const isLive = !!status && LIVE_STATUSES.has(status);
   const isFT = !!status && ENDED_STATUSES.has(status);
   const isUpcoming = !isLive && !isFT;
+  // Formatted score — picks AET / PEN / FT branch from the helper. `primary`
+  // ("3 — 2") goes into the giant typographic block; `suffix` ("a.e.t." or
+  // "pen (1 — 1)") renders as the caption underneath, replacing "Full time"
+  // when the match went to extra time.
+  const scoreFmt = fmtMatchScore({
+    status: status ?? '',
+    score: !isUpcoming ? { home: homeScore, away: awayScore } : null,
+    scoreBreakdown,
+  });
 
   return (
     <section className="border-b border-[#1E1E1E] bg-[#0A0A0A]">
@@ -192,9 +212,8 @@ export function LiveHero({
                   className="font-display flex items-baseline gap-3 leading-[0.85] tracking-[-0.02em] text-white"
                   style={{ fontSize: "clamp(48px, 7vw, 88px)", fontWeight: 800 }}
                 >
-                  <span>{homeScore}</span>
-                  <span className="text-white/30">—</span>
-                  <span>{awayScore}</span>
+                  {/* Render the formatted primary directly so the em-dash uses the same neutral colour. */}
+                  <span>{scoreFmt.primary}</span>
                 </div>
               )}
               <span className="font-mono-ctv text-[10px] uppercase tracking-[0.18em] text-white/35">
@@ -203,7 +222,7 @@ export function LiveHero({
                     ? `Min ${elapsed}`
                     : "Live"
                   : isFT
-                    ? "Full time"
+                    ? scoreFmt.suffix ?? "Full time"
                     : "Upcoming"}
               </span>
             </div>

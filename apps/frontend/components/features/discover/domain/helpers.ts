@@ -149,6 +149,8 @@ export function buildStreams(
         homeTeam: m.homeTeam.name,
         awayTeam: m.awayTeam.name,
         score: m.score,
+        status: m.status,
+        scoreBreakdown: m.scoreBreakdown ?? null,
         leagueName: m.leagueName,
       })),
     )

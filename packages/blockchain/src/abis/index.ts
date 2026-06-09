@@ -205,6 +205,11 @@ export const PARI_MATCH_BASE_INLINE_ABI = [
 ] as const;
 
 // FootballPariMatch sport-specific resolver entrypoint.
+// Struct shape mirrors `FootballPariMatch.FootballScore` (Solidity calldata
+// struct, no storage layout). The trailing 3 fields support FULL_TIME_WINNER:
+//   - aetHomeGoals / aetAwayGoals: aggregate after extra time (pass 90' score
+//     for non-AET matches so FULL_TIME_WINNER mirrors WINNER in that case).
+//   - penWinner: 0=Home, 1=Away, 255=PEN_WINNER_NONE (no shootout occurred).
 export const FOOTBALL_PARI_MATCH_INLINE_ABI = [
     {
         type: 'function',
@@ -218,7 +223,10 @@ export const FOOTBALL_PARI_MATCH_INLINE_ABI = [
                     { name: 'awayGoals', type: 'uint8' },
                     { name: 'htHomeGoals', type: 'uint8' },
                     { name: 'htAwayGoals', type: 'uint8' },
-                    { name: 'firstScorerId', type: 'uint8' }
+                    { name: 'firstScorerId', type: 'uint8' },
+                    { name: 'aetHomeGoals', type: 'uint8' },
+                    { name: 'aetAwayGoals', type: 'uint8' },
+                    { name: 'penWinner', type: 'uint8' }
                 ]
             }
         ],

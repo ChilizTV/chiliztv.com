@@ -186,7 +186,10 @@ contract PariMatchScalarTest is Test {
             awayGoals:    2,            // total = 7 → clamps to cap (3)
             htHomeGoals:  0,
             htAwayGoals:  0,
-            firstScorerId: 0
+            firstScorerId: 0,
+            aetHomeGoals: 0,
+            aetAwayGoals: 0,
+            penWinner:    255
         });
 
         vm.prank(owner); foot.closeMarket(0);
@@ -217,7 +220,10 @@ contract PariMatchScalarTest is Test {
 
         FootballPariMatch.FootballScore memory s = FootballPariMatch.FootballScore({
             homeGoals: 2, awayGoals: 1, // total = 3 → bucket 3 (cap)
-            htHomeGoals: 0, htAwayGoals: 0, firstScorerId: 0
+            htHomeGoals: 0, htAwayGoals: 0, firstScorerId: 0,
+            aetHomeGoals: 0,
+            aetAwayGoals: 0,
+            penWinner:    255
         });
 
         vm.prank(owner); foot.closeMarket(0);

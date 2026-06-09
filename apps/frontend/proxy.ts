@@ -11,7 +11,7 @@ const LANDING_URL =
 // Production keeps the gate ON unless explicitly overridden.
 const ACCESS_GATE_DISABLED = process.env.NEXT_PUBLIC_ACCESS_GATE_DISABLED === 'true';
 
-export function middleware(request: NextRequest): NextResponse {
+export function proxy(request: NextRequest): NextResponse {
   if (request.nextUrl.pathname === '/api/health') {
     return NextResponse.next();
   }

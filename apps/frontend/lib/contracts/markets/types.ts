@@ -3,6 +3,7 @@ import type { MarketPoolSnapshot } from '@chiliztv/shared';
 /** Symbolic key used in the catalog (kebab-style on-chain hash mapped to lower-case). */
 export type MarketKey =
     | 'winner'
+    | 'fulltimewinner'
     | 'goalstotal'
     | 'bothscore'
     | 'halftime'

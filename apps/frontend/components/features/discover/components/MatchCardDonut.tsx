@@ -10,6 +10,7 @@ import {
     shortName,
     type FlatMatch,
 } from "../domain";
+import { fmtMatchScore } from "@chiliztv/domain/matches/format/matchScore";
 import { useMatchPoolDistribution } from "../hooks";
 import { TeamFormBadge } from "@/components/shared/TeamFormBadge";
 import { Donut, donutColor } from "./Donut";
@@ -102,20 +103,34 @@ export function MatchCardDonut({
                 </div>
 
                 <div className="flex flex-col items-center gap-1 px-1">
-                    {live && match.score ? (
-                        <div
-                            className="font-display flex items-baseline gap-2 text-[42px] font-extrabold leading-none tracking-[-0.02em]"
-                            style={{ color: ACCENT }}
-                        >
-                            <span>{match.score.home}</span>
-                            <span className="text-[20px] text-white/30">·</span>
-                            <span>{match.score.away}</span>
-                        </div>
-                    ) : match.score ? (
-                        <div className="font-display text-[42px] font-extrabold leading-none tracking-[-0.02em] text-white/85">
-                            {match.score.home}–{match.score.away}
-                        </div>
-                    ) : (
+                    {(() => {
+                        // Single helper invocation — picks AET/PEN/FT branch.
+                        // For live and FT we render the primary; the optional
+                        // suffix ("a.e.t." / "pen") goes under in mono.
+                        const fmt = fmtMatchScore({
+                            status: match.status,
+                            score: match.score,
+                            scoreBreakdown: match.scoreBreakdown,
+                        });
+                        if (fmt.variant === 'none') return null;
+                        const liveColor = live ? ACCENT : undefined;
+                        return (
+                            <>
+                                <div
+                                    className={`font-display text-[42px] font-extrabold leading-none tracking-[-0.02em] ${live ? '' : 'text-white/85'}`}
+                                    style={liveColor ? { color: liveColor } : undefined}
+                                >
+                                    {fmt.primary}
+                                </div>
+                                {fmt.suffix && (
+                                    <span className="font-mono-ctv text-[9px] uppercase tracking-[0.16em] text-white/45">
+                                        {fmt.suffix}
+                                    </span>
+                                )}
+                            </>
+                        );
+                    })()}
+                    {!match.score && (
                         <>
                             <span className="font-mono-ctv text-[10px] uppercase tracking-[0.18em] text-white/45">
                                 vs

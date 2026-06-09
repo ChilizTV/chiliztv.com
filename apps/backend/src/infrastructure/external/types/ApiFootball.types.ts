@@ -19,6 +19,20 @@ export interface ApiFootballMatch {
         id: number;
         country?: string;
         logo?: string;
+        /**
+         * Round label as emitted by API-Football /fixtures. Examples:
+         * "Regular Season - 18", "Group Stage", "Round of 16 - 1st Leg",
+         * "Quarter-finals", "Final", "Octavos de final".
+         * Used by KnockoutMatchPolicy to detect knockout fixtures.
+         */
+        round?: string;
+        /**
+         * League type — NOT present on /fixtures payloads (lives on /leagues
+         * endpoint only). Kept optional in the typed shape so a future cache
+         * layer that joins league metadata can populate it without touching
+         * the adapter. Today it's always undefined in raw fixture rows.
+         */
+        type?: string;
     };
     /**
      * Per-period score breakdown. Always present in the live `/fixtures`
@@ -26,9 +40,16 @@ export interface ApiFootballMatch {
      * The upstream sometimes clears these back to null during HT/post-FT
      * cleanups — callers MUST preserve the last known value (cf.
      * Match.setHalftimeScore, mirroring the elapsed_minutes pattern).
+     *
+     * `extratime` is populated when the fixture reaches ET/AET (sum of 90'
+     * goals + extra-time goals — NOT a delta). `penalty` is populated when
+     * the fixture reaches a penalty shootout (PEN), and reflects the
+     * shootout result (not aggregate). Both are null for FT matches.
      */
     score?: {
         halftime?: { home: number | null; away: number | null };
+        extratime?: { home: number | null; away: number | null };
+        penalty?: { home: number | null; away: number | null };
     };
     referee: string;
 }

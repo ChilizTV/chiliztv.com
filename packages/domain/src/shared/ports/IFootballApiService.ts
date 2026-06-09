@@ -12,6 +12,19 @@ export interface RawMatch {
   leagueName: string;
   leagueLogo: string;
   leagueCountry: string;
+  /**
+   * Round label from API-Football (e.g. "Final", "Group Stage",
+   * "Round of 16 - 2nd Leg"). Consumed by KnockoutMatchPolicy to derive
+   * `isKnockout` at match create. Optional because some lookups don't
+   * expose it (admin manual seeds, test fixtures).
+   */
+  leagueRound?: string | null;
+  /**
+   * League type ('League' / 'Cup' / 'World') — NOT in /fixtures payloads
+   * today, would require a /leagues lookup + cache. Optional so a future
+   * source can populate it without breaking the contract.
+   */
+  leagueType?: string | null;
   season: number;
   status: string;
   matchDate: Date;
@@ -34,6 +47,21 @@ export interface RawMatch {
    */
   htHomeScore: number | null;
   htAwayScore: number | null;
+  /**
+   * Aggregate score after extra time (90' + ET). Null for FT matches.
+   * Used by display layer ("3 — 2 a.e.t.") and by the future
+   * FULL_TIME_WINNER market resolution (knockout-only).
+   */
+  aetHomeScore: number | null;
+  aetAwayScore: number | null;
+  /**
+   * Penalty shootout result. Null when the fixture didn't reach PEN.
+   * The score reflects the shootout itself (e.g. 5-4), NOT an aggregate.
+   * Used by display layer ("5 — 4 pen (1 — 1)") and to derive the
+   * FULL_TIME_WINNER winner when the match went all the way to penalties.
+   */
+  penHomeScore: number | null;
+  penAwayScore: number | null;
 }
 
 export interface IFootballApiService {

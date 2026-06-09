@@ -444,6 +444,8 @@ export class FootballApiAdapterImpl implements IFootballApiService {
             leagueName:     m.league.name,
             leagueLogo:     m.league.logo ?? '',
             leagueCountry:  m.league.country ?? '',
+            leagueRound:    m.league.round ?? null,
+            leagueType:     m.league.type ?? null,
             season:         m.league.season,
             status:         this.mapApiStatus(m.fixture.status.short),
             matchDate:      new Date(m.fixture.date),
@@ -453,6 +455,10 @@ export class FootballApiAdapterImpl implements IFootballApiService {
             elapsed:        m.fixture.status.elapsed ?? null,
             htHomeScore:    m.score?.halftime?.home ?? null,
             htAwayScore:    m.score?.halftime?.away ?? null,
+            aetHomeScore:   m.score?.extratime?.home ?? null,
+            aetAwayScore:   m.score?.extratime?.away ?? null,
+            penHomeScore:   m.score?.penalty?.home ?? null,
+            penAwayScore:   m.score?.penalty?.away ?? null,
         };
     }
 

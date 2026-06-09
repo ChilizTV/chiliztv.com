@@ -47,7 +47,7 @@ export async function persistAndMaybeDeploy(
         const matchName = `${json.homeTeam.name} vs ${json.awayTeam.name}`;
         const adminAddress = ctx.blockchain.getAdminAddress();
         const { contractAddress } = await ctx.blockchain.deployBettingContract(matchName, adminAddress);
-        await ctx.blockchain.setupDefaultMarkets(contractAddress);
+        await ctx.blockchain.setupDefaultMarkets(contractAddress, { isKnockout: json.isKnockout === true });
 
         const withContract = Match.reconstitute({
             id: json.id,

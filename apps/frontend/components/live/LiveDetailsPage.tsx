@@ -266,6 +266,21 @@ export default function LiveDetailsPage({ id }: LiveDetailsPageProps) {
         awayTeam={matchData.awayTeam}
         homeScore={matchData.homeScore}
         awayScore={matchData.awayScore}
+        scoreBreakdown={(() => {
+          // Build a breakdown only when AET or PEN scores are present.
+          // The 90' base is the headline homeScore/awayScore.
+          const ninetyHome = matchData.homeScore;
+          const ninetyAway = matchData.awayScore;
+          if (ninetyHome == null || ninetyAway == null) return null;
+          const hasAet = matchData.aetHomeScore != null && matchData.aetAwayScore != null;
+          const hasPen = matchData.penHomeScore != null && matchData.penAwayScore != null;
+          if (!hasAet && !hasPen) return null;
+          return {
+            ninety: { home: ninetyHome, away: ninetyAway },
+            ...(hasAet && { aet: { home: matchData.aetHomeScore as number, away: matchData.aetAwayScore as number } }),
+            ...(hasPen && { pen: { home: matchData.penHomeScore as number, away: matchData.penAwayScore as number } }),
+          };
+        })()}
         homeLogo={matchData.homeTeamLogo}
         awayLogo={matchData.awayTeamLogo}
         homeForm={matchData.homeForm}

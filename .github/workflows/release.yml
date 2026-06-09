@@ -278,14 +278,28 @@ jobs:
   notify-discord:
     name: Notify Discord
     runs-on: ubuntu-latest
-    needs: [create-github-release]
+    # Depend on every job that materially affects the release outcome — not
+    # just create-github-release. Otherwise `contains(needs.*.result, ...)`
+    # only sees ONE result and reports SUCCESS even when an upstream deploy
+    # failed (downstream jobs end up `skipped`, which is not `failure`).
+    # We also check for `cancelled` and `skipped` (skipped here means an
+    # upstream needed job failed, transitively a failure).
+    needs:
+      - validate
+      - retag-image
+      - sign-image
+      - verify-image
+      - deploy-api-prod
+      - deploy-workers-prod
+      - deploy-app-prod
+      - create-github-release
     if: always() && needs.validate.outputs.prerelease == 'false'
     steps:
       - name: Post release notification
         env:
           DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
-          STATUS: ${{ contains(needs.*.result, 'failure') && 'FAILED' || 'SUCCESS' }}
-          COLOR: ${{ contains(needs.*.result, 'failure') && '15158332' || '3066993' }}
+          STATUS: ${{ (contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') || contains(needs.*.result, 'skipped')) && 'FAILED' || 'SUCCESS' }}
+          COLOR: ${{ (contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') || contains(needs.*.result, 'skipped')) && '15158332' || '3066993' }}
         run: |
           curl -s -X POST "$DISCORD_WEBHOOK_URL" \
             -H "Content-Type: application/json" \

@@ -132,16 +132,22 @@ jobs:
             --wait-timeout 180
 
       - name: Smoke — GET /health
+        # `|| echo "000"` neutralises curl's non-zero exit (28 on timeout,
+        # 7 on connection refused, etc.) so `set -e` doesn't kill the
+        # script before the retry loop can fire. Without this, a slow
+        # boot on `--strategy immediate` would fail the whole job after
+        # ONE curl timeout (~10s) instead of retrying 5×.
         run: |
           for i in 1 2 3 4 5; do
-            STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 https://api.predcast.tv/health)
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 https://api.predcast.tv/health || echo "000")
             if [ "$STATUS" = "200" ]; then
               echo "API health check passed (attempt $i)"
               exit 0
             fi
+            echo "API health check attempt $i — got $STATUS, retrying in 15s..."
             sleep 15
           done
-          echo "API health check failed"
+          echo "API health check failed after 5 attempts"
           exit 1
 
   # ── Deploy workers to production ──────────────────────────────────────────
@@ -168,16 +174,18 @@ jobs:
             --wait-timeout 180
 
       - name: Smoke — GET /health
+        # See API job above for why `|| echo "000"` is required.
         run: |
           for i in 1 2 3 4 5; do
-            STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 https://workers.predcast.tv/health)
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 https://workers.predcast.tv/health || echo "000")
             if [ "$STATUS" = "200" ]; then
               echo "Workers health check passed (attempt $i)"
               exit 0
             fi
+            echo "Workers health check attempt $i — got $STATUS, retrying in 15s..."
             sleep 15
           done
-          echo "Workers health check failed"
+          echo "Workers health check failed after 5 attempts"
           exit 1
 
   # ── Promote Vercel staging → production ───────────────────────────────────

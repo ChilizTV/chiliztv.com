@@ -260,39 +260,40 @@ export class FootballApiAdapterImpl implements IFootballApiService {
             const now = this.clock.now();
             const from = this.formatDate(MatchFetchWindow.fetchFrom(now));
             const to   = this.formatDate(new Date(now.getTime() + daysAhead * 86_400_000));
-            // API-Football: `from + to` queries REQUIRE `season` to be set or the
-            // endpoint returns an empty `response` array (no error code). European
-            // football convention — a season N spans Aug N → May/Jun N+1.
-            const season = currentEuropeanSeason(now);
 
             logger.info('Fetching matches from API-Football', {
-                from, to, daysAhead, season, leagues: this.ALLOWED_LEAGUE_IDS,
+                from, to, daysAhead, leagues: this.ALLOWED_LEAGUE_IDS,
             });
 
+            // API-Football: `from + to` queries REQUIRE `season` to be set or the
+            // endpoint returns an empty `response` array (no error code).
+            // Season convention differs per competition family — see `seasonForLeague`.
             // `/fixtures?from=&to=&season=` alone returns an empty array — the
             // endpoint requires `league` (or `team`) as a discriminator. We fire
             // one call per allow-listed league in parallel and concat results.
             const perLeague = await Promise.all(
-                this.ALLOWED_LEAGUE_IDS.map((league) =>
-                    this.client
+                this.ALLOWED_LEAGUE_IDS.map((league) => {
+                    const season = seasonForLeague(league, now);
+                    return this.client
                         .get('/fixtures', { params: { from, to, season, league } })
                         .then((resp) => {
                             const errors = resp.data?.errors;
                             const hasErrors =
                                 errors && typeof errors === 'object' && Object.keys(errors).length > 0;
                             if (hasErrors) {
-                                logger.warn('API-Football returned errors', { league, errors });
+                                logger.warn('API-Football returned errors', { league, season, errors });
                             }
                             return (resp.data?.response ?? []) as ApiFootballMatch[];
                         })
                         .catch((err) => {
                             logger.warn('API-Football per-league fetch failed', {
                                 league,
+                                season,
                                 error: err instanceof Error ? err.message : String(err),
                             });
                             return [] as ApiFootballMatch[];
-                        }),
-                ),
+                        });
+                }),
             );
             const all = perLeague.flat();
 
@@ -491,4 +492,46 @@ export class FootballApiAdapterImpl implements IFootballApiService {
 function currentEuropeanSeason(now: Date): number {
     const year = now.getUTCFullYear();
     return now.getUTCMonth() >= 7 ? year : year - 1;
+}
+
+/**
+ * Hardcoded allowlist of API-Football league IDs whose `season` parameter is
+ * the **calendar year** of the event rather than the European Aug-May span.
+ *
+ * National-team tournaments (WC, Euro, Copa America, AFCON) and the bulk of
+ * their qualification competitions are numbered by the year of the final
+ * tournament (e.g. `season=2026` for the 2026 World Cup, not `2025`).
+ * Using the European-season fallback for these returns an empty fixtures
+ * array — silently, no error — and the competition vanishes from `/browse`.
+ *
+ * INTENTIONALLY hardcoded (not env-driven) — these IDs are stable
+ * domain knowledge tied to API-Football's league numbering. Adding a new
+ * tournament here requires a sanity check via
+ *   `GET /fixtures?league=<id>&season=<calendarYear>&from=...&to=...`
+ * to confirm the season convention before merging.
+ */
+const CALENDAR_YEAR_SEASON_LEAGUE_IDS: ReadonlySet<number> = new Set<number>([
+    1,   // FIFA World Cup
+    29,  // WC Qualification — Africa
+    30,  // WC Qualification — Asia
+    31,  // WC Qualification — CONCACAF
+    32,  // WC Qualification — Europe
+    33,  // WC Qualification — Oceania
+    34,  // WC Qualification — South America
+    4,   // UEFA European Championship (Euro)
+    9,   // Copa America
+    6,   // Africa Cup of Nations (AFCON)
+]);
+
+/**
+ * Resolves the `season` query param API-Football expects for a given league.
+ * Calendar-year tournaments (WC, Euro, Copa America, AFCON + qualifiers)
+ * use the current UTC year; everything else uses the European convention
+ * (Aug N → Jun N+1 ⇒ season = N).
+ */
+function seasonForLeague(leagueId: number, now: Date): number {
+    if (CALENDAR_YEAR_SEASON_LEAGUE_IDS.has(leagueId)) {
+        return now.getUTCFullYear();
+    }
+    return currentEuropeanSeason(now);
 }

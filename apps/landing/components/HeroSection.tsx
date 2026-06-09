@@ -1,4 +1,5 @@
 import Image from "next/image";
+import oddsCardImg from "@/public/oddsCard.png";
 import { BackgroundFX } from "./landing/BackgroundFX";
 import { SmokeBackground } from "@chiliztv/ui";
 import { GateInline } from "./features/access/GateInline";
@@ -78,14 +79,14 @@ export function HeroSection() {
             </div>
           </div>
 
-          {/* Right — odds card (desktop only) */}
+          {/* Right — odds card (desktop only).
+              Static import → content-hashed asset URL; width/height auto-derived. */}
           <Image
-            src="/oddsCard.png"
+            src={oddsCardImg}
             alt="Live odds — Bayern Munich vs Barcelona"
-            width={1200}
-            height={780}
             priority
             className="hidden w-full lg:block"
+            sizes="(max-width: 1024px) 0px, 50vw"
           />
         </header>
       </section>

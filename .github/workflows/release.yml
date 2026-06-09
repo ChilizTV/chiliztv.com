@@ -248,19 +248,26 @@ jobs:
     strategy:
       matrix:
         project: [predcast-frontend, predcast-backend, predcast-landing]
+    # Injecting the secret as a job-level env lets us reference it via
+    # `env.SENTRY_TOKEN` in step-level `if:` conditions. GitHub Actions
+    # rejects `${{ secrets.X }}` in step `if:` since the 2024 security
+    # hardening (workflow fails to parse with 0 jobs run) — going through
+    # `env` is the documented workaround.
+    env:
+      SENTRY_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
       - name: Create Sentry release
-        if: ${{ secrets.SENTRY_AUTH_TOKEN != '' }}
+        if: env.SENTRY_TOKEN != ''
         uses: getsentry/sentry-release-action@v3
         with:
           environment: production
           version: ${{ github.ref_name }}
         env:
-          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_AUTH_TOKEN: ${{ env.SENTRY_TOKEN }}
           SENTRY_ORG: predcast
           SENTRY_PROJECT: ${{ matrix.project }}
 

@@ -20,7 +20,7 @@ permissions:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ghcr.io/chiliztv/chiliztv-backend
+  IMAGE_NAME: ghcr.io/predcast/chiliztv-backend
 
 jobs:
   # ── Wait for the API build job to push the image ──────────────────────────

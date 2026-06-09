@@ -17,7 +17,7 @@ permissions:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ghcr.io/chiliztv/chiliztv-backend
+  IMAGE_NAME: ghcr.io/predcast/chiliztv-backend
 
 jobs:
   # ── Validate tag ──────────────────────────────────────────────────────────
@@ -134,7 +134,7 @@ jobs:
       - name: Smoke — GET /health
         run: |
           for i in 1 2 3 4 5; do
-            STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 https://api.chiliztv.com/health)
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 https://api.predcast.tv/health)
             if [ "$STATUS" = "200" ]; then
               echo "API health check passed (attempt $i)"
               exit 0
@@ -170,7 +170,7 @@ jobs:
       - name: Smoke — GET /health
         run: |
           for i in 1 2 3 4 5; do
-            STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 https://workers.chiliztv.com/health)
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 https://workers.predcast.tv/health)
             if [ "$STATUS" = "200" ]; then
               echo "Workers health check passed (attempt $i)"
               exit 0
@@ -247,7 +247,7 @@ jobs:
     continue-on-error: true
     strategy:
       matrix:
-        project: [chiliztv-frontend, chiliztv-backend, chiliztv-landing]
+        project: [predcast-frontend, predcast-backend, predcast-landing]
     steps:
       - uses: actions/checkout@v4
         with:
@@ -261,7 +261,7 @@ jobs:
           version: ${{ github.ref_name }}
         env:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
-          SENTRY_ORG: chiliztv
+          SENTRY_ORG: predcast
           SENTRY_PROJECT: ${{ matrix.project }}
 
   # ── Create GitHub Release ─────────────────────────────────────────────────

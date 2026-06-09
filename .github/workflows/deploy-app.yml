@@ -148,7 +148,7 @@ jobs:
       - name: Deploy to Vercel staging
         id: deploy
         # --target=staging publishes to the Custom Environment aliased to
-        # app-staging.chiliztv.com. The smoke check below hits the *.vercel.app
+        # app-staging.predcast.tv. The smoke check below hits the *.vercel.app
         # URL because the custom domain can take up to 30s to propagate.
         # stderr is merged into stdout so build/auth/config errors are visible
         # in the run log — `2>/dev/null` was silently hiding every reason.

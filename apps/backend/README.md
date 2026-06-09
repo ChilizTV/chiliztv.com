@@ -80,10 +80,10 @@ brew install cloudflared
 cloudflared login
 
 # Once, create the tunnel:
-cloudflared tunnel create chiliztv-local
+cloudflared tunnel create predcast-local
 
 # Then write ~/.cloudflared/config.yml with the tunnel id printed above:
-# tunnel: chiliztv-local
+# tunnel: predcast-local
 # credentials-file: /Users/<you>/.cloudflared/<tunnel-uuid>.json
 # ingress:
 #   - hostname: cf-webhook-local.<your-domain>
@@ -92,7 +92,7 @@ cloudflared tunnel create chiliztv-local
 
 # Add the DNS CNAME `cf-webhook-local.<your-domain>` → `<tunnel-uuid>.cfargotunnel.com`.
 
-cloudflared tunnel run chiliztv-local
+cloudflared tunnel run predcast-local
 ```
 
 Set the CF Stream dashboard webhook URL to `https://cf-webhook-local.<your-domain>/cloudflare-stream/webhook`. Stable across restarts — fits daily dev.

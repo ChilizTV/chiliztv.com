@@ -83,9 +83,9 @@ The `frontend` runtime image uses the Next.js standalone output
 ## Deploy
 
 ```bash
-docker context create chiliztv.com --docker "host=ssh://chiliztv.com"
-docker -c chiliztv.com compose -f compose/deploy.yaml up -d --build
-docker -c chiliztv.com compose -f compose/deploy.yaml down --remove-orphans --volumes --timeout 0
+docker context create predcast.tv --docker "host=ssh://predcast.tv"
+docker -c predcast.tv compose -f compose/deploy.yaml up -d --build
+docker -c predcast.tv compose -f compose/deploy.yaml down --remove-orphans --volumes --timeout 0
 ```
 
 ## Smart contracts

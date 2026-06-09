@@ -6,14 +6,14 @@
 # root where the multi-stage Dockerfile lives.
 services:
   frontend:
-    image: chiliztv.com/frontend:0.1.0
+    image: predcast.tv/frontend:0.1.0
     build:
       context: ..
       dockerfile: Dockerfile
       target: frontend
 
   backend:
-    image: chiliztv.com/backend:0.1.0
+    image: predcast.tv/backend:0.1.0
     build:
       context: ..
       dockerfile: Dockerfile

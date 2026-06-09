@@ -68,7 +68,7 @@ Si une de ces commandes retourne `command not found` ou une version incompatible
 ### 2.1 Cloner et installer les dépendances
 
 ```bash
-cd ~/Documents/Chiliz-hacking/chiliztv.com   # ou ton path
+cd ~/Documents/Chiliz-hacking/predcast.tv   # ou ton path
 pnpm install
 ```
 

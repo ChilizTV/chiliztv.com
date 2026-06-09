@@ -1,5 +1,5 @@
 {
-  "name": "chiliztv",
+  "name": "predcast",
   "version": "1.0.0",
   "private": true,
   "packageManager": "pnpm@10.28.1",
@@ -23,9 +23,9 @@
     "dev:supabase:stop": "cd apps/backend && supabase stop",
     "dev:supabase:env": "cd apps/backend && supabase status -o env",
     "dev:redis:start": "docker compose -f compose.local.yml up -d redis",
-    "dev:redis:flush": "docker exec chiliztv-redis-local redis-cli FLUSHDB",
-    "dev:redis:logs": "docker logs -f chiliztv-redis-local",
-    "dev:redis:cli": "docker exec -it chiliztv-redis-local redis-cli"
+    "dev:redis:flush": "docker exec predcast-redis-local redis-cli FLUSHDB",
+    "dev:redis:logs": "docker logs -f predcast-redis-local",
+    "dev:redis:cli": "docker exec -it predcast-redis-local redis-cli"
   },
   "devDependencies": {
     "@commitlint/cli": "^21.0.1",

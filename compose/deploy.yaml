@@ -9,7 +9,7 @@ services:
       - "--entrypoints.web.address=:80"
       - "--entrypoints.websecure.address=:443"
       - "--entrypoints.websecure.http.tls.certresolver=letsencrypt"
-      - "--certificatesresolvers.letsencrypt.acme.email=contact@chiliztv.com"
+      - "--certificatesresolvers.letsencrypt.acme.email=contact@predcast.tv"
       - "--certificatesresolvers.letsencrypt.acme.storage=/var/opt/letsencrypt/acme.json"
       - "--certificatesresolvers.letsencrypt.acme.httpchallenge.entrypoint=web"
     ports:
@@ -21,19 +21,19 @@ services:
   frontend:
     container_name: frontend
     restart: unless-stopped
-    image: chiliztv.com/frontend:0.1.0
+    image: predcast.tv/frontend:0.1.0
     labels:
       traefik.enable: true
-      traefik.http.routers.frontend.rule: Host(`app.chiliztv.com`)
+      traefik.http.routers.frontend.rule: Host(`app.predcast.tv`)
       traefik.http.routers.frontend.entrypoints: websecure
 
   backend:
     container_name: backend
     restart: unless-stopped
-    image: chiliztv.com/backend:0.1.0
+    image: predcast.tv/backend:0.1.0
     labels:
       traefik.enable: true
       # Distinct router name — both services previously labelled their router
       # `frontend`, which made traefik silently drop one of them.
-      traefik.http.routers.backend.rule: Host(`backend.chiliztv.com`)
+      traefik.http.routers.backend.rule: Host(`backend.predcast.tv`)
       traefik.http.routers.backend.entrypoints: websecure

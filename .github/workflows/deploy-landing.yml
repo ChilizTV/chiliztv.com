@@ -1,8 +1,8 @@
 name: Deploy landing — Cloudflare Pages
 
 # Two CF Pages projects back this workflow:
-#   chiliztv-landing       — staging, served at staging.chiliztv.com
-#   chiliztv-landing-prod  — production, will be served at chiliztv.com once
+#   predcast-landing       — staging, served at staging.predcast.tv
+#   predcast-landing-prod  — production, will be served at predcast.tv once
 #                            the custom domain is attached on CF Pages.
 # Push main deploys to staging; tag v*.*.* deploys to production.
 # The paths filter applies only to branch pushes; tags trigger regardless.
@@ -55,8 +55,8 @@ jobs:
       - name: Build landing (static export)
         run: pnpm --filter "@chiliztv.com/landing" build
         env:
-          NEXT_PUBLIC_APP_URL: https://app-staging.chiliztv.com
-          NEXT_PUBLIC_API_URL: https://api-staging.chiliztv.com
+          NEXT_PUBLIC_APP_URL: https://app-staging.predcast.tv
+          NEXT_PUBLIC_API_URL: https://api-staging.predcast.tv
           NEXT_PUBLIC_DYNAMIC_ENVIRONMENT_ID: 8d9de814-ed4b-479a-ab44-277b7ca94076
           NEXT_PUBLIC_STAGING_DYNAMIC_ENVIRONMENT_ID: 8d9de814-ed4b-479a-ab44-277b7ca94076
           NEXT_PUBLIC_STAGING: 'true'
@@ -66,7 +66,7 @@ jobs:
         # Preview previews land on the staging project, isolated from prod.
         run: |
           OUTPUT=$(pnpm exec wrangler pages deploy apps/landing/out \
-            --project-name=chiliztv-landing \
+            --project-name=predcast-landing \
             --branch="$HEAD_REF" \
             --commit-hash=${{ github.sha }} 2>&1)
           echo "$OUTPUT"
@@ -78,7 +78,7 @@ jobs:
           HEAD_REF: ${{ github.head_ref }}
 
   # ── Staging deploy (push main) ────────────────────────────────────────────
-  # Targets the chiliztv-landing project, custom domain staging.chiliztv.com.
+  # Targets the predcast-landing project, custom domain staging.predcast.tv.
   build-deploy-staging:
     name: Staging deploy
     runs-on: ubuntu-latest
@@ -103,8 +103,8 @@ jobs:
       - name: Build landing (static export)
         run: pnpm --filter "@chiliztv.com/landing" build
         env:
-          NEXT_PUBLIC_APP_URL: https://app-staging.chiliztv.com
-          NEXT_PUBLIC_API_URL: https://api-staging.chiliztv.com
+          NEXT_PUBLIC_APP_URL: https://app-staging.predcast.tv
+          NEXT_PUBLIC_API_URL: https://api-staging.predcast.tv
           NEXT_PUBLIC_DYNAMIC_ENVIRONMENT_ID: 8d9de814-ed4b-479a-ab44-277b7ca94076
           NEXT_PUBLIC_STAGING_DYNAMIC_ENVIRONMENT_ID: 8d9de814-ed4b-479a-ab44-277b7ca94076
           NEXT_PUBLIC_STAGING: 'true'
@@ -113,7 +113,7 @@ jobs:
         id: deploy
         run: |
           OUTPUT=$(pnpm exec wrangler pages deploy apps/landing/out \
-            --project-name=chiliztv-landing \
+            --project-name=predcast-landing \
             --branch=main \
             --commit-hash=${{ github.sha }} 2>&1)
           echo "$OUTPUT"
@@ -124,7 +124,7 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
 
   # ── Production deploy (tag v*.*.*) ────────────────────────────────────────
-  # Targets the chiliztv-landing-prod project, custom domain chiliztv.com (to
+  # Targets the predcast-landing-prod project, custom domain predcast.tv (to
   # be attached on CF Pages before the first prod tag).
   build-deploy-production:
     name: Production deploy
@@ -151,8 +151,8 @@ jobs:
       - name: Build landing (static export)
         run: pnpm --filter "@chiliztv.com/landing" build
         env:
-          NEXT_PUBLIC_APP_URL: https://app.chiliztv.com
-          NEXT_PUBLIC_API_URL: https://api.chiliztv.com
+          NEXT_PUBLIC_APP_URL: https://app.predcast.tv
+          NEXT_PUBLIC_API_URL: https://api.predcast.tv
           NEXT_PUBLIC_DYNAMIC_ENVIRONMENT_ID: 8d9de814-ed4b-479a-ab44-277b7ca94076
           NEXT_PUBLIC_STAGING_DYNAMIC_ENVIRONMENT_ID: 8d9de814-ed4b-479a-ab44-277b7ca94076
           NEXT_PUBLIC_STAGING: 'false'
@@ -161,7 +161,7 @@ jobs:
         id: deploy
         run: |
           OUTPUT=$(pnpm exec wrangler pages deploy apps/landing/out \
-            --project-name=chiliztv-landing-prod \
+            --project-name=predcast-landing-prod \
             --branch=main \
             --commit-hash=${{ github.sha }} 2>&1)
           echo "$OUTPUT"
@@ -213,9 +213,9 @@ jobs:
     needs: build-deploy-staging
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     steps:
-      - name: GET https://staging.chiliztv.com
+      - name: GET https://staging.predcast.tv
         run: |
-          STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 15 https://staging.chiliztv.com/)
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 15 https://staging.predcast.tv/)
           if [ "$STATUS" = "200" ]; then
             echo "Landing smoke passed (HTTP $STATUS)"
           else
@@ -224,17 +224,17 @@ jobs:
           fi
 
   # ── Production smoke (tag deploy only) ────────────────────────────────────
-  # Will fail until the chiliztv.com custom domain is attached to the
-  # chiliztv-landing-prod project on CF Pages.
+  # Will fail until the predcast.tv custom domain is attached to the
+  # predcast-landing-prod project on CF Pages.
   smoke-production:
     name: Smoke production
     runs-on: ubuntu-latest
     needs: build-deploy-production
     if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
     steps:
-      - name: GET https://chiliztv.com
+      - name: GET https://predcast.tv
         run: |
-          STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 15 https://chiliztv.com/)
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 15 https://predcast.tv/)
           if [ "$STATUS" = "200" ]; then
             echo "Landing smoke passed (HTTP $STATUS)"
           else

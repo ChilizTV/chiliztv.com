@@ -20,7 +20,7 @@ permissions:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ghcr.io/chiliztv/chiliztv-backend
+  IMAGE_NAME: ghcr.io/predcast/chiliztv-backend
 
 jobs:
   # ── Build and push Docker image to GHCR ──────────────────────────────────

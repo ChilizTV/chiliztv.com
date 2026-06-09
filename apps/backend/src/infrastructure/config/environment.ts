@@ -19,9 +19,43 @@ const envSchema = z.object({
   // this list are dropped post-fetch (the `/fixtures` endpoint isn't filterable
   // by multi-league when used with date/live params). Set to a single ID to
   // restrict ingest — e.g. `2` for UEFA Champions League only.
+  //
+  // Default below is the canonical Predcast allowlist (~45 competitions):
+  //   - Top 9 domestic leagues (Ligue 1, La Liga, PL, Bundesliga, Serie A,
+  //     Eredivisie, Primeira Liga, Süper Lig, Brasileirão)
+  //   - All matching domestic cups + super cups (knockout)
+  //   - UEFA club competitions (UCL, UEL, UECL, Super Cup)
+  //   - UEFA Nations (Euro, Euro Quali, Nations League)
+  //   - FIFA World Cup + all confederation qualifiers
+  //   - Copa America, AFCON, CONMEBOL Libertadores / Sudamericana / Recopa
+  //
+  // Override in staging / dev via the .env file when you want a narrower scope
+  // (faster sync, lower API quota burn). Update the master list via the
+  // referential doc in docs/footballeagues.md — keep this default in sync.
   API_FOOTBALL_LEAGUE_IDS: z
     .string()
-    .default('2,3,15,39,61,78,135,140,743')
+    .default(
+      [
+        // Top 5 European leagues
+        61, 140, 39, 78, 135,
+        // Other priority domestic leagues
+        88, 94, 203, 71,
+        // Domestic cups (knockout)
+        66, 143, 45, 48, 81, 137, 90, 96, 97, 206, 73,
+        // Super cups (single-match knockout)
+        526, 556, 528, 529, 547, 92, 550, 75,
+        // UEFA club competitions
+        2, 3, 848, 531,
+        // UEFA nations
+        4, 960, 5,
+        // FIFA World Cup + qualifications
+        1, 32, 34, 31, 29, 30, 33,
+        // Other confederations — nations
+        9, 6,
+        // CONMEBOL clubs
+        13, 11, 541,
+      ].join(','),
+    )
     .transform((raw) =>
       raw
         .split(',')

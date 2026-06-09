@@ -185,7 +185,11 @@ export class SyncMatchesUseCase {
         // can't be retro-fitted. Drift typically means API-Football reclassified
         // a fixture (rare — happens on competition format changes mid-season).
         const freshKnockout = isKnockoutMatch({
-            league: { type: raw.leagueType ?? undefined, round: raw.leagueRound ?? undefined },
+            league: {
+                id: raw.leagueId,
+                type: raw.leagueType ?? undefined,
+                round: raw.leagueRound ?? undefined,
+            },
         });
         const existingIsKnockout = existingJson.isKnockout === true;
         if (existingIsKnockout !== freshKnockout) {
@@ -258,7 +262,11 @@ export class SyncMatchesUseCase {
         // is seeded with or without the FULL_TIME_WINNER market at this
         // moment and cannot be retro-fitted later).
         const isKnockout = isKnockoutMatch({
-            league: { type: raw.leagueType ?? undefined, round: raw.leagueRound ?? undefined },
+            league: {
+                id: raw.leagueId,
+                type: raw.leagueType ?? undefined,
+                round: raw.leagueRound ?? undefined,
+            },
         });
 
         const newMatch = Match.create({

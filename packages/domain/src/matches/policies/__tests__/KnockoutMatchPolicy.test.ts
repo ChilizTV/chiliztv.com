@@ -72,3 +72,60 @@ describe('isKnockoutMatch — negative (regular league rounds)', () => {
         expect(isKnockoutMatch({ league: {} })).toBe(false);
     });
 });
+
+describe('isKnockoutMatch — primary signal via PURE_KNOCKOUT_LEAGUE_IDS', () => {
+    it('returns true for Coupe de France (id=66) even with native French round label', () => {
+        // Real-world payload: round localised in French, type missing → only
+        // the league.id signal can resolve this correctly.
+        expect(isKnockoutMatch({ league: { id: 66, round: '32e tour' } })).toBe(true);
+    });
+
+    it('returns true for FA Cup (id=45) regardless of round', () => {
+        expect(isKnockoutMatch({ league: { id: 45, round: 'Third Round' } })).toBe(true);
+    });
+
+    it('returns true for Carabao Cup (id=48)', () => {
+        expect(isKnockoutMatch({ league: { id: 48, round: 'Round 4' } })).toBe(true);
+    });
+
+    it('returns true for DFB-Pokal (id=81)', () => {
+        expect(isKnockoutMatch({ league: { id: 81, round: '1. Runde' } })).toBe(true);
+    });
+
+    it('returns true for Copa do Brasil (id=73)', () => {
+        expect(isKnockoutMatch({ league: { id: 73, round: 'Terceira Fase' } })).toBe(true);
+    });
+
+    it('returns true for UEFA Super Cup (id=531) Final', () => {
+        expect(isKnockoutMatch({ league: { id: 531, round: 'Final' } })).toBe(true);
+    });
+
+    it('respects the 1st-leg exclusion even when leagueId is a super cup', () => {
+        // Recopa is 2-legged (single fixture rounds in some seasons, two-legged
+        // in others). The 1st leg never goes to AET — exclusion wins over the
+        // PURE_KNOCKOUT_LEAGUE_IDS signal.
+        expect(isKnockoutMatch({ league: { id: 541, round: 'Final - 1st Leg' } })).toBe(false);
+    });
+
+    it('returns true for Recopa Final (no leg suffix → assumed single)', () => {
+        expect(isKnockoutMatch({ league: { id: 541, round: 'Final' } })).toBe(true);
+    });
+
+    it('returns false for Premier League (id=39) regardless of round label', () => {
+        // 39 is NOT in PURE_KNOCKOUT_LEAGUE_IDS — League type with normal round.
+        expect(isKnockoutMatch({ league: { id: 39, round: 'Regular Season - 1' } })).toBe(false);
+    });
+
+    it('respects the group-stage exclusion even when leagueId is a cup ID (defensive)', () => {
+        // Hypothetical defensive case — should never happen with real
+        // API-Football data (cups don't have group stages) but the policy
+        // must stay deterministic.
+        expect(isKnockoutMatch({ league: { id: 66, round: 'Group Stage' } })).toBe(false);
+    });
+
+    it('falls back to round regex when leagueId is unknown but round is a knockout label', () => {
+        // CL Round of 16 (id=2 is NOT in PURE_KNOCKOUT — UCL has group + knockout)
+        // — round regex catches it.
+        expect(isKnockoutMatch({ league: { id: 2, round: 'Round of 16 - 2nd Leg' } })).toBe(true);
+    });
+});

@@ -2,6 +2,12 @@ name: DB migrate
 
 on:
   workflow_dispatch:
+    inputs:
+      target:
+        description: 'Environment to migrate'
+        type: choice
+        options: [staging, production]
+        default: staging
   push:
     branches:
       - main
@@ -46,7 +52,7 @@ jobs:
     # Staging migrates on every main push (mirrors `:main` image builds in
     # CI). Tag pushes skip this job — they're for prod releases, and the
     # `staging` env policy doesn't allow tag refs anyway.
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/main' && (github.event_name != 'workflow_dispatch' || inputs.target == 'staging')
     environment: staging
     steps:
       - uses: actions/checkout@v4
@@ -110,7 +116,9 @@ jobs:
     # push — a `needs: migrate-staging` here would propagate that skip and
     # silently fail prod (the bug we just lived through with v1.1.x).
     needs: validate-sequence
-    if: startsWith(github.ref, 'refs/tags/v')
+    # Tag push = release flow. workflow_dispatch with target=production allows
+    # out-of-band runs (e.g. history repair) without cutting a new tag.
+    if: startsWith(github.ref, 'refs/tags/v') || (github.event_name == 'workflow_dispatch' && inputs.target == 'production')
     environment: production
     steps:
       - uses: actions/checkout@v4
@@ -138,9 +146,15 @@ jobs:
         run: |
           supabase login --token "$SUPABASE_ACCESS_TOKEN"
           supabase link --project-ref "$SUPABASE_PROJECT_REF" --password "$SUPABASE_DB_PASSWORD"
-          # Same baseline as staging — prod schema was set up manually before
-          # the migration system existed. See migrate-staging for context.
-          for v in 000 001 002 003 004 005 006 007 008 009 010 011 012 013 014 015 016 017 018 019 020; do
+          # Diagnostic: log local vs remote history before touching anything.
+          supabase migration list --linked || true
+          # Baseline through 035: prod schema was maintained out-of-band until
+          # migrate-prod first actually ran (v1.2.0 — every object up to 035
+          # already existed; the push died on 030's non-idempotent constraint).
+          # Marking them applied prevents re-running them — critical for 022,
+          # whose DROP TABLE bets would wipe live indexer data on a re-run.
+          # `repair --status applied` no-ops on already-tracked versions.
+          for v in 000 001 002 003 004 005 006 007 008 009 010 011 012 013 014 015 016 017 018 019 020 021 022 023 024 025 026 027 028 029 030 031 032 033 034 035; do
             supabase migration repair --status applied "$v" || true
           done
           supabase db push

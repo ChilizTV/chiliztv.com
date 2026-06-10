@@ -3,7 +3,7 @@ import Link from "next/link";
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
 
-const X_URL = "https://x.com/predcast";
+const X_URL = "https://x.com/ChilizTv";
 const DISCORD_URL = "https://discord.gg";
 
 const NAV_LINKS: { label: string; href: string; external?: boolean }[] = [

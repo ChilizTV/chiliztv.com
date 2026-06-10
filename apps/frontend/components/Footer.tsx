@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 
-const X_URL = "https://x.com/predcast";
+const X_URL = "https://x.com/ChilizTv";
 const DISCORD_URL = "https://discord.gg" //Q8Bu8HpT;
 
 const NAV_LINKS: { label: string; href: string }[] = [

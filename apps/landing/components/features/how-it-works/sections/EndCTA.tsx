@@ -1,4 +1,4 @@
-import { GateInline } from "@/components/features/access/GateInline";
+import { LaunchAppCta } from "@/components/features/access/LaunchAppCta";
 import { SHELL } from "../components/ChapterShell";
 
 export function EndCTA() {
@@ -29,9 +29,9 @@ export function EndCTA() {
             Ready to <span className="text-[#E8001D]">play?</span>
           </h2>
           <p className="m-0 mb-10 max-w-135 text-[18px] font-light leading-[1.55] text-white/65">
-            Join the waitlist or enter your access code to get in.
+            The app is live — jump in and take your side.
           </p>
-          <GateInline />
+          <LaunchAppCta />
         </div>
       </div>
     </section>

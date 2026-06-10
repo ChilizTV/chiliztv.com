@@ -1,4 +1,4 @@
-import { GateInline } from "@/components/features/access/GateInline";
+import { LaunchAppCta } from "@/components/features/access/LaunchAppCta";
 
 export function FinalCTA() {
   return (
@@ -27,9 +27,9 @@ export function FinalCTA() {
           <span className="text-[#E8001D]">Take your side.</span>
         </h2>
         <p className="mx-auto mb-10 max-w-[520px] text-[18px] font-light leading-[1.5] text-white/65">
-          Join the waitlist or enter your access code to get in.
+          The app is live — jump straight in.
         </p>
-        <GateInline centered />
+        <LaunchAppCta centered />
       </div>
     </section>
   );

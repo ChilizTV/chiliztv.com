@@ -2,7 +2,7 @@ import Image from "next/image";
 import oddsCardImg from "@/public/oddsCard.png";
 import { BackgroundFX } from "./landing/BackgroundFX";
 import { SmokeBackground } from "@chiliztv/ui";
-import { GateInline } from "./features/access/GateInline";
+import { LaunchAppCta } from "./features/access/LaunchAppCta";
 
 const META_LABELS = ["Streams live", "Markets open", "Volume staked", "Settled today"];
 
@@ -57,7 +57,7 @@ export function HeroSection() {
               entirely on Chiliz Chain.
             </p>
 
-            <GateInline />
+            <LaunchAppCta />
 
             <div className="mt-12 border-t border-[#1E1E1E] pt-7">
               <div className="font-mono-ctv mb-5 inline-flex items-center gap-2 text-[10px] uppercase tracking-[0.16em] text-[#E8001D]">

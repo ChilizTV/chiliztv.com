@@ -1,4 +1,5 @@
-import { GateInline } from "@/components/features/access/GateInline";
+import Link from "next/link";
+
 import { SHELL } from "../components/ChapterShell";
 
 export function EndCTA() {
@@ -29,9 +30,15 @@ export function EndCTA() {
             Ready to <span className="text-[#E8001D]">play?</span>
           </h2>
           <p className="m-0 mb-10 max-w-135 text-[18px] font-light leading-[1.55] text-white/65">
-            Join the waitlist or enter your access code to get in.
+            The app is live — jump in and take your side.
           </p>
-          <GateInline />
+          <Link
+            href="/browse"
+            className="font-mono-ctv inline-block rounded-md bg-[#E8001D] px-7 py-4 text-[14px] font-bold uppercase tracking-[0.06em] text-white transition-all hover:-translate-y-px hover:bg-[#FF1737]"
+            style={{ boxShadow: "0 8px 32px rgba(232,0,29,0.25)" }}
+          >
+            Browse matches
+          </Link>
         </div>
       </div>
     </section>

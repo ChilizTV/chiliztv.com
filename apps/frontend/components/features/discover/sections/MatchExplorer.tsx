@@ -163,7 +163,6 @@ export function MatchExplorer({
                                 now={now}
                                 totalPool={total}
                                 onPredict={goToMatch}
-                                onWatch={goToMatch}
                             />
                         );
                     })

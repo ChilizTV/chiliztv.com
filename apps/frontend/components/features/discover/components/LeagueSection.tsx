@@ -9,12 +9,11 @@ interface LeagueSectionProps {
     /** Sum of `totalPool` for every match in the league (raw USDC). */
     readonly totalPool: bigint;
     readonly onPredict: (m: FlatMatch) => void;
-    readonly onWatch: (m: FlatMatch) => void;
 }
 
 /**
  * League band on `/browse` — design header (league name + match count +
- * "Total staked $X" on the right) over a 3-col grid of donut cards. Pure
+ * "Total staked $X" on the right) over a 3-col grid of stake cards. Pure
  * presentational; the parent owns filtering, grouping, and the live pool
  * snapshot that feeds `totalPool`.
  */
@@ -25,7 +24,6 @@ export function LeagueSection({
     now,
     totalPool,
     onPredict,
-    onWatch,
 }: LeagueSectionProps) {
     return (
         <section className="mb-12">
@@ -64,7 +62,6 @@ export function LeagueSection({
                         match={m}
                         now={now}
                         onPredict={onPredict}
-                        onWatch={onWatch}
                     />
                 ))}
             </div>

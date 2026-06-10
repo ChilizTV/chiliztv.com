@@ -1,6 +1,6 @@
 "use client";
 
-import { BeFirstCard, Eyebrow } from "../components";
+import { Eyebrow, MatchCardDonut } from "../components";
 import type { FlatMatch } from "../domain";
 
 interface BeFirstStripProps {
@@ -14,6 +14,11 @@ interface BeFirstStripProps {
  * on the discover page. Surfaces upcoming matches whose WINNER pool is
  * still at zero so users can nudge the first stake. Pure presentation;
  * empty-pool filtering happens upstream in {@link useMatchesByPoolStatus}.
+ *
+ * Uses the same {@link MatchCardDonut} as the main grid — the card already
+ * branches into a `befirst` magnetic stake-zone when the pool is empty and
+ * a `pending` shimmer when the contract is still deploying, so the strip
+ * stays a pure layout shell (eyebrow + grid + per-card delegation).
  */
 export function BeFirstStrip({ matches, now, onPredict }: BeFirstStripProps) {
     if (matches.length === 0) return null;
@@ -31,12 +36,12 @@ export function BeFirstStrip({ matches, now, onPredict }: BeFirstStripProps) {
                         </h3>
                     </div>
                     <span className="font-mono-ctv hidden max-w-[300px] text-right text-[10px] uppercase leading-[1.5] tracking-[0.14em] text-white/45 sm:inline">
-                        No one staked yet. Reference odds shown for context — your stake sets the first implied probability.
+                        No one staked yet — your stake sets the first implied probability.
                     </span>
                 </div>
                 <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                     {matches.map((m) => (
-                        <BeFirstCard key={m.id} match={m} now={now} onPredict={onPredict} />
+                        <MatchCardDonut key={m.id} match={m} now={now} onPredict={onPredict} />
                     ))}
                 </div>
             </div>

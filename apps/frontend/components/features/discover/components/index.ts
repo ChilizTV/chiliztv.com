@@ -5,8 +5,6 @@ export { LiveBadge } from "./LiveBadge";
 export { TeamLogo } from "./TeamLogo";
 export { OddsPill } from "./OddsPill";
 export { MatchCardDonut } from "./MatchCardDonut";
-export { Donut, DONUT_SEGMENT_COLORS } from "./Donut";
-export { BeFirstCard } from "./BeFirstCard";
 export { StreamCard } from "./StreamCard";
 export { FilterBar, leagueKey } from "./FilterBar";
 export type { TabDescriptor } from "./FilterBar";

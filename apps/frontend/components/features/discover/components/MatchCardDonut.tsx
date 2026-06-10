@@ -7,34 +7,50 @@ import {
     getCountdown,
     getMinute,
     isLive,
-    shortName,
     type FlatMatch,
 } from "../domain";
 import { fmtMatchScore } from "@chiliztv/domain/matches/format/matchScore";
 import { useMatchPoolDistribution } from "../hooks";
 import { TeamFormBadge } from "@/components/shared/TeamFormBadge";
-import { Donut, donutColor } from "./Donut";
 import { TeamLogo } from "./TeamLogo";
-
-const ACCENT = "#E8001D";
+import { PendingPanel } from "./PendingPanel";
+import { BeFirstBar } from "./BeFirstBar";
+import { DistributionBar } from "./DistributionBar";
+import { StakeZone } from "./StakeZone";
 
 /**
- * Donut match card — radial 1X2 distribution + per-row legend + footer
- * CTA. Branches over the shape returned by `useMatchPoolDistribution`:
- *   - `source: 'pool'`  → live shares, `Pool · $X` caption
- *   - `source: 'empty'` → dashed donut + "Be first to stake" CTA
+ * Match card — "Magnetic stake" layout from the claude.ai/design handoff
+ * (Match Card - Balanced.html). The card has three mutually-exclusive
+ * lower-block states, decided in this order:
+ *
+ *   1. `pending`  — `contractAddress == null`. Worker is still deploying
+ *                   the proxy on-chain. Shows the shimmer "Markets opening
+ *                   soon" panel. No CTA.
+ *   2. `befirst`  — contract deployed but every market pool is empty
+ *                   (`distribution.source === 'empty'`). Magnetic red
+ *                   stake zone with "Be first / Your stake sets the
+ *                   price" framing — explains the pari-mutuel mechanic
+ *                   without words.
+ *   3. `live`     — at least one market has volume. Distribution bar +
+ *                   magnetic red stake zone surfacing the growing pool $.
+ *
+ * The stake zone is full-bleed against the card bottom (`-mx-5 -mb-4`)
+ * so it reads as the card's base, not a footer button. The pari-mutuel
+ * selling point — a real, growing pool — lives ON the red surface, so
+ * value and action are a single object.
+ *
+ * Sub-blocks live in dedicated files: {@link PendingPanel}, {@link BeFirstBar},
+ * {@link DistributionBar}, {@link StakeZone}. This orchestrator stays thin.
  */
 export function MatchCardDonut({
     match,
     now,
     onPredict,
-    onWatch,
 }: {
     match: FlatMatch;
     /** `null` until the client clock has been initialised post-hydration. */
     now: Date | null;
     onPredict?: (match: FlatMatch) => void;
-    onWatch?: (match: FlatMatch) => void;
 }) {
     const live = isLive(match.status);
     const minute = live ? getMinute(match.status, match.kickoffAt, now, match.elapsed) : null;
@@ -44,25 +60,53 @@ export function MatchCardDonut({
         contractAddress: match.contractAddress,
     });
 
-    const homeShort = useMemo(() => shortName(match.homeTeam.name), [match.homeTeam.name]);
-    const awayShort = useMemo(() => shortName(match.awayTeam.name), [match.awayTeam.name]);
+    const pending = match.contractAddress == null;
+    const isBeFirst = !pending && distribution.source === "empty";
+    const isStakeable = !pending && distribution.source === "pool";
+
+    const fmt = useMemo(
+        () =>
+            fmtMatchScore({
+                status: match.status,
+                score: match.score,
+                scoreBreakdown: match.scoreBreakdown,
+            }),
+        [match.status, match.score, match.scoreBreakdown],
+    );
 
     return (
         <article
-            className="group relative flex w-full flex-col overflow-hidden rounded-xl border bg-[#111] transition-all duration-200 hover:border-[#2A2A2A]"
-            style={{ borderColor: live ? "rgba(232,0,29,0.35)" : "#1E1E1E" }}
+            className={[
+                // base — flex column card, brand surface
+                "group relative flex w-full flex-col rounded-xl border bg-[#111] px-5 pb-4 pt-4",
+                // hover lifts the card and lays a soft shadow under it. Slower
+                // than the stake-zone (300ms vs 220ms) so the zone reads as
+                // the focal magnet and the card body as supporting motion.
+                // `motion-safe:` skips the transform/shadow for users with
+                // `prefers-reduced-motion: reduce`; the border-color cue stays.
+                "transition-all duration-300 ease-out",
+                "motion-safe:hover:-translate-y-0.5",
+                // border + hover shadow — red-tinted for live cards, neutral
+                // dark for the rest. Border color is in the className (not
+                // inline) so the `hover:` modifier can actually override it.
+                live
+                    ? "border-[#E8001D]/35 motion-safe:hover:shadow-[0_14px_36px_-14px_rgba(232,0,29,0.35)]"
+                    : "border-[#1E1E1E] hover:border-[#2A2A2A] motion-safe:hover:shadow-[0_14px_36px_-14px_rgba(0,0,0,0.55)]",
+            ].join(" ")}
         >
             {live && (
                 <span
                     aria-hidden
                     className="absolute inset-x-0 top-0 h-px"
                     style={{
-                        background: "linear-gradient(90deg, transparent, #E8001D, transparent)",
+                        background:
+                            "linear-gradient(90deg, transparent, #E8001D, transparent)",
                     }}
                 />
             )}
 
-            <div className="flex items-center justify-between gap-3 px-5 pb-3 pt-4">
+            {/* Header — league + status chip */}
+            <div className="flex items-center justify-between gap-3 pb-4">
                 <div className="font-mono-ctv flex min-w-0 items-center gap-2.5 text-[10px] font-bold uppercase tracking-[0.16em] text-white/65">
                     <span aria-hidden className="block h-0.5 w-3.5 shrink-0 bg-[#E8001D]" />
                     <span className="truncate">{match.leagueName}</span>
@@ -90,8 +134,9 @@ export function MatchCardDonut({
                 )}
             </div>
 
+            {/* Teams + score / kickoff */}
             <div
-                className="grid items-center gap-3 px-5 py-4"
+                className="grid items-start gap-3 pb-4"
                 style={{ gridTemplateColumns: "1fr auto 1fr" }}
             >
                 <div className="flex min-w-0 flex-col items-start gap-2.5">
@@ -102,35 +147,19 @@ export function MatchCardDonut({
                     <TeamFormBadge form={match.homeForm} size="sm" />
                 </div>
 
-                <div className="flex flex-col items-center gap-1 px-1">
-                    {(() => {
-                        // Single helper invocation — picks AET/PEN/FT branch.
-                        // For live and FT we render the primary; the optional
-                        // suffix ("a.e.t." / "pen") goes under in mono.
-                        const fmt = fmtMatchScore({
-                            status: match.status,
-                            score: match.score,
-                            scoreBreakdown: match.scoreBreakdown,
-                        });
-                        if (fmt.variant === 'none') return null;
-                        const liveColor = live ? ACCENT : undefined;
-                        return (
-                            <>
-                                <div
-                                    className={`font-display text-[42px] font-extrabold leading-none tracking-[-0.02em] ${live ? '' : 'text-white/85'}`}
-                                    style={liveColor ? { color: liveColor } : undefined}
-                                >
-                                    {fmt.primary}
-                                </div>
-                                {fmt.suffix && (
-                                    <span className="font-mono-ctv text-[9px] uppercase tracking-[0.16em] text-white/45">
-                                        {fmt.suffix}
-                                    </span>
-                                )}
-                            </>
-                        );
-                    })()}
-                    {!match.score && (
+                <div className="flex flex-col items-center gap-1 px-1 pt-1">
+                    {fmt.variant !== "none" ? (
+                        <>
+                            <div className="font-display whitespace-nowrap text-[40px] font-extrabold leading-none tracking-[-0.02em] text-white/90">
+                                {fmt.primary}
+                            </div>
+                            {fmt.suffix && (
+                                <span className="font-mono-ctv text-[9px] uppercase tracking-[0.16em] text-white/45">
+                                    {fmt.suffix}
+                                </span>
+                            )}
+                        </>
+                    ) : (
                         <>
                             <span className="font-mono-ctv text-[10px] uppercase tracking-[0.18em] text-white/45">
                                 vs
@@ -145,135 +174,38 @@ export function MatchCardDonut({
                     )}
                 </div>
 
-                <div className="flex min-w-0 flex-col items-end gap-2.5">
+                <div className="flex min-w-0 flex-col items-end gap-2.5 text-right">
                     <TeamLogo name={match.awayTeam.name} logo={match.awayTeam.logoUrl} size={42} />
-                    <span className="font-display w-full truncate text-right text-[16px] font-bold uppercase leading-none tracking-[-0.005em] text-white">
+                    <span className="font-display w-full truncate text-[16px] font-bold uppercase leading-none tracking-[-0.005em] text-white">
                         {match.awayTeam.name}
                     </span>
                     <TeamFormBadge form={match.awayForm} size="sm" />
                 </div>
             </div>
 
-            <div className="flex items-center gap-4 px-5 pb-4">
-                <div
-                    className="relative flex shrink-0 items-center justify-center"
-                    style={{ width: 96, height: 96 }}
-                >
-                    {distribution.source === "empty" ? (
-                        <div className="flex h-full w-full items-center justify-center rounded-full border border-dashed border-[#2A2A2A] p-2 text-center font-mono-ctv text-[9px] uppercase tracking-[0.16em] text-white/35">
-                            No reference yet
-                        </div>
-                    ) : (
-                        distribution.shares && distribution.favIdx !== null && (
-                            <>
-                                <Donut shares={distribution.shares} favIdx={distribution.favIdx} />
-                                <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
-                                    <span
-                                        className="font-display text-[22px] font-extrabold leading-none tracking-[-0.02em]"
-                                        style={{ color: donutColor(distribution.favIdx, distribution.shares.length) }}
-                                    >
-                                        {Math.round(distribution.shares[distribution.favIdx] * 100)}%
-                                    </span>
-                                    <span className="font-mono-ctv mt-1 text-[8px] uppercase tracking-[0.18em] text-white/55">
-                                        {distribution.outcomeLabels[distribution.favIdx] ?? "—"}
-                                    </span>
-                                </div>
-                            </>
-                        )
-                    )}
-                </div>
-
-                <div className="flex min-w-0 flex-1 flex-col gap-1.5">
-                    {/* Market badge — clarifies which market the donut is showing
-                        when the WINNER pool is empty and we fall back to e.g.
-                        GOALS_TOTAL. */}
-                    <div className="font-mono-ctv flex items-center gap-1.5 text-[9px] uppercase tracking-[0.16em] text-white/45">
-                        <span
-                            aria-hidden
-                            className="block h-px w-2.5"
-                            style={{ background: ACCENT }}
-                        />
-                        <span>{distribution.marketLabel}</span>
-                    </div>
-                    {(distribution.outcomeLabels.length > 0
-                        ? distribution.outcomeLabels
-                        : ["Home", "Draw", "Away"]
-                    ).map((rawLabel, i, arr) => {
-                        const isFav = distribution.favIdx === i;
-                        const pct = distribution.shares
-                            ? Math.round((distribution.shares[i] ?? 0) * 100)
-                            : null;
-                        const label =
-                            distribution.marketKey === "winner" || distribution.marketKey === "halftime"
-                                ? i === 0
-                                    ? `${homeShort} win`
-                                    : i === arr.length - 1
-                                        ? `${awayShort} win`
-                                        : rawLabel
-                                : rawLabel;
-                        return (
-                            <div key={`${distribution.marketKey}-${i}`} className="flex items-center gap-2">
-                                <span
-                                    aria-hidden
-                                    style={{
-                                        width: 8,
-                                        height: 8,
-                                        borderRadius: 2,
-                                        background: donutColor(i, arr.length),
-                                        opacity: isFav ? 1 : 0.45,
-                                    }}
-                                />
-                                <span className="font-mono-ctv flex-1 truncate text-[10px] uppercase tracking-[0.14em] text-white/55">
-                                    {label}
-                                </span>
-                                <span
-                                    className="font-display text-[13px] font-bold tracking-[-0.005em]"
-                                    style={{ color: isFav ? "#fff" : "rgba(255,255,255,0.65)" }}
-                                >
-                                    {pct === null ? "—" : `${pct}%`}
-                                </span>
-                            </div>
-                        );
-                    })}
-                </div>
-            </div>
-
-            <div className="mt-auto flex items-center gap-2 border-t border-[#1E1E1E] bg-[#0d0d0d] px-5 py-3">
-                <button
-                    type="button"
-                    onClick={() => onPredict?.(match)}
-                    className="font-mono-ctv flex flex-1 items-center justify-center gap-2 rounded-md bg-[#E8001D] px-4 py-2.5 text-[11px] font-bold uppercase tracking-[0.14em] text-white transition-all hover:-translate-y-px hover:bg-[#FF1737] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E8001D] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0d0d0d]"
-                    style={{ boxShadow: "0 6px 20px rgba(232,0,29,0.25)" }}
-                >
-                    {distribution.source === "pool" ? "Stake" : "Be first to stake"}
-                    <span aria-hidden>→</span>
-                </button>
-                <div className="font-mono-ctv flex items-center gap-2 px-2 text-[10px] uppercase tracking-[0.14em] text-white/55">
-                    <span className="text-white/45">Pool</span>
-                    <span className="font-bold text-white">
-                        {distribution.source === "pool"
-                            ? fmtUsdcCompact(distribution.totalPool)
-                            : "—"}
-                    </span>
-                </div>
-                <button
-                    type="button"
-                    onClick={() => onWatch?.(match)}
-                    aria-label={`Watch ${match.homeTeam.name} vs ${match.awayTeam.name}`}
-                    className="flex h-9 w-10 items-center justify-center rounded-md border border-[#2A2A2A] bg-transparent text-white/65 transition-colors hover:border-[#E8001D] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E8001D]"
-                >
-                    <span
-                        aria-hidden
-                        style={{
-                            width: 0,
-                            height: 0,
-                            borderLeft: "8px solid currentColor",
-                            borderTop: "5px solid transparent",
-                            borderBottom: "5px solid transparent",
-                        }}
+            {/* Lower block — branches by state */}
+            {pending ? (
+                <PendingPanel />
+            ) : isBeFirst ? (
+                <>
+                    <BeFirstBar marketLabel={distribution.marketLabel} />
+                    <StakeZone variant="befirst" onClick={() => onPredict?.(match)} />
+                </>
+            ) : isStakeable ? (
+                <>
+                    <DistributionBar
+                        shares={distribution.shares ?? []}
+                        labels={distribution.outcomeLabels}
+                        favIdx={distribution.favIdx}
                     />
-                </button>
-            </div>
+                    <StakeZone
+                        variant="live"
+                        pool={fmtUsdcCompact(distribution.totalPool)}
+                        marketLabel={distribution.marketLabel}
+                        onClick={() => onPredict?.(match)}
+                    />
+                </>
+            ) : null}
         </article>
     );
 }

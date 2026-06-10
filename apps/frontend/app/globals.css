@@ -146,6 +146,59 @@
 .ctv-pulse-dot {
   animation: ctv-pulse 1.2s infinite;
 }
+
+/* Stake card — "Markets opening soon" state. Slow soft pulse on the label,
+ * lateral shimmer on the panel. Both respect prefers-reduced-motion. */
+@keyframes ctv-soon-pulse {
+  0%, 100% { opacity: 0.55; }
+  50%      { opacity: 1; }
+}
+.ctv-soon-pulse { animation: ctv-soon-pulse 2.2s ease-in-out infinite; }
+
+@keyframes ctv-shimmer {
+  0%   { transform: translateX(-110%); }
+  100% { transform: translateX(210%); }
+}
+.ctv-shimmer { position: relative; overflow: hidden; }
+.ctv-shimmer::after {
+  content: ""; position: absolute; inset: 0; border-radius: inherit;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.07), transparent);
+  transform: translateX(-110%);
+  animation: ctv-shimmer 2.6s ease-in-out infinite;
+  pointer-events: none;
+}
+
+/* Stake card — magnetic red CTA that scales + glows on hover.
+ * Sits flush with the card's bottom edge (`-mx/-mb` in markup) so its
+ * full bleed is the visual "base" of the card. */
+.ctv-stake-zone {
+  transform-origin: bottom center;
+  transition:
+    transform .22s cubic-bezier(.2,.7,.3,1),
+    box-shadow .3s ease,
+    background-color .15s ease;
+  box-shadow:
+    0 6px 20px -10px rgba(232,0,29,0.45),
+    inset 0 1px 0 rgba(255,255,255,0.12);
+}
+.ctv-stake-zone:hover {
+  background-color: #FF1737;
+  transform: scale(1.025);
+  box-shadow:
+    0 20px 50px -12px rgba(232,0,29,0.7),
+    inset 0 1px 0 rgba(255,255,255,0.2);
+  z-index: 5;
+}
+.ctv-stake-zone:active { transform: scale(1.005); }
+.ctv-stake-zone .ctv-stake-arrow { transition: transform .2s ease; display: inline-block; }
+.ctv-stake-zone:hover .ctv-stake-arrow { transform: translateX(5px); }
+
+@media (prefers-reduced-motion: reduce) {
+  .ctv-soon-pulse,
+  .ctv-shimmer::after { animation: none !important; }
+  .ctv-stake-zone:hover { transform: none; }
+  .ctv-stake-zone .ctv-stake-arrow { transition: none; }
+}
 /* Leaderboard — invalid email shake on submit */
 @keyframes lb-shake {
   0%, 100% { transform: translateX(0); }

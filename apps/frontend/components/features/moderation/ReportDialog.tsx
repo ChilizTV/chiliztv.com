@@ -1,30 +1,17 @@
 'use client';
 
-import { useState } from 'react';
-import { Dialog, DialogContent, DialogTitle } from '@chiliztv/ui';
+import { useRef, useState } from 'react';
+import { ChevronLeft } from 'lucide-react';
+import { Dialog, DialogContent } from '@chiliztv/ui';
 import { toast } from 'sonner';
 
-import {
-  REPORT_REASON_CODES,
-  REASON_SEVERITY,
-  type ReportReasonCode,
-  type ReportTargetType,
-} from '@chiliztv/shared';
+import type { ReportReasonCode, ReportTargetType } from '@chiliztv/shared';
 
 import { useCreateReport } from '@/hooks/api/useCreateReport';
-
-const REASON_LABELS: Record<ReportReasonCode, string> = {
-  spam: 'Spam',
-  harassment: 'Harassment',
-  hate_speech: 'Hate speech',
-  violence: 'Violence',
-  sexual_content: 'Sexual content',
-  child_safety: 'Child safety',
-  illegal_content: 'Illegal content',
-  scam: 'Scam / fraud',
-  off_topic: 'Off topic',
-  other: 'Other',
-};
+import { REASON_GROUPS } from './domain/reasonGroups';
+import { ReasonGroup } from './ReasonGroup';
+import { ConfirmStep } from './ConfirmStep';
+import { ReportDialogHeader } from './ReportDialogHeader';
 
 interface ReportDialogProps {
   open: boolean;
@@ -35,6 +22,11 @@ interface ReportDialogProps {
   liveContextStreamId?: string;
 }
 
+/**
+ * Two-step report flow: severity-grouped reason picker → review & confirm
+ * (consequence note for fast-path reasons + optional details). Desktop is a
+ * centered card, small viewports get a bottom sheet — same content shell.
+ */
 export function ReportDialog({
   open,
   onClose,
@@ -43,17 +35,39 @@ export function ReportDialog({
   liveContextMatchId,
   liveContextStreamId,
 }: ReportDialogProps) {
+  const [step, setStep] = useState<0 | 1>(0);
+  const [direction, setDirection] = useState<'r' | 'l'>('r');
   const [reason, setReason] = useState<ReportReasonCode | null>(null);
   const [freeText, setFreeText] = useState('');
+  const bodyRef = useRef<HTMLDivElement | null>(null);
   const { mutateAsync: createReport, isPending } = useCreateReport();
 
   const reset = () => {
+    setStep(0);
+    setDirection('r');
     setReason(null);
     setFreeText('');
   };
 
-  const handleSubmit = async () => {
+  const close = () => {
+    reset();
+    onClose();
+  };
+
+  const goNext = () => {
     if (!reason) return;
+    setDirection('r');
+    setStep(1);
+    if (bodyRef.current) bodyRef.current.scrollTop = 0;
+  };
+
+  const goBack = () => {
+    setDirection('l');
+    setStep(0);
+  };
+
+  const handleSubmit = async () => {
+    if (!reason || isPending) return;
     try {
       await createReport({
         targetType,
@@ -66,19 +80,17 @@ export function ReportDialog({
       toast.success('Report submitted', {
         description: 'Thanks — the community review threshold applies.',
       });
-      reset();
-      onClose();
+      close();
     } catch (err: unknown) {
       const apiError = (err as {
         response?: { data?: { error?: { code?: string; details?: { reason?: string } } } };
       })?.response?.data?.error;
       const code = apiError?.code;
-      const reason = apiError?.details?.reason;
+      const errorReason = apiError?.details?.reason;
 
       if (code === 'CONFLICT') {
         toast.info('You already reported this');
-        reset();
-        onClose();
+        close();
         return;
       }
       if (code === 'ACCOUNT_BANNED') {
@@ -95,7 +107,7 @@ export function ReportDialog({
             description: 'Stay in the room a little longer, or place a first bet.',
           },
         };
-        const c = copy[reason ?? ''] ?? { title: 'This report is not allowed' };
+        const c = copy[errorReason ?? ''] ?? { title: 'This report is not allowed' };
         toast.warning(c.title, c.description ? { description: c.description } : undefined);
         return;
       }
@@ -103,70 +115,76 @@ export function ReportDialog({
     }
   };
 
+  const stepClass = direction === 'r' ? 'ctv-step-r' : 'ctv-step-l';
+  const footerBtn =
+    'font-mono-ctv rounded-md px-4 py-2.5 text-[11px] font-bold uppercase tracking-[0.14em] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E8001D]';
+
   return (
-    <Dialog open={open} onOpenChange={(o) => { if (!o) { reset(); onClose(); } }}>
-      <DialogContent className="max-w-[400px] border-[#1E1E1E] bg-[#0A0A0A] p-0">
-        <div className="border-b border-[#1E1E1E] px-5 py-4">
-          <DialogTitle asChild>
-            <div className="font-mono-ctv inline-flex items-center gap-2.5 text-[10px] font-bold uppercase tracking-[0.16em] text-[#E8001D]">
-              <span aria-hidden className="block h-0.5 w-4 bg-[#E8001D]" />
-              Report {targetType}
+    <Dialog open={open} onOpenChange={(o) => { if (!o) close(); }}>
+      <DialogContent
+        showCloseButton={false}
+        className="bottom-0 left-0 top-auto w-full max-w-full translate-x-0 translate-y-0 gap-0 rounded-t-2xl rounded-b-none border-[#1E1E1E] bg-[#0A0A0A] p-0 sm:bottom-auto sm:left-[50%] sm:top-[50%] sm:max-w-[400px] sm:translate-x-[-50%] sm:translate-y-[-50%] sm:rounded-2xl"
+      >
+        <div aria-hidden className="flex justify-center pb-0.5 pt-2.5 sm:hidden">
+          <span className="h-1 w-9 rounded-full bg-white/15" />
+        </div>
+
+        <ReportDialogHeader step={step} targetType={targetType} onClose={close} />
+
+        <div ref={bodyRef} className="max-h-[62dvh] overflow-y-auto overscroll-contain px-4 py-4 sm:max-h-[52dvh]">
+          {step === 0 ? (
+            <div key="s0" className={`${stepClass} flex flex-col gap-2.5`}>
+              <p className="px-1 pb-1 text-[12px] leading-snug text-white/45">
+                Pick the closest reason. Grouped by how fast moderation acts.
+              </p>
+              <div role="radiogroup" aria-label="Report reason" className="flex flex-col gap-2.5">
+                {REASON_GROUPS.map((g) => (
+                  <ReasonGroup key={g.id} group={g} reason={reason} onSelect={setReason} />
+                ))}
+              </div>
             </div>
-          </DialogTitle>
+          ) : (
+            <div key="s1" className={stepClass}>
+              {reason && (
+                <ConfirmStep reason={reason} freeText={freeText} onFreeTextChange={setFreeText} />
+              )}
+            </div>
+          )}
         </div>
 
-        <div className="max-h-[50dvh] overflow-y-auto p-3">
-          {REPORT_REASON_CODES.map((code) => {
-            const active = reason === code;
-            const severe = REASON_SEVERITY[code] >= 4;
-            return (
-              <button
-                key={code}
-                type="button"
-                onClick={() => setReason(code)}
-                className="flex w-full items-center justify-between rounded-md px-3 py-2.5 text-left transition-colors hover:bg-[#111]"
-                style={{
-                  border: `1px solid ${active ? '#E8001D' : 'transparent'}`,
-                  background: active ? 'rgba(232,0,29,0.08)' : undefined,
-                }}
-              >
-                <span className="text-[13px] text-white/85">{REASON_LABELS[code]}</span>
-                {severe && (
-                  <span className="font-mono-ctv text-[8px] uppercase tracking-[0.16em] text-[#E8001D]/70">
-                    Immediate review
-                  </span>
-                )}
-              </button>
-            );
-          })}
-
-          <textarea
-            value={freeText}
-            onChange={(e) => setFreeText(e.target.value)}
-            maxLength={500}
-            rows={2}
-            placeholder="Optional details…"
-            className="font-mono-ctv mt-3 w-full rounded-md border border-[#2A2A2A] bg-[#0d0d0d] px-3 py-2.5 text-[12px] text-white placeholder-white/35 outline-none transition-colors focus:border-[#E8001D]"
-          />
-        </div>
-
-        <div className="flex items-center justify-end gap-2 border-t border-[#1E1E1E] px-5 py-3.5">
-          <button
-            type="button"
-            onClick={() => { reset(); onClose(); }}
-            className="font-mono-ctv rounded-md border border-[#2A2A2A] px-4 py-2.5 text-[11px] font-bold uppercase tracking-[0.14em] text-white/55 transition-colors hover:border-[#3A3A3A] hover:text-white/80"
-          >
-            Cancel
-          </button>
-          <button
-            type="button"
-            onClick={handleSubmit}
-            disabled={!reason || isPending}
-            className="font-mono-ctv rounded-md bg-[#E8001D] px-5 py-2.5 text-[11px] font-bold uppercase tracking-[0.14em] text-white transition-colors hover:bg-[#FF1737] disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            {isPending ? 'Sending…' : 'Submit report'}
-          </button>
-        </div>
+        <footer className="flex items-center justify-between gap-2 border-t border-[#1E1E1E] bg-[#111] px-5 py-3.5">
+          {step === 0 ? (
+            <button type="button" onClick={close} className={`${footerBtn} border border-[#2A2A2A] text-white/55 hover:border-[#3A3A3A] hover:text-white/80`}>
+              Cancel
+            </button>
+          ) : (
+            <button type="button" onClick={goBack} className={`${footerBtn} inline-flex items-center gap-1.5 border border-[#2A2A2A] text-white/55 hover:border-[#3A3A3A] hover:text-white/80`}>
+              <ChevronLeft size={13} /> Back
+            </button>
+          )}
+          {step === 0 ? (
+            <button
+              type="button"
+              onClick={goNext}
+              disabled={!reason}
+              className={`${footerBtn} bg-[#E8001D] px-5 text-white hover:bg-[#FF1737] disabled:cursor-not-allowed disabled:bg-[#2A2A2A] disabled:text-white/30`}
+            >
+              Continue
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={handleSubmit}
+              disabled={isPending}
+              className={`${footerBtn} inline-flex items-center gap-2 bg-[#E8001D] px-5 text-white hover:bg-[#FF1737] disabled:cursor-not-allowed disabled:opacity-60`}
+            >
+              {isPending && (
+                <span aria-hidden className="block h-3 w-3 animate-spin rounded-full border-2 border-white/40 border-t-white" />
+              )}
+              {isPending ? 'Sending…' : 'Submit report'}
+            </button>
+          )}
+        </footer>
       </DialogContent>
     </Dialog>
   );

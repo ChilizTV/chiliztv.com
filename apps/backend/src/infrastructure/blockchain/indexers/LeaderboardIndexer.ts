@@ -12,11 +12,14 @@ import type { ILeaderboardEpochRepository } from '@chiliztv/domain/leaderboard/r
 import type { ILeaderboardClaimRepository } from '@chiliztv/domain/leaderboard/repositories/ILeaderboardClaimRepository';
 import { BaseIndexer } from './BaseIndexer';
 
+// Signatures MUST match LeaderboardRewards.sol V2 — a drifted parameter
+// list changes topic0 and the getLogs filter silently matches nothing
+// (incident 2026-06-11: V1 WinRecorded signature, empty board after claims).
 const WIN_RECORDED = parseAbiItem(
-    'event WinRecorded(address indexed match_, address indexed user, uint256 delta, uint256 newScore)',
+    'event WinRecorded(address indexed match_, address indexed user, uint256 indexed epochId, uint256 delta, uint256 newEpochScore)',
 );
-const EPOCH_CLOSED = parseAbiItem(
-    'event EpochClosed(uint256 indexed epochId, bytes32 merkleRoot, uint256 prizePool, uint256 claimExpiry)',
+const EPOCH_ADVANCED = parseAbiItem(
+    'event EpochAdvanced(uint256 indexed closedId, uint256 prizePool, uint256 totalScore, uint64 closedAt, uint64 claimExpiry)',
 );
 const PRIZE_CLAIMED = parseAbiItem(
     'event PrizeClaimed(uint256 indexed epochId, address indexed user, uint256 amount)',
@@ -25,31 +28,17 @@ const EPOCH_ROLLED_OVER = parseAbiItem(
     'event EpochRolledOver(uint256 indexed epochId, uint256 rolledOver)',
 );
 
-const ALL_EVENTS = [WIN_RECORDED, EPOCH_CLOSED, PRIZE_CLAIMED, EPOCH_ROLLED_OVER];
-
-const EPOCH_INDEX_ABI = [
-    {
-        type: 'function',
-        name: 'epochIndex',
-        inputs: [],
-        outputs: [{ type: 'uint256' }],
-        stateMutability: 'view',
-    },
-] as const;
+const ALL_EVENTS = [WIN_RECORDED, EPOCH_ADVANCED, PRIZE_CLAIMED, EPOCH_ROLLED_OVER];
 
 /**
- * Reads `LeaderboardRewards` events into the three leaderboard tables.
+ * Reads `LeaderboardRewards` V2 events into the three leaderboard tables.
  *
- *  - WinRecorded     → increment `leaderboard_scores.total_score`
- *  - EpochClosed     → flip the pending row (matched by tx_hash) to confirmed,
- *                      fill `epoch_id`, `prize_pool`, `claim_expiry`
+ *  - WinRecorded     → increment `leaderboard_scores` (lifetime + per-epoch;
+ *                      the cycle comes from the event's own `epochId`)
+ *  - EpochAdvanced   → record the closed epoch as confirmed (V2 advanceEpoch
+ *                      is permissionless — no pending CLI row, no merkle)
  *  - PrizeClaimed    → INSERT into `leaderboard_claims`
  *  - EpochRolledOver → flip the epoch row to `status='rolled_over'`
- *
- * If `EpochClosed` lands without a pre-existing pending row (e.g. someone
- * called `closeEpoch` via Etherscan, bypassing our CLI), the indexer still
- * marks it confirmed but with empty `leaves_json` — the claimable hook
- * filters those out because it can't build a merkle proof for them.
  */
 @injectable()
 export class LeaderboardIndexer extends BaseIndexer {
@@ -103,10 +92,6 @@ export class LeaderboardIndexer extends BaseIndexer {
             return (a.logIndex ?? 0) - (b.logIndex ?? 0);
         });
 
-        // Read epochIndex once per batch — mirrors on-chain state at batch start.
-        // EpochClosed handling below bumps this locally as it's processed inline.
-        let currentCycle = await this.readEpochIndex();
-
         const tsCache = await this.resolveBlockTimestamps(logs);
 
         for (const log of logs) {
@@ -116,14 +101,11 @@ export class LeaderboardIndexer extends BaseIndexer {
             try {
                 switch (eventName) {
                     case 'WinRecorded':
-                        await this.handleWinRecorded(args, currentCycle);
+                        await this.handleWinRecorded(args);
                         break;
-                    case 'EpochClosed': {
-                        const closedId = BigInt(args.epochId as bigint);
-                        if (closedId === currentCycle) currentCycle = currentCycle + 1n;
-                        await this.handleEpochClosed(log, args, tsCache);
+                    case 'EpochAdvanced':
+                        await this.handleEpochAdvanced(log, args);
                         break;
-                    }
                     case 'PrizeClaimed':
                         await this.handlePrizeClaimed(log, args, tsCache);
                         break;
@@ -141,75 +123,44 @@ export class LeaderboardIndexer extends BaseIndexer {
         }
     }
 
-    private async readEpochIndex(): Promise<bigint> {
-        try {
-            return (await this.client.readContract({
-                address: this.leaderboardAddress,
-                abi: EPOCH_INDEX_ABI,
-                functionName: 'epochIndex',
-            })) as bigint;
-        } catch (err) {
-            logger.warn(`${this.indexerName}: epochIndex() read failed, defaulting to 0`, {
-                error: err instanceof Error ? err.message : String(err),
-            });
-            return 0n;
-        }
-    }
-
-    private async handleWinRecorded(args: Record<string, unknown>, currentCycle: bigint): Promise<void> {
+    private async handleWinRecorded(args: Record<string, unknown>): Promise<void> {
         const user = (args.user as string).toLowerCase();
         const delta = BigInt(args.delta as bigint);
+        // V2 scopes scores per epoch on-chain — the event carries its epochId,
+        // so cycle attribution never depends on read-at-batch-start state.
+        const epochId = BigInt(args.epochId as bigint);
         // Dual-write: lifetime cumulative + per-cycle. The lifetime row is
         // kept for an eventual Hall of Fame surface (cf. plan §1 context).
         await this.scoreRepo.upsertScore(user, delta);
-        await this.scoreRepo.upsertCycleScore(currentCycle, user, delta);
+        await this.scoreRepo.upsertCycleScore(epochId, user, delta);
     }
 
-    private async handleEpochClosed(
+    private async handleEpochAdvanced(
         log: Log,
         args: Record<string, unknown>,
-        tsCache: Map<bigint, Date>,
     ): Promise<void> {
         const txHash = (log.transactionHash ?? '').toLowerCase();
-        const epochId = BigInt(args.epochId as bigint);
+        const closedId = BigInt(args.closedId as bigint);
         const prizePool = BigInt(args.prizePool as bigint);
-        const claimExpirySec = Number(args.claimExpiry as bigint);
-        const closedAt = log.blockNumber !== null && log.blockNumber !== undefined
-            ? tsCache.get(log.blockNumber) ?? new Date()
-            : new Date();
+        const claimExpiry = new Date(Number(args.claimExpiry as bigint) * 1000);
+        const closedAt = new Date(Number(args.closedAt as bigint) * 1000);
 
+        // V2 advanceEpoch is permissionless: there is never a pending CLI row.
+        // Insert-then-confirm reuses the V1 schema's ghost path; the insert is
+        // wrapped so a re-indexed range (tx_hash PK conflict) stays idempotent.
         try {
-            await this.epochRepo.markConfirmed({
-                txHash,
-                epochId,
-                prizePool,
-                claimExpiry: new Date(claimExpirySec * 1000),
-                closedAt,
-            });
-            logger.info(`${this.indexerName}: epoch confirmed`, { epochId: epochId.toString(), txHash });
-        } catch (err) {
-            // Pending row may not exist (someone called closeEpoch via
-            // Etherscan, bypassing the CLI). Fall back to insertPending with
-            // empty leaves — claim banner ignores it because no proof is
-            // reconstructable, but ops at least see the event in DB.
-            logger.warn(`${this.indexerName}: no pending epoch row, inserting confirmed ghost`, {
-                epochId: epochId.toString(),
-                txHash,
-                error: err instanceof Error ? err.message : String(err),
-            });
-            await this.epochRepo.insertPending({
-                txHash,
-                merkleRoot: (args.merkleRoot as string) ?? '0x',
-                leaves: [],
-            });
-            await this.epochRepo.markConfirmed({
-                txHash,
-                epochId,
-                prizePool,
-                claimExpiry: new Date(claimExpirySec * 1000),
-                closedAt,
-            });
+            await this.epochRepo.insertPending({ txHash, merkleRoot: '0x', leaves: [] });
+        } catch {
+            // Row already exists — re-indexed range.
         }
+        await this.epochRepo.markConfirmed({
+            txHash,
+            epochId: closedId,
+            prizePool,
+            claimExpiry,
+            closedAt,
+        });
+        logger.info(`${this.indexerName}: epoch advanced`, { epochId: closedId.toString(), txHash });
     }
 
     private async handlePrizeClaimed(

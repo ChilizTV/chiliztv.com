@@ -13,7 +13,7 @@ import { Donation } from '@chiliztv/domain/stream-wallet/entities/Donation';
 import { Subscription } from '@chiliztv/domain/stream-wallet/entities/Subscription';
 import { ChatMessage, MessageType } from '@chiliztv/domain/chat/entities/ChatMessage';
 import type { ILockService } from '@chiliztv/domain/shared/ports/ILockService';
-import { BaseIndexer } from './BaseIndexer';
+import { BaseIndexer, DEFAULT_TAIL_OVERLAP_BLOCKS } from './BaseIndexer';
 import { getTokenDecimals } from '../utils/getTokenDecimals';
 import { ResolveUserProfileUseCase } from '../../../application/users/use-cases/ResolveUserProfileUseCase';
 
@@ -83,6 +83,8 @@ export class StreamWalletIndexer extends BaseIndexer {
             }),
             checkpoints,
             lockService,
+            // Handlers dedup on (tx_hash, log_index) before side effects — replay-safe.
+            tailOverlapBlocks: DEFAULT_TAIL_OVERLAP_BLOCKS,
         });
         this.factoryAddress = factoryAddress;
     }

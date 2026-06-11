@@ -23,6 +23,15 @@ const DEFAULT_LOOKBACK_BLOCKS = BigInt(process.env.INDEXER_DEFAULT_LOOKBACK ?? 1
  * backlog in capped chunks, persisting the checkpoint after each one.
  */
 const MAX_BLOCKS_PER_BATCH = BigInt(process.env.INDEXER_MAX_BLOCK_RANGE ?? 900);
+/**
+ * Default tail overlap for indexers that opt in. Public RPC balancers can
+ * serve `getLogs` from a node lagging the one that answered
+ * `getBlockNumber`, silently omitting logs near the tip — the checkpoint
+ * then jumps past them (incident 2026-06-12: missed PositionTaken around a
+ * deploy). Re-scanning the last N blocks every tick recovers stragglers;
+ * REQUIRES replay-idempotent handlers, hence opt-in per indexer.
+ */
+export const DEFAULT_TAIL_OVERLAP_BLOCKS = Number(process.env.INDEXER_TAIL_OVERLAP ?? 120);
 
 export interface BaseIndexerOptions {
     /** Stable indexer name persisted in `indexer_checkpoints.indexer_name`. */
@@ -35,6 +44,10 @@ export interface BaseIndexerOptions {
     readonly lockService: ILockService;
     readonly pollingIntervalMs?: number;
     readonly reorgDepth?: number;
+    /** Blocks re-scanned behind the checkpoint on every tick. Only safe when
+     *  every handler dedups on (tx_hash, log_index) BEFORE side effects —
+     *  increment-style handlers (leaderboard scores) must keep 0. */
+    readonly tailOverlapBlocks?: number;
 }
 
 /**
@@ -56,6 +69,7 @@ export abstract class BaseIndexer {
     protected readonly contractAddress: string | undefined;
     private readonly pollingIntervalMs: number;
     private readonly reorgDepth: number;
+    private readonly tailOverlapBlocks: bigint;
     private readonly lockService: ILockService;
     private readonly lockKey: string;
     private readonly lockTtlSeconds: number;
@@ -70,6 +84,7 @@ export abstract class BaseIndexer {
         this.contractAddress   = options.contractAddress;
         this.pollingIntervalMs = options.pollingIntervalMs ?? POLLING_INTERVAL_MS;
         this.reorgDepth        = options.reorgDepth ?? REORG_DEPTH;
+        this.tailOverlapBlocks = BigInt(options.tailOverlapBlocks ?? 0);
         this.lockService       = options.lockService;
         const lockConfig       = indexerLockConfig(options.name);
         this.lockKey           = lockConfig.key;
@@ -139,9 +154,18 @@ export abstract class BaseIndexer {
         const safeHead = head > BigInt(this.reorgDepth) ? head - BigInt(this.reorgDepth) : BigInt(0);
 
         const stored = await this.checkpoints.getLastBlock(this.indexerName);
-        const fromBlock = stored > BigInt(0)
+        let fromBlock = stored > BigInt(0)
             ? stored + BigInt(1)
             : (safeHead > DEFAULT_LOOKBACK_BLOCKS ? safeHead - DEFAULT_LOOKBACK_BLOCKS : BigInt(0));
+
+        // Tail overlap: only ever pulls fromBlock BACKWARD — a catch-up
+        // further behind than the overlap window is untouched.
+        if (stored > BigInt(0) && this.tailOverlapBlocks > BigInt(0)) {
+            const overlapStart = safeHead > this.tailOverlapBlocks
+                ? safeHead - this.tailOverlapBlocks
+                : BigInt(0);
+            if (overlapStart < fromBlock) fromBlock = overlapStart;
+        }
 
         if (fromBlock > safeHead) return;
 

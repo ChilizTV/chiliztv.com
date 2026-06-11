@@ -18,7 +18,7 @@ import { IIndexerCheckpointRepository } from '@chiliztv/domain/blockchain-indexi
 import { IWiringAlertRepository } from '@chiliztv/domain/blockchain-indexing/repositories/IWiringAlertRepository';
 import { WiringStep } from '@chiliztv/domain/blockchain-indexing/entities/WiringAlert';
 import type { ILockService } from '@chiliztv/domain/shared/ports/ILockService';
-import { BaseIndexer } from './BaseIndexer';
+import { BaseIndexer, DEFAULT_TAIL_OVERLAP_BLOCKS } from './BaseIndexer';
 
 const MATCH_CREATED = parseAbiItem(
     'event MatchCreated(address indexed proxy, uint8 sportType, address indexed owner)',
@@ -75,6 +75,8 @@ export class PariMatchFactoryIndexer extends BaseIndexer {
             }),
             checkpoints,
             lockService,
+            // Handlers dedup on (tx_hash, log_index) before side effects — replay-safe.
+            tailOverlapBlocks: DEFAULT_TAIL_OVERLAP_BLOCKS,
         });
         this.factoryAddress = factoryAddress;
         this.swapRouterAddress = network.swapRouterAddress as `0x${string}`;

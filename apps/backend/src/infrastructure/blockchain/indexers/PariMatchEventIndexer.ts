@@ -19,7 +19,7 @@ import { classifyStatus } from '@chiliztv/domain/matches/policies/BettablePolicy
 import { selectionToBetLabel } from '@chiliztv/domain/blockchain-indexing/policies/selectionToBetLabel';
 import type { ICacheService } from '@chiliztv/domain/shared/ports/ICacheService';
 import { MarketPoolsCacheKeys } from '../../../application/matches/MarketPoolsCacheKeys';
-import { BaseIndexer } from './BaseIndexer';
+import { BaseIndexer, DEFAULT_TAIL_OVERLAP_BLOCKS } from './BaseIndexer';
 import { getTokenDecimals } from '../utils/getTokenDecimals';
 import { marketTypeNameFromHash } from '../markets/marketTypeNameFromHash';
 
@@ -130,6 +130,8 @@ export class PariMatchEventIndexer extends BaseIndexer {
             }),
             checkpoints,
             lockService,
+            // Handlers dedup on (tx_hash, log_index) before side effects — replay-safe.
+            tailOverlapBlocks: DEFAULT_TAIL_OVERLAP_BLOCKS,
         });
     }
 

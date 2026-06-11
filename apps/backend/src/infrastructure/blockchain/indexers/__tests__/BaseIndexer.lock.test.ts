@@ -99,6 +99,55 @@ describe('BaseIndexer.runBatch under distributed lock', () => {
   });
 });
 
+describe('BaseIndexer tail overlap', () => {
+  it('re-scans the overlap window behind the checkpoint when caught up', async () => {
+    const checkpoints = fakeCheckpoints(3098n);
+    const indexer = new TestIndexer({
+      name: 'Test',
+      client: fakeClient(3106n),
+      checkpoints,
+      lockService: lockService(true),
+      reorgDepth: 6,
+      tailOverlapBlocks: 100,
+    });
+    await indexer.tick();
+
+    // safeHead 3100, overlap 100 → fromBlock pulled back to 3000.
+    expect(indexer.processed).toEqual([{ from: 3000n, to: 3100n }]);
+    expect(await checkpoints.getLastBlock('Test')).toBe(3100n);
+  });
+
+  it('never pulls fromBlock forward during a deep catch-up', async () => {
+    const checkpoints = fakeCheckpoints(2000n);
+    const indexer = new TestIndexer({
+      name: 'Test',
+      client: fakeClient(3106n),
+      checkpoints,
+      lockService: lockService(true),
+      reorgDepth: 6,
+      tailOverlapBlocks: 100,
+    });
+    await indexer.tick();
+
+    expect(indexer.processed[0]).toEqual({ from: 2001n, to: 2900n });
+    expect(await checkpoints.getLastBlock('Test')).toBe(3100n);
+  });
+
+  it('keeps the strict checkpoint+1 cursor when overlap is not opted in', async () => {
+    const checkpoints = fakeCheckpoints(3098n);
+    const indexer = new TestIndexer({
+      name: 'Test',
+      client: fakeClient(3106n),
+      checkpoints,
+      lockService: lockService(true),
+      reorgDepth: 6,
+    });
+    await indexer.tick();
+
+    expect(indexer.processed).toEqual([{ from: 3099n, to: 3100n }]);
+  });
+});
+
 describe('BaseIndexer chunked catch-up', () => {
   // Default MAX_BLOCKS_PER_BATCH = 900 (module-level, read at import).
   it('splits a large backlog into capped chunks and checkpoints after each', async () => {

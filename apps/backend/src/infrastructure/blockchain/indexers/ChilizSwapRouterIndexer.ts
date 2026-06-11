@@ -8,7 +8,7 @@ import { INetworkConfig } from '@chiliztv/domain/shared/ports/INetworkConfig';
 import { IIndexerCheckpointRepository } from '@chiliztv/domain/blockchain-indexing/repositories/IIndexerCheckpointRepository';
 import { IMarketEventRepository } from '@chiliztv/domain/blockchain-indexing/repositories/IMarketEventRepository';
 import type { ILockService } from '@chiliztv/domain/shared/ports/ILockService';
-import { BaseIndexer } from './BaseIndexer';
+import { BaseIndexer, DEFAULT_TAIL_OVERLAP_BLOCKS } from './BaseIndexer';
 
 const BET_PLACED_VIA_CHZ = parseAbiItem(
     'event BetPlacedViaCHZ(address indexed bettingMatch, address indexed user, uint256 chzSpent, uint256 usdcReceived, uint256 marketId, uint64 selection)',
@@ -92,6 +92,8 @@ export class ChilizSwapRouterIndexer extends BaseIndexer {
             }),
             checkpoints,
             lockService,
+            // Handlers dedup on (tx_hash, log_index) before side effects — replay-safe.
+            tailOverlapBlocks: DEFAULT_TAIL_OVERLAP_BLOCKS,
         });
         this.routerAddress = routerAddress;
     }

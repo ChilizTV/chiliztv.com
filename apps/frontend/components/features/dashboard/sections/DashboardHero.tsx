@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import dynamic from 'next/dynamic';
 import { toast } from 'sonner';
 import { useUserUpdateRequest } from '@dynamic-labs/sdk-react-core';
 import { apiClient } from '@/lib/api/client';
@@ -10,10 +9,8 @@ import { DashEyebrow } from '../components/DashEyebrow';
 import { BanDashboardTile } from '@/components/features/moderation/BanDashboardTile';
 import { truncAddr } from '../domain/formatters';
 import type { DashboardUser } from '../hooks/useDashboardUser';
-import { useKycVerified } from '../hooks/useKycVerified';
 
 // SelfProtocol QR uses libs that drag wallet/QR deps; lazy-load it client-side only when the user clicks "Verify identity".
-const SelfProtocolQRCode = dynamic(() => import('@/components/selfProtcol/SelfProtocolQRCode'), { ssr: false });
 
 interface DashboardHeroProps {
     readonly user: DashboardUser;
@@ -26,8 +23,6 @@ interface AvatarUploadResponse {
 }
 
 export function DashboardHero({ user }: DashboardHeroProps) {
-    const [, setKycVerified] = useKycVerified(user.wallet);
-    const [kycOpen, setKycOpen] = useState(false);
     const [uploading, setUploading] = useState(false);
     // Cache-buster local to this session — Dynamic stores the clean URL (its
     // metadata validator rejects `?` / `=`), so we append `?v=…` only at render
@@ -141,19 +136,7 @@ export function DashboardHero({ user }: DashboardHeroProps) {
                                 </svg>
                                 Edit username
                             </button>
-                            {!user.kycVerified ? (
-                                <button
-                                    type="button"
-                                    onClick={() => setKycOpen(true)}
-                                    className="font-mono-ctv inline-flex items-center gap-2 rounded-md border px-3 py-2 text-[10px] font-bold uppercase tracking-[0.14em] transition-colors"
-                                    style={{ borderColor: '#F5C518', color: '#F5C518', background: 'rgba(245,197,24,0.06)' }}
-                                >
-                                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-                                    </svg>
-                                    Verify identity (KYC)
-                                </button>
-                            ) : (
+                            {user.kycVerified && (
                                 <span
                                     className="font-mono-ctv inline-flex items-center gap-2 rounded-md border px-3 py-2 text-[10px] font-bold uppercase tracking-[0.14em]"
                                     style={{ borderColor: 'rgba(45,212,164,0.4)', color: '#2dd4a4', background: 'rgba(45,212,164,0.06)' }}
@@ -172,15 +155,6 @@ export function DashboardHero({ user }: DashboardHeroProps) {
                 </p>
             </div>
 
-            {kycOpen && (
-                <SelfProtocolQRCode
-                    onClose={() => setKycOpen(false)}
-                    onSuccess={() => {
-                        setKycVerified(true);
-                        toast.success('Identity verified');
-                    }}
-                />
-            )}
         </section>
     );
 }

@@ -72,6 +72,7 @@ contract DeploySwap is Script {
     address public wchz;
     address public usdcAddress;
     address public treasury;
+    address public wrapperFactory;
     uint16  public platformFeeBps;
     bool    public transferOwnership;
 
@@ -95,6 +96,13 @@ contract DeploySwap is Script {
             transferOwnership = v;
         } catch {
             transferOwnership = false;
+        }
+        // Fan-token wrapper factory (optional — enables PSG/BAR/etc. swaps).
+        // Mainnet: 0xAEdcF2bf41891777c5F638A098bbdE1eDBa7B264
+        try vm.envAddress("WRAPPER_FACTORY") returns (address v) {
+            wrapperFactory = v;
+        } catch {
+            wrapperFactory = address(0);
         }
 
         // ─── Validation ───────────────────────────────────────────────────
@@ -147,6 +155,12 @@ contract DeploySwap is Script {
         console.log("  WCHZ:", wchz);
         console.log("  Treasury:", treasury);
         console.log("  Platform Fee:", platformFeeBps, "bps");
+        if (wrapperFactory != address(0)) {
+            swapRouter.setWrapperFactory(wrapperFactory);
+            console.log("  Wrapper Factory:", wrapperFactory);
+        } else {
+            console.log("  Wrapper Factory: <unset -- fan-token swaps disabled>");
+        }
         console.log("");
     }
 

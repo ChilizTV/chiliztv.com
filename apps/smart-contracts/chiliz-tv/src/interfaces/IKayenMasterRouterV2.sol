@@ -11,9 +11,16 @@ pragma solidity ^0.8.24;
  *         (0x56ba8c44) is absent from the bytecode. Every router we found
  *         on Spicy is a vanilla Uniswap-V2 fork using the standard 4-arg
  *         signature (selector 0x7ff36ab5). This interface mirrors that
- *         reality. If a future Kayen MasterRouterV2 deployment ships with
- *         the extra `bool receiveUnwrappedToken` arg, swap this back.
- *         path[0] must be WCHZ.
+ *         reality. path[0] must be WCHZ.
+ *
+ *         ⚠ MAINNET: do NOT wire Kayen's real MasterRouter (0xfAf3…2E9d)
+ *         here. It shares selector 0x7ff36ab5 but always finishes with
+ *         `_unwrapAndTransfer(path[last])`, which calls `getDecimalsOffset()`
+ *         on the output token — USDC has no such function, so every swap
+ *         ending in USDC reverts (verified on-chain 2026-06-11; caused the
+ *         post-deploy mainnet outage). Point this at the vanilla V2 router
+ *         (same address as KAYEN_ROUTER). Fan-token wrapping is handled by
+ *         ChilizSwapRouter itself via IChilizWrapperFactory.
  */
 interface IKayenMasterRouterV2 {
     /// @notice Swap exact native CHZ for tokens (e.g., USDC). Standard V2.

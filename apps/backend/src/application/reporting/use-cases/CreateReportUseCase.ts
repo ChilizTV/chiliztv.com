@@ -9,7 +9,8 @@ import type { IBetHistoryService } from '@chiliztv/domain/reporting/ports/IBetHi
 import type { IReportConfigProvider } from '@chiliztv/domain/reporting/ports/IReportConfigProvider';
 import type { IChatRepository } from '@chiliztv/domain/chat/repositories/IChatRepository';
 import type { IStreamRepository } from '@chiliztv/domain/streams/repositories/IStreamRepository';
-import { BusinessRuleError, ConflictError } from '@chiliztv/domain/shared/errors';
+import { BusinessRuleError } from '@chiliztv/domain/shared/errors/BusinessRuleError';
+import { ConflictError } from '@chiliztv/domain/shared/errors/ConflictError';
 import type { IClock } from '@chiliztv/domain/shared/ports/IClock';
 import { TOKENS } from '@chiliztv/domain/shared/tokens';
 import { REASON_SEVERITY, type CreateReportDto } from '@chiliztv/shared';

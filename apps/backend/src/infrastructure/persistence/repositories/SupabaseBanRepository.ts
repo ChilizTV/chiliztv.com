@@ -3,7 +3,7 @@ import { injectable } from 'tsyringe';
 import { Ban, type BanProps, type BanStatus } from '@chiliztv/domain/reporting/entities/Ban';
 import type { IBanRepository } from '@chiliztv/domain/reporting/repositories/IBanRepository';
 import type { QuorumSnapshot } from '@chiliztv/domain/reporting/value-objects/QuorumSnapshot';
-import { ConflictError } from '@chiliztv/domain/shared/errors';
+import { ConflictError } from '@chiliztv/domain/shared/errors/ConflictError';
 
 import { supabaseClient as supabase } from '../../database/supabase/client';
 import { logger } from '../../logging/logger';

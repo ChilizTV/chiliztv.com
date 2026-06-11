@@ -6,6 +6,8 @@ export interface SendMessageDto {
   username: string;
   message: string;
   isFeatured?: boolean;
+  /** Client-generated UUID for deterministic optimistic dedup. */
+  clientTempId?: string;
 }
 
 export interface SendBetMessageDto extends SendMessageDto {

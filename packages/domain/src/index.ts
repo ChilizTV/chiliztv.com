@@ -74,3 +74,21 @@ export * from './leaderboard/entities/LeaderboardClaim';
 export * from './leaderboard/repositories/ILeaderboardScoreRepository';
 export * from './leaderboard/repositories/ILeaderboardEpochRepository';
 export * from './leaderboard/repositories/ILeaderboardClaimRepository';
+
+// Reporting / moderation
+export * from './reporting/entities/Report';
+export * from './reporting/entities/Ban';
+export * from './reporting/entities/ReportAction';
+export * from './reporting/value-objects/QuorumSnapshot';
+export * from './reporting/value-objects/LiveContext';
+export * from './reporting/value-objects/ReportConfig';
+export * from './reporting/policies/ReportQuorumPolicy';
+export * from './reporting/policies/BanEscalationPolicy';
+export * from './reporting/policies/ReporterEligibilityPolicy';
+export * from './reporting/repositories/IReportRepository';
+export * from './reporting/repositories/IBanRepository';
+export * from './reporting/repositories/IReportActionRepository';
+export * from './reporting/ports/IPresenceService';
+export * from './reporting/ports/IBetHistoryService';
+export * from './reporting/ports/IModerationNotifier';
+export * from './reporting/ports/IReportConfigProvider';

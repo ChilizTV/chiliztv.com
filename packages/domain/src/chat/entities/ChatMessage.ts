@@ -21,6 +21,10 @@ export interface ChatMessageProps {
   betSubType?: string;
   amount?: number;
   odds?: number;
+  /** Client-generated UUID for deterministic optimistic dedup. */
+  clientTempId?: string;
+  /** Soft-delete timestamp set by moderation — content is never physically deleted. */
+  removedAt?: Date | null;
 }
 
 export class ChatMessage {
@@ -84,6 +88,8 @@ export class ChatMessage {
       ...(this.props.betSubType && { betSubType: this.props.betSubType }),
       ...(this.props.amount && { amount: this.props.amount }),
       ...(this.props.odds && { odds: this.props.odds }),
+      ...(this.props.clientTempId && { clientTempId: this.props.clientTempId }),
+      ...(this.props.removedAt && { removedAt: this.props.removedAt.toISOString() }),
     };
   }
 }

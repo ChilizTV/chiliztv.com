@@ -53,6 +53,15 @@ export const TOKENS = {
 
   // Ports — parimutuel pool reader (multicall via backend)
   IPariMatchPoolsReader:   Symbol.for('IPariMatchPoolsReader'),
+
+  // Reporting / moderation
+  IReportRepository:       Symbol.for('IReportRepository'),
+  IBanRepository:          Symbol.for('IBanRepository'),
+  IReportActionRepository: Symbol.for('IReportActionRepository'),
+  IPresenceService:        Symbol.for('IPresenceService'),
+  IBetHistoryService:      Symbol.for('IBetHistoryService'),
+  IModerationNotifier:     Symbol.for('IModerationNotifier'),
+  IReportConfigProvider:   Symbol.for('IReportConfigProvider'),
 } as const;
 
 export type TokenKey = keyof typeof TOKENS;

@@ -17,6 +17,12 @@ const REORG_DEPTH = Number(process.env.INDEXER_REORG_DEPTH ?? 6);
  * a one-shot full backfill if the deployer asks for it.
  */
 const DEFAULT_LOOKBACK_BLOCKS = BigInt(process.env.INDEXER_DEFAULT_LOOKBACK ?? 1_000);
+/**
+ * Max blocks per `eth_getLogs` call. Public RPCs cap the range (Ankr mainnet
+ * rejects >~1 000 blocks), so catch-up after a rewind or downtime walks the
+ * backlog in capped chunks, persisting the checkpoint after each one.
+ */
+const MAX_BLOCKS_PER_BATCH = BigInt(process.env.INDEXER_MAX_BLOCK_RANGE ?? 900);
 
 export interface BaseIndexerOptions {
     /** Stable indexer name persisted in `indexer_checkpoints.indexer_name`. */
@@ -35,8 +41,9 @@ export interface BaseIndexerOptions {
  * Common scaffolding for every event indexer:
  *  - boot from the persisted checkpoint (or `head - DEFAULT_LOOKBACK` on first run)
  *  - poll new blocks, leaving `REORG_DEPTH` blocks under the head untouched
- *  - hand each batch's logs to `processBatch`, which subclasses implement
- *  - persist the new checkpoint after a successful batch
+ *  - split the backlog into `MAX_BLOCKS_PER_BATCH` chunks (public RPC caps)
+ *  - hand each chunk's logs to `processBatch`, which subclasses implement
+ *  - persist the new checkpoint after each successful chunk
  *
  * Crash recovery: a failure in the middle of a batch leaves the checkpoint
  * unchanged, so the next tick replays the same range. Combined with the
@@ -138,8 +145,25 @@ export abstract class BaseIndexer {
 
         if (fromBlock > safeHead) return;
 
-        await this.processBatch(fromBlock, safeHead);
-        await this.checkpoints.setLastBlock(this.indexerName, safeHead, this.contractAddress);
+        const backlog = safeHead - fromBlock + BigInt(1);
+        if (backlog > MAX_BLOCKS_PER_BATCH) {
+            logger.info(`${this.indexerName}: catching up in chunks`, {
+                fromBlock: fromBlock.toString(),
+                safeHead: safeHead.toString(),
+                backlogBlocks: backlog.toString(),
+            });
+        }
+
+        // A failure mid-backlog leaves the checkpoint at the last completed
+        // chunk; the next tick resumes from there.
+        let from = fromBlock;
+        while (from <= safeHead) {
+            const chunkEnd = from + MAX_BLOCKS_PER_BATCH - BigInt(1);
+            const to = chunkEnd < safeHead ? chunkEnd : safeHead;
+            await this.processBatch(from, to);
+            await this.checkpoints.setLastBlock(this.indexerName, to, this.contractAddress);
+            from = to + BigInt(1);
+        }
     }
 
     /**

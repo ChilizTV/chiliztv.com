@@ -10,10 +10,13 @@ import type {
 
 class TestIndexer extends BaseIndexer {
   public processed: Array<{ from: bigint; to: bigint }> = [];
+  /** When set, the chunk starting at this block throws. */
+  public failOn: bigint | null = null;
   constructor(opts: BaseIndexerOptions) {
     super(opts);
   }
   protected async processBatch(from: bigint, to: bigint): Promise<void> {
+    if (this.failOn !== null && from === this.failOn) throw new Error('chunk failure injected');
     this.processed.push({ from, to });
   }
   /** Test hook to invoke the private cursor loop directly. */
@@ -93,5 +96,49 @@ describe('BaseIndexer.runBatch under distributed lock', () => {
     expect(locks.withLock).toHaveBeenCalledTimes(1);
     expect(indexer.processed).toHaveLength(0);
     expect(checkpoints.setLastBlock).not.toHaveBeenCalled();
+  });
+});
+
+describe('BaseIndexer chunked catch-up', () => {
+  // Default MAX_BLOCKS_PER_BATCH = 900 (module-level, read at import).
+  it('splits a large backlog into capped chunks and checkpoints after each', async () => {
+    const checkpoints = fakeCheckpoints(100n);
+    const indexer = new TestIndexer({
+      name: 'Test',
+      client: fakeClient(3006n),
+      checkpoints,
+      lockService: lockService(true),
+      reorgDepth: 6,
+    });
+    await indexer.tick();
+
+    expect(indexer.processed).toEqual([
+      { from: 101n, to: 1000n },
+      { from: 1001n, to: 1900n },
+      { from: 1901n, to: 2800n },
+      { from: 2801n, to: 3000n },
+    ]);
+    expect(checkpoints.setLastBlock).toHaveBeenCalledTimes(4);
+    expect(await checkpoints.getLastBlock('Test')).toBe(3000n);
+  });
+
+  it('resumes from the last completed chunk when a chunk fails mid-backlog', async () => {
+    const checkpoints = fakeCheckpoints(100n);
+    const indexer = new TestIndexer({
+      name: 'Test',
+      client: fakeClient(3006n),
+      checkpoints,
+      lockService: lockService(true),
+      reorgDepth: 6,
+    });
+    indexer.failOn = 1901n;
+    await indexer.tick(); // runBatch swallows + logs the error
+
+    expect(await checkpoints.getLastBlock('Test')).toBe(1900n);
+
+    indexer.failOn = null;
+    await indexer.tick();
+    expect(await checkpoints.getLastBlock('Test')).toBe(3000n);
+    expect(indexer.processed.at(-1)).toEqual({ from: 2801n, to: 3000n });
   });
 });

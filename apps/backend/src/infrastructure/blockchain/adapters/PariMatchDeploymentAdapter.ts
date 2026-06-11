@@ -1,4 +1,4 @@
-import { injectable } from 'tsyringe';
+import { inject, injectable } from 'tsyringe';
 import { createWalletClient, createPublicClient, http, keccak256, toBytes } from 'viem';
 import { privateKeyToAccount, nonceManager } from 'viem/accounts';
 import { chilizConfig, networkType } from '../../config/chiliz.config';
@@ -7,14 +7,11 @@ import {
     PARI_MATCH_BASE_INLINE_ABI,
     chainFor,
 } from '@chiliztv/blockchain';
+import { TOKENS } from '@chiliztv/domain/shared/tokens';
+import type { INetworkConfig } from '@chiliztv/domain/shared/ports/INetworkConfig';
 import { FOOTBALL_SEEDING_PAYLOAD, getFootballSeedingPayload } from '../markets/seedingPayload';
 import { logger } from '../../logging/logger';
 
-if (!process.env.PARI_MATCH_FACTORY_ADDRESS) {
-    throw new Error('PARI_MATCH_FACTORY_ADDRESS env var is required');
-}
-const FACTORY_ADDRESS = process.env.PARI_MATCH_FACTORY_ADDRESS as `0x${string}`;
-const ADMIN_PRIVATE_KEY = process.env.ADMIN_PRIVATE_KEY as `0x${string}`;
 const ADMIN_ADDRESS = process.env.ADMIN_ADDRESS as `0x${string}`;
 
 // PariMatchBase MarketState enum (cf. PariMatchBase.sol:102-108).
@@ -36,14 +33,22 @@ function delay(ms: number = TX_DELAY_MS): Promise<void> {
 export class PariMatchDeploymentAdapter {
     private walletClient;
     private publicClient;
+    // Network-resolved (testnet vs _MAINNET vars) — never the raw env value.
+    private readonly factoryAddress: `0x${string}`;
 
-    constructor() {
-        if (!ADMIN_PRIVATE_KEY) {
+    constructor(
+        @inject(TOKENS.INetworkConfig) network: INetworkConfig,
+    ) {
+        if (!network.adminPrivateKey) {
             throw new Error('ADMIN_PRIVATE_KEY environment variable is required');
         }
+        if (!network.pariMatchFactoryAddress) {
+            throw new Error('PARI_MATCH_FACTORY_ADDRESS env var is required');
+        }
+        this.factoryAddress = network.pariMatchFactoryAddress as `0x${string}`;
 
         const chain = chainFor(networkType);
-        const account = privateKeyToAccount(ADMIN_PRIVATE_KEY, { nonceManager });
+        const account = privateKeyToAccount(network.adminPrivateKey as `0x${string}`, { nonceManager });
 
         this.walletClient = createWalletClient({
             account,
@@ -59,7 +64,7 @@ export class PariMatchDeploymentAdapter {
         logger.info('PariMatchDeploymentAdapter initialized', {
             network: networkType,
             chain: chain.name,
-            factoryAddress: FACTORY_ADDRESS,
+            factoryAddress: this.factoryAddress,
             adminAddress: account.address,
         });
     }
@@ -77,7 +82,7 @@ export class PariMatchDeploymentAdapter {
         logger.info('Deploying FootballPariMatch contract', { matchName, ownerAddress, oracle });
 
         const hash = await this.walletClient.writeContract({
-            address: FACTORY_ADDRESS,
+            address: this.factoryAddress,
             abi: PARI_MATCH_FACTORY_INLINE_ABI,
             functionName: 'createFootballMatch',
             args: [matchName, ownerAddress as `0x${string}`, oracle],

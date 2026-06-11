@@ -25,6 +25,7 @@ import {
   drawCombinedStream,
 } from "./utils";
 import { OBSSetupPanel } from "./OBSSetupPanel";
+import { StreamWalletNote } from "./StreamWalletNote";
 import { useStreamHeartbeat } from "./hooks/useStreamHeartbeat";
 import { useBeaconOnUnload } from "./hooks/useBeaconOnUnload";
 
@@ -685,6 +686,9 @@ export default function StreamManager({ matchId, onStreamCreated, onStreamEnded,
                   </>
                 )}
               </button>
+              <div className="mt-3">
+                <StreamWalletNote />
+              </div>
             </div>
           )
         ) : (
@@ -732,6 +736,8 @@ export default function StreamManager({ matchId, onStreamCreated, onStreamEnded,
                 </>
               )}
             </button>
+
+            <StreamWalletNote />
           </>
         )}
       </div>

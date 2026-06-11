@@ -12,10 +12,11 @@ import {
 } from '@/lib/contracts/generated';
 import { useWaitForTransactionReceipt } from 'wagmi';
 import { Address } from 'viem';
+import { chilizConfig } from '@/config/chiliz.config';
 
-// Pin contract reads to Chiliz Spicy testnet so they don't depend on the
-// connected wallet's active chain.
-const BETTING_CHAIN_ID = 88882 as const;
+// Pin contract reads to the configured betting chain so they don't depend
+// on the connected wallet's active chain.
+const BETTING_CHAIN_ID = chilizConfig.chainId;
 
 interface MatchCreationState {
     isPending: boolean;

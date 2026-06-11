@@ -3,6 +3,7 @@
 import { useMemo } from 'react';
 import type { Address } from 'viem';
 import { useQueryClient } from '@tanstack/react-query';
+import { chilizConfig } from '@/config/chiliz.config';
 import {
     usePariMatchBaseWatchPositionClaimed,
     usePariMatchBaseWatchStakeRefunded,
@@ -15,7 +16,7 @@ import { BetRow } from '@/components/features/dashboard/components/BetRow';
 import { computeBetCounts, sumClaimablePayouts } from '@/components/features/dashboard/domain/bets';
 import { fmtUsd } from '@/components/features/dashboard/domain/formatters';
 
-const BETTING_CHAIN_ID = 88882 as const;
+const BETTING_CHAIN_ID = chilizConfig.chainId;
 
 interface MyBetsOnMatchProps {
     readonly contractAddress?: Address;

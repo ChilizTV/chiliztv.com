@@ -1,15 +1,11 @@
-import { injectable } from 'tsyringe';
+import { inject, injectable } from 'tsyringe';
 import { createPublicClient, createWalletClient, http } from 'viem';
 import { privateKeyToAccount, nonceManager } from 'viem/accounts';
 import { chilizConfig, networkType } from '../../config/chiliz.config';
 import { STREAM_WALLET_FACTORY_ABI, chainFor } from '@chiliztv/blockchain';
+import { TOKENS } from '@chiliztv/domain/shared/tokens';
+import type { INetworkConfig } from '@chiliztv/domain/shared/ports/INetworkConfig';
 import { logger } from '../../logging/logger';
-
-if (!process.env.STREAM_WALLET_FACTORY_ADDRESS) {
-    throw new Error('STREAM_WALLET_FACTORY_ADDRESS env var is required');
-}
-const FACTORY_ADDRESS = process.env.STREAM_WALLET_FACTORY_ADDRESS as `0x${string}`;
-const ADMIN_PRIVATE_KEY = process.env.ADMIN_PRIVATE_KEY as `0x${string}`;
 
 /**
  * Streamer-wallet deployment adapter.
@@ -27,14 +23,24 @@ const ADMIN_PRIVATE_KEY = process.env.ADMIN_PRIVATE_KEY as `0x${string}`;
 export class StreamWalletDeploymentAdapter {
     private walletClient: ReturnType<typeof createWalletClient>;
     private publicClient: ReturnType<typeof createPublicClient>;
+    // Network-resolved (testnet vs _MAINNET vars) — never the raw env value:
+    // a raw read deployed against the testnet factory while signing on
+    // mainnet, hard-500ing every studio deploy in prod.
+    private readonly factoryAddress: `0x${string}`;
 
-    constructor() {
-        if (!ADMIN_PRIVATE_KEY) {
+    constructor(
+        @inject(TOKENS.INetworkConfig) network: INetworkConfig,
+    ) {
+        if (!network.adminPrivateKey) {
             throw new Error('ADMIN_PRIVATE_KEY env var is required');
         }
+        if (!network.streamWalletFactoryAddress) {
+            throw new Error('STREAM_WALLET_FACTORY_ADDRESS env var is required');
+        }
+        this.factoryAddress = network.streamWalletFactoryAddress as `0x${string}`;
 
         const chain = chainFor(networkType);
-        const account = privateKeyToAccount(ADMIN_PRIVATE_KEY, { nonceManager });
+        const account = privateKeyToAccount(network.adminPrivateKey as `0x${string}`, { nonceManager });
         this.walletClient = createWalletClient({
             account,
             chain,
@@ -48,7 +54,7 @@ export class StreamWalletDeploymentAdapter {
         logger.info('StreamWalletDeploymentAdapter initialized', {
             network: networkType,
             chain: chain.name,
-            factoryAddress: FACTORY_ADDRESS,
+            factoryAddress: this.factoryAddress,
             adminAddress: account.address,
         });
     }
@@ -58,7 +64,7 @@ export class StreamWalletDeploymentAdapter {
      */
     async getWallet(streamer: string): Promise<`0x${string}`> {
         const result = (await this.publicClient.readContract({
-            address: FACTORY_ADDRESS,
+            address: this.factoryAddress,
             abi: STREAM_WALLET_FACTORY_ABI,
             functionName: 'getWallet',
             args: [streamer as `0x${string}`],
@@ -94,7 +100,7 @@ export class StreamWalletDeploymentAdapter {
         const hash = await this.walletClient.writeContract({
             account: this.walletClient.account!,
             chain: this.walletClient.chain,
-            address: FACTORY_ADDRESS,
+            address: this.factoryAddress,
             abi: STREAM_WALLET_FACTORY_ABI,
             functionName: 'deployWalletFor',
             args: [streamer as `0x${string}`],

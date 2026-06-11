@@ -1,7 +1,7 @@
 {
   "network": "chilizMainnet",
   "chainId": 88888,
-  "timestamp": "2026-06-09T23:00:09Z",
+  "timestamp": "2026-06-11T00:00:00Z",
   "contracts": [
     {
       "name": "PariMatchFactory",
@@ -13,7 +13,7 @@
     },
     {
       "name": "ChilizSwapRouter",
-      "address": "0xf767c37d7622ed564092d1302dec9d6998283a88"
+      "address": "0x72befd1186f24cba64266995cd627b79c799292a"
     },
     {
       "name": "LeaderboardRewards",

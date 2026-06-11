@@ -225,6 +225,38 @@ if [ "$REQUIRES_FACTORIES" = true ]; then
     echo ""
 fi
 
+# ── Gas-price floor check ────────────────────────────────────────────────────
+# Chiliz mainnet's `eth_gasPrice` is ~2,500 gwei (matches block baseFeePerGas)
+# and replace-by-fee requires a bump above the floor. Broadcasting below the
+# floor produces a tx that sits in the mempool forever and locks the nonce
+# until cancelled. Parse --with-gas-price out of FORGE_FLAGS, query the live
+# floor, and abort if we'd ship underpriced.
+GAS_PRICE_OVERRIDE=$(echo "$FORGE_FLAGS" | grep -oE -- '--with-gas-price[= ]+[0-9]+' | grep -oE '[0-9]+$' || true)
+if [ -n "$GAS_PRICE_OVERRIDE" ] && command -v curl &> /dev/null; then
+    NETWORK_GAS_HEX=$(curl -fsS -X POST "$RPC_URL" \
+        -H "Content-Type: application/json" \
+        --data '{"jsonrpc":"2.0","id":1,"method":"eth_gasPrice","params":[]}' \
+        2>/dev/null | sed -nE 's/.*"result":"(0x[0-9a-fA-F]+)".*/\1/p')
+    if [ -n "$NETWORK_GAS_HEX" ]; then
+        NETWORK_GAS=$((NETWORK_GAS_HEX))
+        if [ "$GAS_PRICE_OVERRIDE" -lt "$NETWORK_GAS" ]; then
+            CFG_GWEI=$((GAS_PRICE_OVERRIDE / 1000000000))
+            NET_GWEI=$((NETWORK_GAS / 1000000000))
+            echo -e "${RED}╔══════════════════════════════════════════════╗${NC}"
+            echo -e "${RED}║          ⚠  GAS PRICE TOO LOW  ⚠            ║${NC}"
+            echo -e "${RED}╚══════════════════════════════════════════════╝${NC}"
+            echo -e "${RED}FORGE_FLAGS --with-gas-price: ${CFG_GWEI} gwei${NC}"
+            echo -e "${RED}Network eth_gasPrice:         ${NET_GWEI} gwei${NC}"
+            echo -e "${YELLOW}Broadcasting underpriced would leave the first tx pending forever${NC}"
+            echo -e "${YELLOW}and lock nonce $(printf '%s' "$ADMIN_ADDRESS")'s sequence until cancelled.${NC}"
+            echo -e "${YELLOW}Bump --with-gas-price above ${NET_GWEI} gwei in $ENV_FILE.${NC}"
+            exit 1
+        fi
+    else
+        echo -e "${YELLOW}Warning: could not fetch eth_gasPrice from $RPC_URL — skipping gas-price floor check.${NC}"
+    fi
+fi
+
 # ── Mainnet safety warning ───────────────────────────────────────────────────
 if [ "$NETWORK" = "chilizMainnet" ]; then
     echo -e "${RED}╔══════════════════════════════════════════════╗${NC}"

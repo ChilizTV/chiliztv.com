@@ -83,6 +83,7 @@ contract DeployAll is Script {
     address public kayenRouter;
     address public wchz;
     address public usdcAddress;
+    address public wrapperFactory;
     uint16  public platformFeeBps;
     bool    public transferOwnership;
 
@@ -126,6 +127,12 @@ contract DeployAll is Script {
 
         platformFeeBps    = uint16(_envUintOr("PLATFORM_FEE_BPS", 500));
         transferOwnership = _envBoolOr("TRANSFER_OWNERSHIP", false);
+
+        // Kayen fan-token wrapper factory. Optional: when unset, fan-token
+        // (sub-18-decimals) bets/donations are not wrapped and will revert
+        // for lack of raw liquidity on Kayen.
+        // Mainnet: 0xAEdcF2bf41891777c5F638A098bbdE1eDBa7B264
+        wrapperFactory = _envAddressOr("WRAPPER_FACTORY", address(0));
     }
 
     // ══════════════════════════════════════════════════════════════════════════
@@ -167,6 +174,12 @@ contract DeployAll is Script {
         console.log("  Token router      :", kayenRouter);
         console.log("  WCHZ              :", wchz);
         console.log("  Platform fee bps  :", platformFeeBps);
+        if (wrapperFactory != address(0)) {
+            swapRouter.setWrapperFactory(wrapperFactory);
+            console.log("  Wrapper factory   :", wrapperFactory);
+        } else {
+            console.log("  Wrapper factory   : <unset -- fan-token swaps disabled>");
+        }
         console.log("");
     }
 
@@ -362,6 +375,13 @@ contract DeployAll is Script {
         internal view returns (bool)
     {
         try vm.envBool(key) returns (bool v) { return v; }
+        catch { return defaultVal; }
+    }
+
+    function _envAddressOr(string memory key, address defaultVal)
+        internal view returns (address)
+    {
+        try vm.envAddress(key) returns (address v) { return v; }
         catch { return defaultVal; }
     }
 }

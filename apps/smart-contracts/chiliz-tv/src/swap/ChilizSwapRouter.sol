@@ -1,12 +1,14 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-import {ReentrancyGuard}      from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
-import {Ownable}              from "@openzeppelin/contracts/access/Ownable.sol";
-import {IERC20}               from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {SafeERC20}            from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import {IKayenMasterRouterV2} from "../interfaces/IKayenMasterRouterV2.sol";
-import {IKayenRouter}         from "../interfaces/IKayenRouter.sol";
+import {ReentrancyGuard}       from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import {Ownable}               from "@openzeppelin/contracts/access/Ownable.sol";
+import {IERC20}                from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {IERC20Metadata}        from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
+import {SafeERC20}             from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {IKayenMasterRouterV2}  from "../interfaces/IKayenMasterRouterV2.sol";
+import {IKayenRouter}          from "../interfaces/IKayenRouter.sol";
+import {IChilizWrapperFactory} from "../interfaces/IChilizWrapperFactory.sol";
 import {PariMatchBase}        from "../pari/PariMatchBase.sol";
 import {PariMatchFactory}     from "../pari/PariMatchFactory.sol";
 import {StreamWallet}         from "../streamer/StreamWallet.sol";
@@ -30,6 +32,16 @@ import {StreamWalletFactory}  from "../streamer/StreamWalletFactory.sol";
  *   CHZ  (native) -> USDC -> PariMatch.placeBetUSDCFor  (placeBetWithCHZ)
  *   ERC20         -> USDC -> PariMatch.placeBetUSDCFor  (placeBetWithToken)
  *   USDC direct   ->         PariMatch.placeBetUSDCFor  (placeBetWithUSDC)
+ *
+ * TOKEN ROUTING (applies to every ERC20 path, betting and streaming):
+ *   Kayen liquidity is hubbed on WCHZ — no token has a direct USDC pair, so
+ *   all ERC20 swaps route [token, WCHZ, USDC] (WCHZ itself goes direct).
+ *   CAP-20 fan tokens (PSG, BAR, ... — sub-18 decimals) have no pools at all
+ *   in their raw form: liquidity lives in Kayen's 18-decimals wrapped
+ *   versions. When `wrapperFactory` is set and a wrapped token exists, the
+ *   router wraps automatically and swaps [wrapped, WCHZ, USDC]. Frontends
+ *   must quote via `quoteTokenToUSDC` so the quoted path always matches the
+ *   executed one.
  *
  * STREAMING (donations & subscriptions):
  *   CHZ  (native) -> USDC -> fee split -> StreamWallet escrow / treasury
@@ -73,6 +85,12 @@ contract ChilizSwapRouter is ReentrancyGuard, Ownable {
     /// @notice PariMatchFactory — validates that bettingMatch addresses are legitimate
     ///         before any USDC is forwarded. Must be set before any placeBetWith* call.
     PariMatchFactory public bettingMatchFactory;
+
+    /// @notice Kayen fan-token wrapper factory (mainnet 0xAEdc…B264). When set,
+    ///         sub-18-decimals tokens with an existing wrapped version are
+    ///         wrapped before swapping. address(0) disables wrapping (raw
+    ///         [token, WCHZ, USDC] routing only).
+    IChilizWrapperFactory public wrapperFactory;
 
     // ══════════════════════════════════════════════════════════════════════════
     // EVENTS — BETTING
@@ -175,6 +193,8 @@ contract ChilizSwapRouter is ReentrancyGuard, Ownable {
     event PlatformFeeBpsSet(uint16 oldFeeBps, uint16 newFeeBps);
     event MatchFactorySet(address indexed oldFactory, address indexed newFactory);
     event StreamWalletFactorySet(address indexed oldFactory, address indexed newFactory);
+    event WrapperFactorySet(address indexed oldFactory, address indexed newFactory);
+    event FanTokenWrapped(address indexed token, address indexed wrapped, uint256 amountIn, uint256 wrappedAmount);
 
     // ══════════════════════════════════════════════════════════════════════════
     // ERRORS
@@ -468,6 +488,65 @@ contract ChilizSwapRouter is ReentrancyGuard, Ownable {
         emit StreamWalletFactorySet(old, _factory);
     }
 
+    /// @notice Register the Kayen fan-token wrapper factory. address(0) is
+    ///         allowed and disables automatic wrapping (e.g. on networks
+    ///         where Kayen has no wrapper deployment).
+    function setWrapperFactory(address _factory) external onlyOwner {
+        address old = address(wrapperFactory);
+        wrapperFactory = IChilizWrapperFactory(_factory);
+        emit WrapperFactorySet(old, _factory);
+    }
+
+    // ══════════════════════════════════════════════════════════════════════════
+    // VIEWS — QUOTING (keep frontends in sync with the executed route)
+    // ══════════════════════════════════════════════════════════════════════════
+
+    /**
+     * @notice Resolve the exact route `_swapTokensToUSDC` will take for `token`.
+     * @return swapToken  The token actually swapped (wrapped version for fan tokens).
+     * @return swapAmountPerUnit  Wrapped units minted per 1 unit of `token`
+     *                            (1 when no wrapping applies).
+     * @return path        The Kayen swap path ending in USDC.
+     */
+    function swapRouteFor(address token)
+        public
+        view
+        returns (address swapToken, uint256 swapAmountPerUnit, address[] memory path)
+    {
+        swapToken = token;
+        swapAmountPerUnit = 1;
+
+        address wrapped = _wrappedVersionOf(token);
+        if (wrapped != address(0)) {
+            swapToken = wrapped;
+            swapAmountPerUnit = 10 ** (18 - IERC20Metadata(token).decimals());
+        }
+
+        if (swapToken == wchz) {
+            path = new address[](2);
+            path[0] = wchz;
+            path[1] = address(usdc);
+        } else {
+            path = new address[](3);
+            path[0] = swapToken;
+            path[1] = wchz;
+            path[2] = address(usdc);
+        }
+    }
+
+    /// @notice Expected USDC out for swapping `amount` of `token`, following the
+    ///         same route the swap will execute. Use this (not a hand-built
+    ///         path) to compute `amountOutMin` on the frontend.
+    function quoteTokenToUSDC(address token, uint256 amount)
+        external
+        view
+        returns (uint256 usdcOut)
+    {
+        (, uint256 perUnit, address[] memory path) = swapRouteFor(token);
+        uint256[] memory amounts = tokenRouter.getAmountsOut(amount * perUnit, path);
+        usdcOut = amounts[amounts.length - 1];
+    }
+
     // ══════════════════════════════════════════════════════════════════════════
     // INTERNAL — SWAP HELPERS
     // ══════════════════════════════════════════════════════════════════════════
@@ -497,22 +576,68 @@ contract ChilizSwapRouter is ReentrancyGuard, Ownable {
         usdcReceived = amounts[amounts.length - 1];
     }
 
+    /// @dev Swap `amount` of `token` for USDC, wrapping fan tokens first.
+    ///      Routing matches `swapRouteFor` exactly; `amountOutMin` always
+    ///      applies to the final USDC amount.
     function _swapTokensToUSDC(
         address token,
         uint256 amount,
         uint256 amountOutMin,
         uint256 deadline
     ) internal returns (uint256 usdcReceived) {
-        address[] memory path = new address[](2);
-        path[0] = token;
-        path[1] = address(usdc);
+        address swapToken  = token;
+        uint256 swapAmount = amount;
 
-        IERC20(token).forceApprove(address(tokenRouter), amount);
+        address wrapped = _wrappedVersionOf(token);
+        if (wrapped != address(0)) {
+            IERC20(token).forceApprove(address(wrapperFactory), amount);
+            uint256 balBefore = IERC20(wrapped).balanceOf(address(this));
+            wrapperFactory.wrap(address(this), token, amount);
+            swapAmount = IERC20(wrapped).balanceOf(address(this)) - balBefore;
+            swapToken  = wrapped;
+            emit FanTokenWrapped(token, wrapped, amount, swapAmount);
+        }
+
+        address[] memory path;
+        if (swapToken == wchz) {
+            path = new address[](2);
+            path[0] = wchz;
+            path[1] = address(usdc);
+        } else {
+            // Kayen liquidity is hubbed on WCHZ; no token has a direct USDC pair.
+            path = new address[](3);
+            path[0] = swapToken;
+            path[1] = wchz;
+            path[2] = address(usdc);
+        }
+
+        IERC20(swapToken).forceApprove(address(tokenRouter), swapAmount);
 
         uint256[] memory amounts = tokenRouter.swapExactTokensForTokens(
-            amount, amountOutMin, path, address(this), deadline
+            swapAmount, amountOutMin, path, address(this), deadline
         );
         usdcReceived = amounts[amounts.length - 1];
+    }
+
+    /// @dev Returns the wrapped version of `token` when wrapping should be
+    ///      applied, else address(0). Wrapping applies only when the wrapper
+    ///      factory is set, the wrapped token already exists, AND the token
+    ///      has fewer than 18 decimals. The decimals guard matters because
+    ///      `createWrappedToken` is permissionless — without it, anyone could
+    ///      register a wrapper for a normal 18-decimals token and force this
+    ///      router into a poolless wrapped market (DoS for that token).
+    function _wrappedVersionOf(address token) internal view returns (address wrapped) {
+        IChilizWrapperFactory factory = wrapperFactory;
+        if (address(factory) == address(0)) return address(0);
+
+        wrapped = factory.underlyingToWrapped(token);
+        if (wrapped == address(0)) return address(0);
+
+        try IERC20Metadata(token).decimals() returns (uint8 d) {
+            if (d >= 18) return address(0);
+        } catch {
+            return address(0);
+        }
     }
 
     // ══════════════════════════════════════════════════════════════════════════

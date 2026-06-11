@@ -51,6 +51,7 @@ contract RedeploySwapRouter is Script {
     address public treasury;
     address public masterRouter;
     address public tokenRouter;
+    address public wrapperFactory;
     uint16  public platformFeeBps;
     bool    public transferOwnership;
 
@@ -73,6 +74,14 @@ contract RedeploySwapRouter is Script {
             masterRouter, tokenRouter, usdcAddress, wchz, treasury, platformFeeBps
         );
         console.log("New ChilizSwapRouter:", address(newRouter));
+
+        // 1b. Fan-token wrapper factory (optional — enables PSG/BAR/etc. bets).
+        if (wrapperFactory != address(0)) {
+            newRouter.setWrapperFactory(wrapperFactory);
+            console.log("  newRouter.setWrapperFactory ->", wrapperFactory);
+        } else {
+            console.log("  WRAPPER_FACTORY unset -> fan-token swaps disabled");
+        }
 
         // 2. Factory learns about the new router. Future matches will get
         //    SWAP_ROUTER_ROLE = newRouter atomically at creation.
@@ -112,6 +121,7 @@ contract RedeploySwapRouter is Script {
         treasury          = vm.envAddress("SAFE_ADDRESS");
         masterRouter      = vm.envAddress("KAYEN_MASTER_ROUTER");
         tokenRouter       = vm.envAddress("KAYEN_ROUTER");
+        wrapperFactory    = _envAddressOr("WRAPPER_FACTORY", address(0));
         platformFeeBps    = uint16(_envUintOr("PLATFORM_FEE_BPS", 500));
         transferOwnership = _envBoolOr("TRANSFER_OWNERSHIP", false);
 
@@ -183,5 +193,9 @@ contract RedeploySwapRouter is Script {
 
     function _envBoolOr(string memory key, bool def) internal view returns (bool) {
         try vm.envBool(key) returns (bool v) { return v; } catch { return def; }
+    }
+
+    function _envAddressOr(string memory key, address def) internal view returns (address) {
+        try vm.envAddress(key) returns (address v) { return v; } catch { return def; }
     }
 }

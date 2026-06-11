@@ -30,9 +30,20 @@ const chatService = new SupabaseChatService();
 
 // Single dedup rule shared by realtime push and the polling fallback —
 // deterministic match by clientTempId first (echoed back by the backend),
-// then the legacy (message, userId) heuristic for rows missing it.
+// then the legacy (message, userId) heuristic for rows missing it. Rows
+// already present are refreshed in place when their removedAt changed
+// (moderation soft-delete reaching us via the polling fallback).
 function mergeAndDedupOptimistic(prev: ChatMessage[], incoming: ChatMessage): ChatMessage[] {
-    if (prev.some(m => m.id === incoming.id)) return prev;
+    const existingIdx = prev.findIndex(m => m.id === incoming.id);
+    if (existingIdx !== -1) {
+        const existing = prev[existingIdx]!;
+        const existingRemoved = existing.removedAt?.getTime() ?? null;
+        const incomingRemoved = incoming.removedAt?.getTime() ?? null;
+        if (existingRemoved === incomingRemoved) return prev;
+        const next = [...prev];
+        next[existingIdx] = incoming;
+        return next;
+    }
     let optimisticIdx = -1;
     if (incoming.clientTempId) {
         optimisticIdx = prev.findIndex(
@@ -117,10 +128,16 @@ export function useChatRoom({
             }
         };
 
+        // Moderation soft-deletes arrive as UPDATEs — swap the row in place
+        // (no unread bump: nothing new to read).
+        const handleMessageUpdate = (msg: ChatMessage) => {
+            setMessages(prev => prev.map(m => (m.id === msg.id ? msg : m)));
+        };
+
         if (roomType === 'stream') {
-            chatService.subscribeToStreamMessages(roomIdStr, handleNewMessage);
+            chatService.subscribeToStreamMessages(roomIdStr, handleNewMessage, handleMessageUpdate);
         } else {
-            chatService.subscribeToMatchMessages(matchId, handleNewMessage);
+            chatService.subscribeToMatchMessages(matchId, handleNewMessage, handleMessageUpdate);
         }
 
         // Optimistic banner: MarketBetDialog fires `chiliz:bet-confirmed` the

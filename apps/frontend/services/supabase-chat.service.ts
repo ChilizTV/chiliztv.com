@@ -306,7 +306,11 @@ export class SupabaseChatService {
         return data.map(user => this.mapSupabaseUserToConnectedUser(user));
     }
 
-    subscribeToMatchMessages(matchId: number, callback: (message: ChatMessage) => void) {
+    subscribeToMatchMessages(
+        matchId: number,
+        callback: (message: ChatMessage) => void,
+        onUpdate?: (message: ChatMessage) => void,
+    ) {
         this.unsubscribeFromMatch(matchId);
 
         const subscription = supabase
@@ -325,6 +329,21 @@ export class SupabaseChatService {
                     if (payload.new.stream_id != null) return;
                     const message = this.mapSupabaseMessageToChatMessage(payload.new as SupabaseChatRow);
                     callback(message);
+                }
+            )
+            .on(
+                'postgres_changes',
+                {
+                    event: 'UPDATE',
+                    schema: 'public',
+                    table: 'chat_messages',
+                    filter: `match_id=eq.${matchId}`
+                },
+                (payload) => {
+                    // Moderation soft-deletes arrive as UPDATEs (removed_at set).
+                    if (payload.new.stream_id != null) return;
+                    const message = this.mapSupabaseMessageToChatMessage(payload.new as SupabaseChatRow);
+                    onUpdate?.(message);
                 }
             )
             .subscribe((status, err) => {
@@ -349,7 +368,11 @@ export class SupabaseChatService {
         }
     }
 
-    subscribeToStreamMessages(streamId: string, callback: (message: ChatMessage) => void) {
+    subscribeToStreamMessages(
+        streamId: string,
+        callback: (message: ChatMessage) => void,
+        onUpdate?: (message: ChatMessage) => void,
+    ) {
         this.unsubscribeFromStream(streamId);
 
         const subscription = supabase
@@ -365,6 +388,19 @@ export class SupabaseChatService {
                 (payload) => {
                     const message = this.mapSupabaseMessageToChatMessage(payload.new as SupabaseChatRow);
                     callback(message);
+                }
+            )
+            .on(
+                'postgres_changes',
+                {
+                    event: 'UPDATE',
+                    schema: 'public',
+                    table: 'chat_messages',
+                    filter: `stream_id=eq.${streamId}`
+                },
+                (payload) => {
+                    const message = this.mapSupabaseMessageToChatMessage(payload.new as SupabaseChatRow);
+                    onUpdate?.(message);
                 }
             )
             .subscribe((status, err) => {

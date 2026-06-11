@@ -449,6 +449,10 @@ export default function LiveDetailsPage({ id }: LiveDetailsPageProps) {
               userInitiated: userInitiatedEndRef.current,
             });
             if (interrupted) setInterruptedBanner(true);
+            // Stream ended server-side (moderation stop, provider webhook):
+            // tear down the local broadcast panel as if End had been pressed —
+            // idempotent, the backend row is already ended.
+            endStreamRef.current?.().catch(() => undefined);
           }
           setMyStream(stream);
           setSelectedStream((prev) => {

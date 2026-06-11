@@ -1,6 +1,7 @@
 import { MEDAL_PALETTE } from '../domain/medals';
 import type { PreviewRow as PreviewRowData } from '../domain/data';
 import { AddressLabel, RankMedal } from '../primitives';
+import { UserBadge } from '@/components/shared/UserBadge';
 
 interface PreviewRowProps {
     row: PreviewRowData;
@@ -37,6 +38,12 @@ export function PreviewRow({ row }: PreviewRowProps) {
             {/* who */}
             <div className="flex min-w-0 items-center gap-3">
                 <RankMedal medal={row.medal} rank={row.rank} />
+                <UserBadge
+                    walletAddress={row.walletAddress}
+                    profile={{ username: row.username, avatarUrl: row.avatarUrl }}
+                    size={28}
+                    avatarOnly
+                />
                 <span className="min-w-0 truncate">
                     <AddressLabel who={row.who} medal={row.medal} />
                 </span>

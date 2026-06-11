@@ -9,6 +9,9 @@ export interface PreviewRow {
     readonly rank: number;
     /** Truncated 0x address or .eth handle. */
     readonly who: string;
+    readonly walletAddress: string;
+    readonly username: string | null;
+    readonly avatarUrl: string | null;
     readonly pnl: number;
     readonly win: number;
     readonly vol: number;

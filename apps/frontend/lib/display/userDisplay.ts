@@ -6,7 +6,7 @@ import type { UserProfileDto } from '@/lib/api/endpoints/users';
  * `0x1234…abcd` shape when no profile is available.
  */
 export function displayName(
-    profile: UserProfileDto | null | undefined,
+    profile: Pick<UserProfileDto, 'username'> | null | undefined,
     walletAddress: string | null | undefined,
 ): string {
     if (profile?.username) return profile.username;
@@ -21,7 +21,7 @@ export function displayName(
  * `MA`), otherwise the wallet hex prefix (`0x` stripped).
  */
 export function displayInitials(
-    profile: UserProfileDto | null | undefined,
+    profile: Pick<UserProfileDto, 'username'> | null | undefined,
     walletAddress: string | null | undefined,
 ): string {
     const source = profile?.username ?? walletAddress ?? '';
@@ -31,6 +31,6 @@ export function displayInitials(
 }
 
 /** True when the row should be considered "anonymous" (no resolved name). */
-export function isAnonymous(profile: UserProfileDto | null | undefined): boolean {
+export function isAnonymous(profile: Pick<UserProfileDto, 'username'> | null | undefined): boolean {
     return !profile?.username;
 }

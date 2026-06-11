@@ -5,13 +5,16 @@ import { useUserProfile } from '@/hooks/api';
 import type { UserProfileDto } from '@/lib/api/endpoints/users';
 import { displayInitials, displayName } from '@/lib/display/userDisplay';
 
+/** Minimum profile surface the badge needs — full DTOs are accepted too. */
+export type UserProfileLike = Pick<UserProfileDto, 'username' | 'avatarUrl'>;
+
 interface UserBadgeProps {
     readonly walletAddress: string;
     /**
      * Optionally pre-resolved profile (saves a round-trip when the parent
      * already loaded a batch via `useUserProfilesBatch`).
      */
-    readonly profile?: UserProfileDto | null;
+    readonly profile?: UserProfileLike | null;
     readonly size?: number;
     readonly className?: string;
     /** Render the avatar only (used by lists where the label is shown elsewhere). */
@@ -59,7 +62,7 @@ export function UserBadge({
 }
 
 interface AvatarProps {
-    profile: UserProfileDto | null;
+    profile: UserProfileLike | null;
     initials: string;
     size: number;
     seed: string;

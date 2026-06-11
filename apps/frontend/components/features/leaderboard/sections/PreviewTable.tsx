@@ -32,6 +32,9 @@ export function PreviewTable() {
         return {
             rank: e.rank,
             who: e.username ?? truncate(e.userAddress),
+            walletAddress: e.userAddress,
+            username: e.username,
+            avatarUrl: e.avatarUrl,
             pnl: payouts,
             win: 0,
             vol: 0,

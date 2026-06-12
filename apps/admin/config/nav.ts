@@ -9,5 +9,6 @@ export interface NavEntry {
 
 export const NAV_ENTRIES: ReadonlyArray<NavEntry> = [
   { label: 'Dashboard', href: '/', roles: ['super_admin', 'admin', 'moderator', 'finance'] },
-  // Lot 2+: Moderation, Players, Markets, Finance, Contracts, Analytics, Audit.
+  { label: 'Moderation', href: '/moderation', roles: ['moderator'] },
+  // Lot 3+: Players, Markets, Finance, Contracts, Analytics, Audit.
 ];

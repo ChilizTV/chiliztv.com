@@ -38,6 +38,11 @@ class AdminApiClient {
     const response = await this.client.post<T>(url, data);
     return response.data;
   }
+
+  async put<T>(url: string, data?: unknown): Promise<T> {
+    const response = await this.client.put<T>(url, data);
+    return response.data;
+  }
 }
 
 export const apiClient = new AdminApiClient();

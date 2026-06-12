@@ -17,3 +17,12 @@ export function fmtChz(value: string): string {
   if (!Number.isFinite(parsed)) return '0.00';
   return parsed.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
+
+/** Compact raw USDC 6dp for stat tiles — "184.5k" / "1.2M". Display only. */
+export function fmtUsdcCompact(raw: string): string {
+  const value = Number(raw) / 1e6;
+  if (!Number.isFinite(value)) return '—';
+  if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(1)}M`;
+  if (value >= 1_000) return `${(value / 1_000).toFixed(1)}k`;
+  return value.toFixed(value > 0 && value < 10 ? 2 : 0);
+}

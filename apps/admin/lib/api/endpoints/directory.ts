@@ -51,6 +51,7 @@ export interface AdminMatchSummaryDto {
   leagueName: string;
   status: string;
   matchDate: string;
+  elapsed: number | null;
   score: { home: number; away: number } | null;
   bettingContractAddress: string | null;
   betCount: number;

@@ -5,12 +5,16 @@ import Link from 'next/link';
 
 import { usePlayers } from '@/hooks/api/usePlayers';
 import { fmtUsdcRaw } from '@/lib/format/amounts';
+import { Card } from '@/components/common/Card';
+import { THead } from '@/components/common/THead';
+import { TRow } from '@/components/common/TRow';
+import { EmptyState } from '@/components/common/EmptyState';
 import { WalletLabel } from '@/components/moderation/WalletLabel';
 import { CopyButton } from '@/components/common/CopyButton';
 import { OffsetPager } from './OffsetPager';
 
 const PAGE_SIZE = 25;
-const COLS = 'minmax(0,1.2fr) 150px 70px 120px 120px 110px 130px';
+const COLS = 'minmax(0,1.1fr) 160px 60px 110px 110px 110px 120px';
 
 export function PlayersTable() {
   const [offset, setOffset] = useState(0);
@@ -18,11 +22,8 @@ export function PlayersTable() {
 
   return (
     <div className="mt-5">
-      <div className="rounded-lg border border-[#1E1E1E] bg-[#111]">
-        <div
-          className="font-mono-ctv grid gap-3 border-b border-[#1E1E1E] px-4 py-2.5 text-[10px] font-bold uppercase tracking-[0.14em] text-white/45"
-          style={{ gridTemplateColumns: COLS }}
-        >
+      <Card className="overflow-hidden">
+        <THead cols={COLS}>
           <span>Player</span>
           <span>Wallet</span>
           <span className="text-right">Bets</span>
@@ -30,48 +31,43 @@ export function PlayersTable() {
           <span className="text-right">Payouts</span>
           <span className="text-right">W · L · P</span>
           <span className="text-right">Last bet</span>
-        </div>
+        </THead>
 
         {isLoading && (
           <p className="font-mono-ctv px-4 py-6 text-[11px] uppercase tracking-[0.14em] text-white/35">Loading…</p>
         )}
         {!isLoading && (data?.items.length ?? 0) === 0 && (
-          <p className="font-mono-ctv px-4 py-6 text-[11px] uppercase tracking-[0.14em] text-white/35">
-            No players yet.
-          </p>
+          <EmptyState icon="users" title="No players yet" hint="Wallets appear here after their first indexed bet." />
         )}
         {data?.items.map((player) => (
-          <Link
-            key={player.wallet}
-            href={`/players/${player.wallet}`}
-            className="grid items-center gap-3 border-b border-[#1A1A1A] px-4 py-3 text-[13px] transition-colors last:border-b-0 hover:bg-white/[0.02]"
-            style={{ gridTemplateColumns: COLS }}
-          >
-            <span className="min-w-0 truncate text-white/85">
-              {player.username ?? <span className="text-white/35">—</span>}
-            </span>
-            <span className="flex items-center gap-1">
-              <WalletLabel wallet={player.wallet} />
-              <CopyButton value={player.wallet} label="Copy wallet address" />
-            </span>
-            <span className="text-right tabular-nums text-white/85">{player.betCount}</span>
-            <span className="text-right tabular-nums text-white/85">{fmtUsdcRaw(player.totalStaked)}</span>
-            <span className="text-right tabular-nums text-[#2dd4a4]">{fmtUsdcRaw(player.totalPayout)}</span>
-            <span className="text-right tabular-nums">
-              <span className="text-[#2dd4a4]">{player.wonCount}</span>
-              <span className="text-white/35"> · </span>
-              <span className="text-white/55">{player.lostCount}</span>
-              <span className="text-white/35"> · </span>
-              <span className="text-[#F5C518]">{player.pendingCount}</span>
-            </span>
-            <span className="font-mono-ctv text-right text-[11px] tabular-nums text-white/55">
-              {player.lastBetAt
-                ? new Date(player.lastBetAt).toLocaleString('en-GB', { dateStyle: 'short', timeStyle: 'short' })
-                : '—'}
-            </span>
+          <Link key={player.wallet} href={`/players/${player.wallet}`} className="block">
+            <TRow cols={COLS} className="cursor-pointer">
+              <span className="min-w-0 truncate text-white/85">
+                {player.username ?? <span className="text-white/30">—</span>}
+              </span>
+              <span className="flex items-center gap-1">
+                <WalletLabel wallet={player.wallet} />
+                <CopyButton value={player.wallet} label="Copy wallet address" />
+              </span>
+              <span className="text-right tabular-nums text-white/85">{player.betCount}</span>
+              <span className="text-right tabular-nums text-white/85">{fmtUsdcRaw(player.totalStaked)}</span>
+              <span className="text-right tabular-nums text-[#2dd4a4]">{fmtUsdcRaw(player.totalPayout)}</span>
+              <span className="text-right tabular-nums">
+                <span className="text-[#2dd4a4]">{player.wonCount}</span>
+                <span className="text-white/30"> · </span>
+                <span className="text-white/55">{player.lostCount}</span>
+                <span className="text-white/30"> · </span>
+                <span className="text-[#F5C518]">{player.pendingCount}</span>
+              </span>
+              <span className="font-mono-ctv text-right text-[11px] tabular-nums text-white/50">
+                {player.lastBetAt
+                  ? new Date(player.lastBetAt).toLocaleString('en-GB', { dateStyle: 'short', timeStyle: 'short' })
+                  : '—'}
+              </span>
+            </TRow>
           </Link>
         ))}
-      </div>
+      </Card>
 
       <OffsetPager offset={offset} limit={PAGE_SIZE} total={data?.total ?? 0} onOffsetChange={setOffset} />
     </div>

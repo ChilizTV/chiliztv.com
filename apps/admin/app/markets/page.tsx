@@ -4,7 +4,7 @@ import { MatchesTable } from '@/components/directory/MatchesTable';
 export default function MarketsPage() {
   return (
     <div>
-      <PageHeader eyebrow="Markets" title="Matches" />
+      <PageHeader eyebrow="Markets" title="Matches &amp; markets" />
       <MatchesTable />
     </div>
   );

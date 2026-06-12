@@ -41,11 +41,11 @@ export function ConfigForm() {
   };
 
   return (
-    <form onSubmit={submit} className="mt-6 max-w-2xl rounded-lg border border-[#1E1E1E] bg-[#111] p-5">
-      <div className="grid gap-4 sm:grid-cols-2">
+    <form onSubmit={submit} className="mt-6 max-w-2xl rounded-xl border border-[#1E1E1E] bg-[#111111] p-5">
+      <div className="grid gap-x-4 gap-y-5 sm:grid-cols-2">
         {FIELDS.map(({ key, label, hint }) => (
           <label key={key} className="block">
-            <span className="font-mono-ctv text-[10px] font-bold uppercase tracking-[0.14em] text-white/45">
+            <span className="font-mono-ctv text-[10px] font-bold uppercase tracking-[0.14em] text-white/40">
               {label}
             </span>
             <input
@@ -55,26 +55,27 @@ export function ConfigForm() {
               onChange={(e) => setEdits({ ...edits, [key]: Number(e.target.value) })}
               className="font-mono-ctv mt-1.5 w-full rounded-md border border-[#2A2A2A] bg-[#0d0d0d] px-3 py-2 text-[13px] tabular-nums text-white outline-none focus-visible:ring-2 focus-visible:ring-[#E8001D] disabled:opacity-50"
             />
-            <span className="font-mono-ctv mt-1 block text-[9px] uppercase tracking-[0.1em] text-white/30">
+            <span className="font-mono-ctv mt-1.5 block text-[9px] uppercase tracking-[0.1em] leading-relaxed text-white/30">
               {hint}
             </span>
           </label>
         ))}
       </div>
 
-      {canEdit ? (
-        <button
-          type="submit"
-          disabled={update.isPending}
-          className="font-mono-ctv mt-5 rounded-md bg-[#E8001D] px-5 py-2.5 text-[11px] font-bold uppercase tracking-[0.12em] text-white hover:bg-[#FF1737] disabled:opacity-50"
-        >
-          {update.isPending ? 'Saving…' : 'Save config'}
-        </button>
-      ) : (
-        <p className="font-mono-ctv mt-5 text-[10px] uppercase tracking-[0.12em] text-white/35">
-          Read-only — config writes require the admin role.
-        </p>
-      )}
+      <div className="mt-6 flex items-center justify-between border-t border-[#1E1E1E] pt-4">
+        <span className="font-mono-ctv text-[9px] uppercase tracking-[0.12em] text-white/30">
+          {canEdit ? 'Hot reload within 30s of saving' : 'Read-only — config writes require the admin role'}
+        </span>
+        {canEdit && (
+          <button
+            type="submit"
+            disabled={update.isPending}
+            className="font-mono-ctv rounded-md bg-[#E8001D] px-5 py-2.5 text-[11px] font-bold uppercase tracking-[0.12em] text-white transition-colors hover:bg-[#FF1737] disabled:opacity-50"
+          >
+            {update.isPending ? 'Saving…' : 'Save config'}
+          </button>
+        )}
+      </div>
     </form>
   );
 }

@@ -1,18 +1,21 @@
+import { Eyebrow } from '@/components/common/Eyebrow';
+
 interface PageHeaderProps {
   readonly eyebrow: string;
   readonly title: string;
+  readonly right?: React.ReactNode;
 }
 
-export function PageHeader({ eyebrow, title }: PageHeaderProps) {
+export function PageHeader({ eyebrow, title, right }: PageHeaderProps) {
   return (
-    <div>
-      <div className="font-mono-ctv inline-flex items-center gap-2.5 text-[10px] font-bold uppercase tracking-[0.16em] text-[#E8001D]">
-        <span aria-hidden className="block h-0.5 w-4 bg-[#E8001D]" />
-        {eyebrow}
+    <div className="flex items-end justify-between gap-6">
+      <div>
+        <Eyebrow>{eyebrow}</Eyebrow>
+        <h1 className="font-display mt-2 text-[32px] font-extrabold uppercase leading-none tracking-[-0.01em] text-white">
+          {title}
+        </h1>
       </div>
-      <h1 className="font-display mt-2 text-[32px] font-extrabold uppercase leading-none tracking-[-0.01em] text-white">
-        {title}
-      </h1>
+      {right && <div className="flex items-center gap-2.5 pb-0.5">{right}</div>}
     </div>
   );
 }

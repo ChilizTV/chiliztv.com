@@ -1,4 +1,4 @@
-import { PageHeader } from '@/components/layout/PageHeader';
+import { BackLink } from '@/components/common/BackLink';
 import { PlayerDetailView } from '@/components/directory/PlayerDetailView';
 
 export default async function PlayerDetailPage({
@@ -7,7 +7,7 @@ export default async function PlayerDetailPage({
   const { wallet } = await params;
   return (
     <div>
-      <PageHeader eyebrow="Directory" title="Player" />
+      <BackLink href="/players">Players</BackLink>
       <PlayerDetailView wallet={wallet} />
     </div>
   );

@@ -1,5 +1,4 @@
-import { PageHeader } from '@/components/layout/PageHeader';
-import { ModerationTabs } from '@/components/moderation/ModerationTabs';
+import { BackLink } from '@/components/common/BackLink';
 import { ReportDetailView } from '@/components/moderation/ReportDetailView';
 
 export default async function ReportDetailPage({
@@ -8,8 +7,7 @@ export default async function ReportDetailPage({
   const { id } = await params;
   return (
     <div>
-      <PageHeader eyebrow="Moderation" title="Report" />
-      <ModerationTabs />
+      <BackLink href="/moderation">Review queue</BackLink>
       <ReportDetailView id={id} />
     </div>
   );

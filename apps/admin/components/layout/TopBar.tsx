@@ -1,9 +1,15 @@
 "use client";
 
-import Image from "next/image";
+import { usePathname } from "next/navigation";
 import { useDynamicContext } from "@dynamic-labs/sdk-react-core";
+
 import { useAdminSession } from "@/providers/AdminSessionProvider";
 import { clearAdminToken } from "@/lib/api/auth";
+import { breadcrumbFor } from "@/lib/breadcrumb";
+import { useOverview } from "@/hooks/api/useOverview";
+import { Icon } from "@/components/common/Icon";
+import { LiveDot } from "@/components/common/LiveDot";
+import { CopyButton } from "@/components/common/CopyButton";
 
 const ROLE_COLORS: Record<string, string> = {
   super_admin: "#E8001D",
@@ -15,6 +21,11 @@ const ROLE_COLORS: Record<string, string> = {
 export function TopBar() {
   const { wallet, role } = useAdminSession();
   const { handleLogOut } = useDynamicContext();
+  const pathname = usePathname();
+  const { data: overview } = useOverview();
+
+  const { section, page } = breadcrumbFor(pathname);
+  const live = overview?.liveCount ?? 0;
   const color = ROLE_COLORS[role] ?? "#fff";
 
   // The guard's effect sees the wallet disappear and falls back to the
@@ -25,29 +36,39 @@ export function TopBar() {
   };
 
   return (
-    <header className="flex items-center justify-between border-b border-[#1E1E1E] px-6 py-3">
-      <div className="flex items-center gap-2.5">
-        <Image src="/predcast-logo-white.svg" alt="PredCast" width={110} height={22} priority />
-        <span className="font-mono-ctv rounded border border-[#E8001D]/40 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.16em] text-[#E8001D]">
-          Admin
-        </span>
+    <header className="flex h-[52px] shrink-0 items-center justify-between border-b border-[#1E1E1E] px-6">
+      <div className="font-mono-ctv flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.16em]">
+        <span className="text-white/30">{section}</span>
+        <Icon n="chevronRight" s={10} className="text-white/20" />
+        <span className="text-white/80">{page}</span>
       </div>
       <div className="flex items-center gap-3">
+        {live > 0 && (
+          <span className="font-mono-ctv flex items-center gap-2 rounded-md border border-[#E8001D]/40 bg-[#E8001D]/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-[#FF1737]">
+            <LiveDot />
+            <span>{live} live</span>
+          </span>
+        )}
         <span
           className="font-mono-ctv rounded-md px-2 py-1 text-[10px] font-bold uppercase tracking-[0.14em]"
           style={{ color, background: `${color}14`, border: `1px solid ${color}40` }}
         >
           {role.replace("_", " ")}
         </span>
-        <span className="font-mono-ctv text-[11px] tracking-[0.06em] text-white/55" title={wallet}>
-          {wallet.slice(0, 6)}…{wallet.slice(-4)}
+        <span className="flex items-center gap-1">
+          <span className="font-mono-ctv text-[11px] tracking-[0.06em] text-white/55" title={wallet}>
+            {wallet.slice(0, 6)}…{wallet.slice(-4)}
+          </span>
+          <CopyButton value={wallet} label="Copy wallet address" />
         </span>
+        <span aria-hidden="true" className="h-4 w-px bg-[#1E1E1E]" />
         <button
           type="button"
           onClick={disconnect}
-          className="font-mono-ctv rounded-md border border-[#2A2A2A] px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.12em] text-white/65 transition-colors hover:border-[#E8001D]/50 hover:text-white"
+          className="font-mono-ctv flex items-center gap-1.5 rounded-md border border-[#2A2A2A] px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.12em] text-white/65 transition-colors hover:border-[#E8001D]/50 hover:text-white"
         >
-          Disconnect
+          <Icon n="logOut" s={12} />
+          <span>Disconnect</span>
         </button>
       </div>
     </header>

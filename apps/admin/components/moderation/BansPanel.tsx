@@ -2,11 +2,17 @@
 
 import { useState } from 'react';
 import { toast } from 'sonner';
+
 import { useBans, useCreateBan, useLiftBan } from '@/hooks/api/useBans';
+import { Card } from '@/components/common/Card';
+import { THead } from '@/components/common/THead';
+import { TRow } from '@/components/common/TRow';
+import { EmptyState } from '@/components/common/EmptyState';
+import { Icon } from '@/components/common/Icon';
 import { StatusBadge } from './StatusBadge';
 import { WalletLabel } from './WalletLabel';
 
-const COLS = 'minmax(0,1.2fr) 110px 150px 150px 90px 140px';
+const COLS = 'minmax(0,1.2fr) 130px 150px 150px 70px 110px';
 
 export function BansPanel() {
   const [cursor, setCursor] = useState<string | null>(null);
@@ -55,31 +61,36 @@ export function BansPanel() {
   return (
     <div className="mt-5">
       {/* Manual ban — danger zone styling per the visual language. */}
-      <form
-        onSubmit={submitBan}
-        className="rounded-lg border border-[#E8001D]/30 bg-[#E8001D]/5 p-4"
-      >
-        <div className="font-mono-ctv text-[10px] font-bold uppercase tracking-[0.16em] text-[#FF1737]">
-          Manual ban
+      <form onSubmit={submitBan} className="rounded-xl border border-[#E8001D]/30 bg-[#E8001D]/5 p-4">
+        <div className="flex items-center justify-between">
+          <div className="font-mono-ctv flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.16em] text-[#FF1737]">
+            <Icon n="alertTriangle" s={12} />
+            <span>Manual ban</span>
+          </div>
+          <span className="font-mono-ctv text-[9px] uppercase tracking-[0.12em] text-white/35">
+            Audited · realtime notify · stream stopped
+          </span>
         </div>
         <div className="mt-3 flex flex-wrap gap-2">
           <input
             value={wallet}
             onChange={(e) => setWallet(e.target.value)}
             placeholder="0x…"
-            className="font-mono-ctv w-90 rounded-md border border-[#2A2A2A] bg-[#0d0d0d] px-3 py-2 text-[12px] text-white outline-none focus-visible:ring-2 focus-visible:ring-[#E8001D]"
+            aria-label="Wallet to ban"
+            className="font-mono-ctv w-75 rounded-md border border-[#2A2A2A] bg-[#0d0d0d] px-3 py-2 text-[12px] text-white outline-none focus-visible:ring-2 focus-visible:ring-[#E8001D]"
           />
           <input
             value={reason}
             onChange={(e) => setReason(e.target.value)}
             placeholder="Reason (min 10 chars, audited)"
+            aria-label="Ban reason"
             className="font-mono-ctv min-w-60 flex-1 rounded-md border border-[#2A2A2A] bg-[#0d0d0d] px-3 py-2 text-[12px] text-white outline-none focus-visible:ring-2 focus-visible:ring-[#E8001D]"
           />
           <select
             value={duration}
             onChange={(e) => setDuration(e.target.value)}
             aria-label="Ban duration"
-            className="font-mono-ctv rounded-md border border-[#2A2A2A] bg-[#0d0d0d] px-3 py-2 text-[12px] uppercase text-white outline-none focus-visible:ring-2 focus-visible:ring-[#E8001D]"
+            className="font-mono-ctv rounded-md border border-[#2A2A2A] bg-[#0d0d0d] px-3 py-2 text-[11px] font-bold uppercase tracking-[0.1em] text-white outline-none focus-visible:ring-2 focus-visible:ring-[#E8001D]"
           >
             <option value="auto">Auto (escalation)</option>
             <option value="24">24h</option>
@@ -91,66 +102,66 @@ export function BansPanel() {
           <button
             type="submit"
             disabled={createBan.isPending || !/^0x[0-9a-fA-F]{40}$/.test(wallet.trim()) || reason.trim().length < 10}
-            className="font-mono-ctv rounded-md bg-[#E8001D] px-4 py-2 text-[11px] font-bold uppercase tracking-[0.12em] text-white hover:bg-[#FF1737] disabled:cursor-not-allowed disabled:opacity-50"
+            className="font-mono-ctv rounded-md bg-[#E8001D] px-4 py-2 text-[11px] font-bold uppercase tracking-[0.12em] text-white transition-colors hover:bg-[#FF1737] disabled:cursor-not-allowed disabled:opacity-50"
           >
             Ban wallet
           </button>
         </div>
         <p className="font-mono-ctv mt-2 text-[10px] uppercase tracking-[0.12em] text-white/35">
-          Auto follows escalation (24h → 168h → permanent) · active stream is stopped · realtime notify
+          Auto follows escalation (24h → 168h → permanent)
         </p>
       </form>
 
-      <div className="mt-4 rounded-lg border border-[#1E1E1E] bg-[#111]">
-        <div
-          className="font-mono-ctv grid gap-3 border-b border-[#1E1E1E] px-4 py-2.5 text-[10px] font-bold uppercase tracking-[0.14em] text-white/45"
-          style={{ gridTemplateColumns: COLS }}
-        >
+      <Card className="mt-4 overflow-hidden">
+        <THead cols={COLS}>
           <span>Wallet</span>
           <span>Status</span>
           <span>Starts</span>
           <span>Expires</span>
-          <span>Strike</span>
+          <span className="text-right">Strike</span>
           <span></span>
-        </div>
+        </THead>
 
         {isLoading && (
           <p className="font-mono-ctv px-4 py-6 text-[11px] uppercase tracking-[0.14em] text-white/35">Loading…</p>
         )}
         {!isLoading && (data?.items.length ?? 0) === 0 && (
-          <p className="font-mono-ctv px-4 py-6 text-[11px] uppercase tracking-[0.14em] text-white/35">
-            No bans recorded.
-          </p>
+          <EmptyState icon="ban" title="No bans recorded" hint="Quorum auto-bans and manual bans appear here, with their escalation strike." />
         )}
         {data?.items.map((ban) => (
           <div key={ban.id} className="border-b border-[#1A1A1A] last:border-b-0">
-            <div
-              className="grid items-center gap-3 px-4 py-3 text-[13px]"
-              style={{ gridTemplateColumns: COLS }}
-            >
+            <TRow cols={COLS} accent={ban.status === 'active' ? '#E8001D' : undefined} className="!border-b-0">
               <WalletLabel wallet={ban.walletAddress} />
               <StatusBadge status={ban.status} />
-              <span className="font-mono-ctv text-[11px] tabular-nums text-white/55">
+              <span className="font-mono-ctv text-[11px] tabular-nums text-white/50">
                 {new Date(ban.startsAt).toLocaleString('en-GB', { dateStyle: 'short', timeStyle: 'short' })}
               </span>
-              <span className="font-mono-ctv text-[11px] tabular-nums text-white/55">
+              <span className="font-mono-ctv text-[11px] tabular-nums text-white/50">
                 {ban.expiresAt
                   ? new Date(ban.expiresAt).toLocaleString('en-GB', { dateStyle: 'short', timeStyle: 'short' })
-                  : 'Permanent'}
+                  : ban.status === 'active'
+                    ? 'Permanent'
+                    : '—'}
               </span>
-              <span className="font-mono-ctv text-[11px] tabular-nums text-white/55">#{ban.escalationIndex}</span>
+              <span className="font-mono-ctv text-right text-[11px] tabular-nums text-white/50">#{ban.escalationIndex}</span>
               {ban.status === 'active' ? (
-                <button
-                  type="button"
-                  onClick={() => setLiftingId(liftingId === ban.id ? null : ban.id)}
-                  className="font-mono-ctv rounded-md border border-[#2A2A2A] px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.12em] text-white/65 hover:text-white"
-                >
-                  Lift…
-                </button>
+                <span className="text-right">
+                  <button
+                    type="button"
+                    onClick={() => setLiftingId(liftingId === ban.id ? null : ban.id)}
+                    className={`font-mono-ctv rounded-md border px-2.5 py-1 text-[9px] font-bold uppercase tracking-[0.1em] transition-colors ${
+                      liftingId === ban.id
+                        ? 'border-[#3A3A3A] bg-white/5 text-white'
+                        : 'border-[#2A2A2A] text-white/65 hover:border-[#3A3A3A] hover:text-white'
+                    }`}
+                  >
+                    Lift…
+                  </button>
+                </span>
               ) : (
                 <span />
               )}
-            </div>
+            </TRow>
             {liftingId === ban.id && (
               <div className="flex gap-2 border-t border-[#1A1A1A] bg-[#0d0d0d] px-4 py-3">
                 <input
@@ -158,13 +169,13 @@ export function BansPanel() {
                   onChange={(e) => setLiftNote(e.target.value)}
                   placeholder="Lift note (required, audited)"
                   autoFocus
-                  className="font-mono-ctv flex-1 rounded-md border border-[#2A2A2A] bg-[#111] px-3 py-2 text-[12px] text-white outline-none focus-visible:ring-2 focus-visible:ring-[#E8001D]"
+                  className="font-mono-ctv flex-1 rounded-md border border-[#2A2A2A] bg-[#111111] px-3 py-2 text-[12px] text-white outline-none focus-visible:ring-2 focus-visible:ring-[#E8001D]"
                 />
                 <button
                   type="button"
                   disabled={liftBan.isPending || liftNote.trim().length === 0}
                   onClick={() => submitLift(ban.id)}
-                  className="font-mono-ctv rounded-md bg-[#2dd4a4] px-4 py-2 text-[11px] font-bold uppercase tracking-[0.12em] text-black hover:opacity-90 disabled:opacity-50"
+                  className="font-mono-ctv rounded-md bg-[#2dd4a4] px-4 py-2 text-[11px] font-bold uppercase tracking-[0.12em] text-black transition-opacity hover:opacity-90 disabled:opacity-50"
                 >
                   Confirm lift
                 </button>
@@ -172,16 +183,19 @@ export function BansPanel() {
             )}
           </div>
         ))}
-      </div>
+      </Card>
 
       {data?.nextCursor && (
-        <button
-          type="button"
-          onClick={() => setCursor(data.nextCursor)}
-          className="font-mono-ctv mt-3 rounded-md border border-[#2A2A2A] px-4 py-2 text-[11px] font-bold uppercase tracking-[0.12em] text-white/65 hover:text-white"
-        >
-          Next page →
-        </button>
+        <div className="mt-3 flex items-center justify-between">
+          <span className="font-mono-ctv text-[10px] uppercase tracking-[0.12em] text-white/35">Keyset · 25 per page</span>
+          <button
+            type="button"
+            onClick={() => setCursor(data.nextCursor)}
+            className="font-mono-ctv rounded-md border border-[#2A2A2A] px-4 py-2 text-[11px] font-bold uppercase tracking-[0.12em] text-white/65 transition-colors hover:text-white"
+          >
+            Next page →
+          </button>
+        </div>
       )}
     </div>
   );

@@ -24,4 +24,5 @@ export const queryKeys = {
     list: (query: PageQuery) => ['streamers', 'list', query] as const,
   },
   adminMatches: ['admin-matches'] as const,
+  overview: ['overview'] as const,
 } as const;

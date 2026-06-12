@@ -62,7 +62,11 @@ export function AdminGuard({ children }: Readonly<{ children: React.ReactNode }>
   }, [primaryWallet, probe]);
 
   useEffect(() => {
+    // The guard mirrors two non-reactive external stores (sessionStorage gate
+    // token, Dynamic wallet) into the state machine — these synchronous
+    // transitions are the sync point, not derivable at render (SSR-safe).
     if (!getGateToken()) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setState({ step: "gate" });
       return;
     }

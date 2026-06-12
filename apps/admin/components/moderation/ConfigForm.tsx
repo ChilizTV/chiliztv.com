@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { toast } from 'sonner';
 import { useReportConfig, useUpdateReportConfig } from '@/hooks/api/useReportConfig';
 import type { ReportConfigDto } from '@/lib/api/endpoints/moderation';
@@ -21,11 +21,9 @@ export function ConfigForm() {
   const canEdit = isAllowedForNav(role, ['admin']);
   const { data, isLoading } = useReportConfig();
   const update = useUpdateReportConfig();
-  const [draft, setDraft] = useState<ReportConfigDto | null>(null);
-
-  useEffect(() => {
-    if (data && !draft) setDraft(data);
-  }, [data, draft]);
+  // Server values stay the baseline; only user edits live in state.
+  const [edits, setEdits] = useState<Partial<ReportConfigDto>>({});
+  const draft: ReportConfigDto | null = data ? { ...data, ...edits } : null;
 
   if (isLoading || !draft) {
     return <p className="font-mono-ctv mt-6 text-[11px] uppercase tracking-[0.14em] text-white/35">Loading…</p>;
@@ -34,7 +32,10 @@ export function ConfigForm() {
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
     update.mutate(draft, {
-      onSuccess: () => toast.success('Config updated — hot reload within 30s'),
+      onSuccess: () => {
+        setEdits({});
+        toast.success('Config updated — hot reload within 30s');
+      },
       onError: () => toast.error('Update failed'),
     });
   };
@@ -51,7 +52,7 @@ export function ConfigForm() {
               type="number"
               value={draft[key]}
               disabled={!canEdit}
-              onChange={(e) => setDraft({ ...draft, [key]: Number(e.target.value) })}
+              onChange={(e) => setEdits({ ...edits, [key]: Number(e.target.value) })}
               className="font-mono-ctv mt-1.5 w-full rounded-md border border-[#2A2A2A] bg-[#0d0d0d] px-3 py-2 text-[13px] tabular-nums text-white outline-none focus-visible:ring-2 focus-visible:ring-[#E8001D] disabled:opacity-50"
             />
             <span className="font-mono-ctv mt-1 block text-[9px] uppercase tracking-[0.1em] text-white/30">

@@ -92,3 +92,4 @@ export * from './reporting/ports/IPresenceService';
 export * from './reporting/ports/IBetHistoryService';
 export * from './reporting/ports/IModerationNotifier';
 export * from './reporting/ports/IReportConfigProvider';
+export * from './reporting/ports/IModerationAlerts';

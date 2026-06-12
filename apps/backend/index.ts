@@ -23,14 +23,14 @@ process.on('uncaughtException', (err) => {
 });
 import { TOKENS } from '@chiliztv/domain/shared/tokens';
 import type { IClock } from '@chiliztv/domain/shared/ports/IClock';
-import { errorHandler, authenticate, globalLimiter, authLimiter, predictionsLimiter, chatLimiter, accessCodeLimiter, webhookLimiter, reportsLimiter, requireNotBanned } from './src/presentation/http/middlewares';
+import { errorHandler, authenticate, globalLimiter, authLimiter, predictionsLimiter, chatLimiter, accessCodeLimiter, webhookLimiter, reportsLimiter, requireNotBanned, adminLimiter, adminGateLimiter } from './src/presentation/http/middlewares';
 import { JobScheduler, BlockchainEventListener } from './src/infrastructure/services';
 import { CleanupOldMatchesUseCase } from './src/application/matches/use-cases/CleanupOldMatchesUseCase';
 import { RedisWarmupService } from './src/infrastructure/cache/RedisWarmupService';
 import { waitForRedisReady, type RedisClient } from './src/infrastructure/cache/RedisClient';
 config();
 setupDependencyInjection();
-import { authRoutes, accessRoutes, predictionRoutes, matchRoutes, chatRoutes, waitlistRoutes, streamRoutes, streamWalletRoutes, fanTokensRoutes, followRoutes, betRoutes, userRoutes, pricesRoutes, leaderboardRoutes, metricsRoutes, reportingRoutes, banRoutes, statsRoutes } from './src/presentation/http/routes';
+import { authRoutes, accessRoutes, predictionRoutes, matchRoutes, chatRoutes, waitlistRoutes, streamRoutes, streamWalletRoutes, fanTokensRoutes, followRoutes, betRoutes, userRoutes, pricesRoutes, leaderboardRoutes, metricsRoutes, reportingRoutes, banRoutes, statsRoutes, adminRoutes, adminGateRoutes, adminAuthRoutes } from './src/presentation/http/routes';
 import { cloudflareStreamWebhookRoutes } from './src/presentation/http/routes/cloudflare-stream-webhook.routes';
 
 // Controls which responsibilities this process takes on.
@@ -62,7 +62,8 @@ app.use(cors({
     origin: allowedOrigins,
     credentials: true,
     methods: ['GET', 'HEAD', 'POST', 'PUT', 'DELETE', 'PATCH'],
-    allowedHeaders: ['Content-Type', 'Authorization']
+    // X-Admin-Gate: admin panel gate token (require-admin middleware).
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Admin-Gate']
 }));
 
 app.use(globalLimiter);
@@ -91,6 +92,8 @@ if (PROCESS_ROLE === 'api' || PROCESS_ROLE === 'all') {
     app.use('/prices', pricesRoutes);
     app.use('/leaderboard', leaderboardRoutes);
     app.use('/stats', statsRoutes);
+    app.use('/admin/gate', adminGateLimiter, adminGateRoutes);
+    app.use('/admin/auth', adminGateLimiter, adminAuthRoutes);
 
     // All routes below require JWT
     app.use(authenticate);
@@ -104,6 +107,7 @@ if (PROCESS_ROLE === 'api' || PROCESS_ROLE === 'all') {
     app.use('/predictions', predictionsLimiter, predictionRoutes);
     app.use('/bets', betRoutes);
     app.use('/users', userRoutes);
+    app.use('/admin', adminLimiter, adminRoutes);
 
     app.get('/supabase-status', (_req, res) => {
         res.json({

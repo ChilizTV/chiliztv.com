@@ -237,6 +237,22 @@ export class SupabaseChatRepository implements IChatRepository {
     return rows.length > 0 ? { matchId: rows[0]!.match_id } : null;
   }
 
+  async restoreMessage(messageId: string, actionId: string): Promise<{ matchId: number } | null> {
+    const { data, error } = await supabase
+      .from('chat_messages')
+      .update({ removed_at: null, removed_by_action_id: null })
+      .eq('id', messageId)
+      .eq('removed_by_action_id', actionId)
+      .select('match_id');
+
+    if (error) {
+      logger.error('Failed to restore chat message', { error: error.message, messageId });
+      throw new Error('Failed to restore chat message');
+    }
+    const rows = data as Array<{ match_id: number }>;
+    return rows.length > 0 ? { matchId: rows[0]!.match_id } : null;
+  }
+
   private messageToRow(message: ChatMessage): any {
     const json = message.toJSON();
     return {

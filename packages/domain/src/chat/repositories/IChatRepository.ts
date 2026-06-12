@@ -21,6 +21,13 @@ export interface IChatRepository {
    */
   softDeleteMessage(messageId: string, actionId: string, at: Date): Promise<{ matchId: number } | null>;
 
+  /**
+   * Restore counterpart — guarded on `removed_by_action_id = actionId` so
+   * only the reversing flow of the original action can restore. Null when
+   * nothing matched.
+   */
+  restoreMessage(messageId: string, actionId: string): Promise<{ matchId: number } | null>;
+
   addConnectedUser(user: ConnectedUser): Promise<ConnectedUser>;
   removeConnectedUser(matchId: number, userId: string): Promise<void>;
   findConnectedUsersByMatchId(matchId: number): Promise<ConnectedUser[]>;

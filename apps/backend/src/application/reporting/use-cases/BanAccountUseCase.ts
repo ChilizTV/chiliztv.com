@@ -4,6 +4,7 @@ import { Ban } from '@chiliztv/domain/reporting/entities/Ban';
 import { nextBan } from '@chiliztv/domain/reporting/policies/BanEscalationPolicy';
 import type { IBanRepository } from '@chiliztv/domain/reporting/repositories/IBanRepository';
 import type { IModerationNotifier } from '@chiliztv/domain/reporting/ports/IModerationNotifier';
+import type { IModerationAlerts } from '@chiliztv/domain/reporting/ports/IModerationAlerts';
 import type { IReportConfigProvider } from '@chiliztv/domain/reporting/ports/IReportConfigProvider';
 import type { QuorumSnapshot } from '@chiliztv/domain/reporting/value-objects/QuorumSnapshot';
 import type { IStreamRepository } from '@chiliztv/domain/streams/repositories/IStreamRepository';
@@ -20,6 +21,11 @@ export interface BanAccountInput {
   quorumSnapshot: QuorumSnapshot;
   triggeredByReportId: string | null;
   triggeringLiveMatchId: number | null;
+  /**
+   * Admin-chosen duration: hours, or null for permanent. Undefined keeps the
+   * escalation policy (auto path). escalationIndex still tracks history.
+   */
+  durationHoursOverride?: number | null;
 }
 
 /**
@@ -33,6 +39,7 @@ export class BanAccountUseCase {
     @inject(TOKENS.IBanRepository) private readonly bans: IBanRepository,
     @inject(TOKENS.IReportConfigProvider) private readonly config: IReportConfigProvider,
     @inject(TOKENS.IModerationNotifier) private readonly notifier: IModerationNotifier,
+    @inject(TOKENS.IModerationAlerts) private readonly alerts: IModerationAlerts,
     @inject(TOKENS.IStreamRepository) private readonly streams: IStreamRepository,
     @inject(TOKENS.ICacheService) private readonly cache: ICacheService,
     @inject(TOKENS.IClock) private readonly clock: IClock,
@@ -45,7 +52,17 @@ export class BanAccountUseCase {
 
     const escalatingCount = await this.bans.countEscalating(wallet);
     const cfg = await this.config.get();
-    const terms = nextBan(escalatingCount, cfg, now);
+    const terms =
+      input.durationHoursOverride !== undefined
+        ? {
+            startsAt: now,
+            expiresAt:
+              input.durationHoursOverride === null
+                ? null
+                : new Date(now.getTime() + input.durationHoursOverride * 3_600_000),
+            escalationIndex: escalatingCount + 1,
+          }
+        : nextBan(escalatingCount, cfg, now);
 
     const ban = await this.bans.save(
       Ban.create({
@@ -64,6 +81,19 @@ export class BanAccountUseCase {
     await this.cache.delete(banActiveKey(wallet));
 
     await this.notifier.notifyBanned(wallet, ban).catch(() => undefined);
+
+    const snapshot = input.quorumSnapshot;
+    await this.alerts
+      .banIssued({
+        wallet,
+        source: snapshot.trigger === 'admin_manual' ? 'admin' : 'auto',
+        adminWallet: snapshot.issuedBy,
+        trigger: snapshot.trigger,
+        reason: snapshot.reason,
+        escalationIndex: ban.props.escalationIndex,
+        expiresAt: ban.props.expiresAt,
+      })
+      .catch(() => undefined);
 
     // Cascade: stop any live the banned wallet is currently broadcasting.
     try {

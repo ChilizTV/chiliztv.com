@@ -264,10 +264,21 @@ export const reportsLimiter: RequestHandler[] = [reportsShortLimiter, reportsHou
  * Admin rate limiter — gates back-office endpoints (future scope). Keyed by
  * the JWT subject when present (admin actor), falling back to IP.
  */
+/** Admin gate code attempts — brute-force guard, immune to the kill switch. */
+export const adminGateLimiter = createLimiter({
+  prefix: 'admin-gate',
+  windowMs: 60 * 1000,
+  max: isDevelopment ? 100 : 5,
+  errorCode: 'ADMIN_GATE_RATE_LIMIT_EXCEEDED',
+  errorMessage: 'Too many attempts, please wait a minute',
+  bypassKillSwitch: true,
+});
+
 export const adminLimiter = createLimiter({
   prefix: 'admin',
   windowMs: 60 * 60 * 1000,
   max: isDevelopment ? 10_000 : 1_000,
+  bypassKillSwitch: true,
   errorCode: 'ADMIN_RATE_LIMIT_EXCEEDED',
   errorMessage: 'Admin action rate exceeded',
   keyGenerator: (req) => {

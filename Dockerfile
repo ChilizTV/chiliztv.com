@@ -57,6 +57,7 @@ COPY --chown=node:node package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.jso
 COPY --chown=node:node apps/frontend/package.json        ./apps/frontend/package.json
 COPY --chown=node:node apps/backend/package.json         ./apps/backend/package.json
 COPY --chown=node:node apps/landing/package.json         ./apps/landing/package.json
+COPY --chown=node:node apps/admin/package.json           ./apps/admin/package.json
 COPY --chown=node:node apps/smart-contracts/chiliz-tv/   ./apps/smart-contracts/chiliz-tv/
 COPY --chown=node:node packages/blockchain/package.json  ./packages/blockchain/package.json
 COPY --chown=node:node packages/domain/package.json      ./packages/domain/package.json

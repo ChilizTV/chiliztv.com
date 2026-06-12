@@ -10,5 +10,6 @@ export {
   streamCreationLimiter,
   webhookLimiter,
   adminLimiter,
+  adminGateLimiter,
   reportsLimiter,
 } from './rate-limit.middleware';

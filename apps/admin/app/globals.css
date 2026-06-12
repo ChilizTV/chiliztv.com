@@ -1,0 +1,42 @@
+@import "tailwindcss";
+@source "../../../packages/ui/src";
+
+body {
+  background: #0a0a0a;
+  color: #ffffff;
+}
+
+.font-display {
+  font-family: var(--font-barlow-condensed), 'Barlow Condensed', sans-serif;
+}
+.font-mono-ctv {
+  font-family: var(--font-jetbrains-mono), 'JetBrains Mono', monospace;
+}
+
+input::placeholder {
+  color: rgba(255, 255, 255, 0.25);
+}
+
+@keyframes pcPulse {
+  0% { box-shadow: 0 0 0 0 rgba(232, 0, 29, 0.5); }
+  70% { box-shadow: 0 0 0 5px rgba(232, 0, 29, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(232, 0, 29, 0); }
+}
+.live-dot {
+  animation: pcPulse 1.8s infinite;
+}
+
+@keyframes pcPing {
+  0% { transform: scale(1); opacity: 0.7; }
+  80%, 100% { transform: scale(1.85); opacity: 0; }
+}
+.pc-ping {
+  animation: pcPing 2s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .live-dot,
+  .pc-ping {
+    animation: none;
+  }
+}

@@ -1,0 +1,253 @@
+name: Deploy admin — Vercel
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+      - 'apps/admin/**'
+      - 'packages/**'
+  push:
+    branches:
+      - main
+    paths:
+      - 'apps/admin/**'
+      - 'packages/**'
+
+concurrency:
+  group: deploy-admin-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  deployments: write
+  pull-requests: write
+
+jobs:
+  # ── Preview deploy (pull_request) ─────────────────────────────────────────
+  deploy-preview:
+    name: Preview deploy
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.28.1
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Vercel CLI
+        run: pnpm add -g vercel@latest
+
+      - name: Pull Vercel environment
+        run: vercel pull --yes --environment=preview --token=${{ secrets.VERCEL_TOKEN }}
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID_ADMIN }}
+
+      - name: Build
+        run: vercel build --token=${{ secrets.VERCEL_TOKEN }}
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID_ADMIN }}
+
+      - name: Deploy preview
+        id: deploy
+        run: |
+          # Merge stderr into stdout so we both extract the URL on success
+          # and surface the build/auth/config error on failure (the previous
+          # `2>/dev/null` was hiding every revert reason).
+          OUT=$(vercel deploy --prebuilt --token=${{ secrets.VERCEL_TOKEN }} 2>&1)
+          STATUS=$?
+          echo "$OUT"
+          URL=$(echo "$OUT" | grep -oE 'https://[^ ]+\.vercel\.app' | head -n1)
+          if [ -z "$URL" ] || [ "$STATUS" -ne 0 ]; then
+            echo "::error ::Vercel preview deploy failed (status=$STATUS, url='$URL') — see full output above"
+            exit 1
+          fi
+          echo "preview_url=$URL" >> "$GITHUB_OUTPUT"
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID_ADMIN }}
+
+      - name: Comment PR with preview URL
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const url = '${{ steps.deploy.outputs.preview_url }}';
+            const body = `## Admin preview\n\n🔗 **Admin preview:** ${url}\n\n_Deployed from commit \`${{ github.sha }}\`_`;
+            const comments = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+            const existing = comments.data.find(c => c.body.startsWith('## Admin preview'));
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body,
+              });
+            }
+
+  # ── Staging deploy (push main) ────────────────────────────────────────────
+  deploy-staging:
+    name: Staging deploy
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push'
+    environment: staging
+    outputs:
+      deployment_url: ${{ steps.deploy.outputs.deployment_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.28.1
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Vercel CLI
+        run: pnpm add -g vercel@latest
+
+      - name: Pull Vercel environment
+        # Custom Environment "Staging" carries the env vars for app-staging
+        # (NEXT_PUBLIC_API_URL, NEXT_PUBLIC_LANDING_URL, NEXT_PUBLIC_STAGING=true).
+        run: vercel pull --yes --environment=staging --token=${{ secrets.VERCEL_TOKEN }}
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID_ADMIN }}
+
+      - name: Build
+        run: vercel build --target=staging --token=${{ secrets.VERCEL_TOKEN }}
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID_ADMIN }}
+
+      - name: Deploy to Vercel staging
+        id: deploy
+        # --target=staging publishes to the Custom Environment aliased to
+        # app-staging.predcast.tv. The smoke check below hits the *.vercel.app
+        # URL because the custom domain can take up to 30s to propagate.
+        # stderr is merged into stdout so build/auth/config errors are visible
+        # in the run log — `2>/dev/null` was silently hiding every reason.
+        run: |
+          OUT=$(vercel deploy --prebuilt --token=${{ secrets.VERCEL_TOKEN }} --target=staging 2>&1)
+          STATUS=$?
+          echo "$OUT"
+          URL=$(echo "$OUT" | grep -oE 'https://[^ ]+\.vercel\.app' | head -n1)
+          if [ -z "$URL" ] || [ "$STATUS" -ne 0 ]; then
+            echo "::error ::Vercel staging deploy failed (status=$STATUS, url='$URL') — see full output above"
+            exit 1
+          fi
+          echo "deployment_url=$URL" >> "$GITHUB_OUTPUT"
+          echo "Deployed to: $URL"
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID_ADMIN }}
+
+      # Persist the staging URL so release.yml can promote it to prod via `vercel promote`.
+      - name: Save staging deployment URL
+        run: echo "${{ steps.deploy.outputs.deployment_url }}" > admin-staging-deployment-url.txt
+
+      - name: Upload staging URL artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: admin-staging-deployment-url
+          path: admin-staging-deployment-url.txt
+          retention-days: 30
+
+      - name: Smoke — GET /api/health
+        # Vercel Deployment Protection guards *.vercel.app URLs with auth.
+        # Bypass it via the x-vercel-protection-bypass header so the runner
+        # can hit /api/health without ending up on the login page (HTTP 401).
+        env:
+          VERCEL_BYPASS: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
+        run: |
+          URL="${{ steps.deploy.outputs.deployment_url }}"
+          for i in 1 2 3; do
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 \
+              -H "x-vercel-protection-bypass: $VERCEL_BYPASS" \
+              "${URL}/")
+            if [ "$STATUS" = "200" ]; then
+              echo "Health check passed (attempt $i)"
+              exit 0
+            fi
+            echo "Attempt $i: HTTP $STATUS — retrying in 10s"
+            sleep 10
+          done
+          echo "Health check failed after 3 attempts"
+          exit 1
+
+  # ── Notify on success ─────────────────────────────────────────────────────
+  # Push-main path only — PR previews already report via the inline PR comment.
+  notify-success:
+    name: Notify success
+    runs-on: ubuntu-latest
+    needs: deploy-staging
+    if: success() && github.event_name == 'push'
+    steps:
+      - name: Post Discord success
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+        run: |
+          curl -s -X POST "$DISCORD_WEBHOOK_URL" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "embeds": [{
+                "title": "Deploy admin staging — SUCCESS",
+                "color": 3066993,
+                "fields": [
+                  {"name": "Branch", "value": "${{ github.ref_name }}", "inline": true},
+                  {"name": "Commit", "value": "${{ github.sha }}", "inline": true},
+                  {"name": "URL", "value": "${{ needs.deploy-staging.outputs.deployment_url }}", "inline": false},
+                  {"name": "Run", "value": "[View logs](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})", "inline": false}
+                ]
+              }]
+            }'
+
+  # ── Notify on failure ─────────────────────────────────────────────────────
+  notify-failure:
+    name: Notify failure
+    runs-on: ubuntu-latest
+    needs: deploy-staging
+    if: failure() && github.event_name == 'push'
+    steps:
+      - name: Post Discord alert
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+        run: |
+          curl -s -X POST "$DISCORD_WEBHOOK_URL" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "embeds": [{
+                "title": "Deploy admin staging — FAILED",
+                "color": 15158332,
+                "fields": [
+                  {"name": "Branch", "value": "${{ github.ref_name }}", "inline": true},
+                  {"name": "Commit", "value": "${{ github.sha }}", "inline": true},
+                  {"name": "Run", "value": "[View logs](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})", "inline": false}
+                ]
+              }]
+            }'

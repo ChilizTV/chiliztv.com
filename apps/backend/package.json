@@ -21,6 +21,7 @@
     "match:resolve": "ts-node src/presentation/cli/match-resolve.ts",
     "match:halftime": "ts-node src/presentation/cli/match-halftime.ts",
     "leaderboard:advance-epoch": "ts-node src/presentation/cli/leaderboard-advance-epoch.ts",
+    "admin:grant": "ts-node src/presentation/cli/admin-grant.ts",
     "db:migrate": "ts-node scripts/run-migrations.ts",
     "test:integration": "vitest run --config vitest.integration.config.ts"
   },

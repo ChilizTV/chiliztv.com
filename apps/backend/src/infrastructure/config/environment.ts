@@ -91,6 +91,11 @@ const envSchema = z.object({
   ADMIN_PRIVATE_KEY: z.string().regex(/^0x[a-fA-F0-9]{64}$/),
 
   JWT_SECRET: z.string().min(32),
+  // Admin panel pre-wallet gate, scrypt "<saltHex>:<hashHex>" (same format
+  // and gen script as ACCESS_CODE_HASH). Unset disables the gate (local dev).
+  ADMIN_GATE_CODE_HASH: z.string().regex(/^[0-9a-f]+:[0-9a-f]+$/).optional(),
+  // Discord #admin channel webhook — ban/unban alerts. Unset = alerts off.
+  DISCORD_ADMIN_WEBHOOK_URL: z.string().url().optional(),
   JWT_ISSUER: z.string().default('chiliz-football-api'),
   JWT_EXPIRY: z.string().default('24h'),
 

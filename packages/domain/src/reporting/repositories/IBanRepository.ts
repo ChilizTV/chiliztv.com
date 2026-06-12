@@ -1,4 +1,4 @@
-import type { Ban } from '../entities/Ban';
+import type { Ban, BanStatus } from '../entities/Ban';
 
 export interface IBanRepository {
     /**
@@ -23,4 +23,24 @@ export interface IBanRepository {
     findToExpire(now: Date, limit: number): Promise<Ban[]>;
 
     markExpired(banIds: string[], now: Date): Promise<void>;
+
+    /** Dashboard counters — active unexpired bans at `now`, split on permanent. */
+    countActive(now: Date): Promise<{ total: number; permanent: number }>;
+
+    /** Admin listing — keyset on (starts_at DESC, id DESC). */
+    listForAdmin(filter: AdminBanFilter): Promise<AdminBanPage>;
+    /** Lifts an ACTIVE ban. Null when no active row matched (409). */
+    liftByAdmin(banId: string, liftedByWallet: string, note: string, at: Date): Promise<Ban | null>;
+}
+
+export interface AdminBanFilter {
+    status?: BanStatus;
+    walletAddress?: string;
+    cursor?: string | null;
+    limit: number;
+}
+
+export interface AdminBanPage {
+    bans: ReadonlyArray<Ban>;
+    nextCursor: string | null;
 }

@@ -40,7 +40,7 @@ export function NotifyCTA() {
             <div className="font-mono-ctv mt-10 flex flex-wrap items-center justify-center gap-5 text-[10px] uppercase tracking-[0.18em] text-white/45">
                 <span>Or follow →</span>
                 <a
-                    href="https://x.com/ChilizTv"
+                    href="https://x.com/PredCastTV"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="inline-flex items-center gap-1.5 hover:text-white"

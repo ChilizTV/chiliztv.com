@@ -231,6 +231,46 @@ jobs:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID_APP }}
 
+  # ── Deploy admin panel to prod ────────────────────────────────────────────
+  deploy-admin-prod:
+    name: Deploy admin (prod)
+    runs-on: ubuntu-latest
+    needs: validate
+    # Skipped (not failed) while the Vercel admin project doesn't exist yet —
+    # drop the secret guard once VERCEL_PROJECT_ID_ADMIN is set.
+    if: needs.validate.outputs.prerelease == 'false'
+    environment: production
+    env:
+      ADMIN_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID_ADMIN }}
+    steps:
+      - uses: actions/checkout@v4
+        if: env.ADMIN_PROJECT_ID != ''
+
+      - uses: pnpm/action-setup@v4
+        if: env.ADMIN_PROJECT_ID != ''
+        with:
+          version: 10.28.1
+
+      - uses: actions/setup-node@v4
+        if: env.ADMIN_PROJECT_ID != ''
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install
+        if: env.ADMIN_PROJECT_ID != ''
+        run: pnpm install --frozen-lockfile
+
+      - name: Build + deploy to prod
+        if: env.ADMIN_PROJECT_ID != ''
+        run: |
+          npx -y vercel@latest pull --yes --environment=production --scope=predcast --token=${{ secrets.VERCEL_TOKEN }}
+          npx -y vercel@latest build --prod --token=${{ secrets.VERCEL_TOKEN }}
+          npx -y vercel@latest deploy --prebuilt --prod --scope=predcast --token=${{ secrets.VERCEL_TOKEN }}
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID_ADMIN }}
+
   # ── Sentry release ────────────────────────────────────────────────────────
   sentry-release:
     name: Sentry release (${{ matrix.project }})

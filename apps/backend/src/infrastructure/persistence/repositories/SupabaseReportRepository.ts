@@ -1,7 +1,7 @@
 import { injectable } from 'tsyringe';
 
 import { Report, type ReportProps, type ReportTargetType, type ReportStatus } from '@chiliztv/domain/reporting/entities/Report';
-import type { IReportRepository } from '@chiliztv/domain/reporting/repositories/IReportRepository';
+import type { AdminReportFilter, AdminReportPage, IReportRepository } from '@chiliztv/domain/reporting/repositories/IReportRepository';
 import type { ReportSeverity } from '@chiliztv/domain/reporting/value-objects/QuorumSnapshot';
 
 import { supabaseClient as supabase } from '../../database/supabase/client';
@@ -104,6 +104,88 @@ export class SupabaseReportRepository implements IReportRepository {
     }
   }
 
+  async countOpen(): Promise<{ total: number; highSeverity: number }> {
+    const [all, high] = await Promise.all([
+      supabase.from('reports').select('id', { count: 'exact', head: true }).eq('status', 'open'),
+      supabase.from('reports').select('id', { count: 'exact', head: true }).eq('status', 'open').gte('severity', 4),
+    ]);
+    if (all.error || high.error) {
+      logger.error('Failed to count open reports', { error: (all.error ?? high.error)?.message });
+      throw new Error('Failed to count open reports');
+    }
+    return { total: all.count ?? 0, highSeverity: high.count ?? 0 };
+  }
+
+  async findForAdminQueue(filter: AdminReportFilter): Promise<AdminReportPage> {
+    let query = supabase
+      .from('reports')
+      .select('*')
+      .order('severity', { ascending: false })
+      .order('created_at', { ascending: false })
+      .order('id', { ascending: false })
+      .limit(filter.limit + 1);
+    if (filter.status) query = query.eq('status', filter.status);
+    if (filter.severityMin) query = query.gte('severity', filter.severityMin);
+    if (filter.targetType) query = query.eq('target_type', filter.targetType);
+    if (filter.cursor) {
+      const c = decodeCursor(filter.cursor);
+      if (c) {
+        query = query.or(
+          `severity.lt.${c.s},and(severity.eq.${c.s},created_at.lt.${c.c}),and(severity.eq.${c.s},created_at.eq.${c.c},id.lt.${c.id})`,
+        );
+      }
+    }
+    const { data, error } = await query;
+    if (error) {
+      logger.error('Failed to list reports for admin', { error: error.message });
+      throw new Error('Failed to list reports');
+    }
+    const rows = (data ?? []) as ReportRow[];
+    const page = rows.slice(0, filter.limit);
+    const last = page[page.length - 1];
+    return {
+      reports: page.map((row) => this.toEntity(row)),
+      nextCursor: rows.length > filter.limit && last
+        ? encodeCursor({ s: last.severity, c: last.created_at, id: last.id })
+        : null,
+    };
+  }
+
+  async findById(id: string): Promise<Report | null> {
+    const { data, error } = await supabase.from('reports').select('*').eq('id', id).maybeSingle();
+    if (error) {
+      logger.error('Failed to fetch report', { id, error: error.message });
+      throw new Error('Failed to fetch report');
+    }
+    return data ? this.toEntity(data as ReportRow) : null;
+  }
+
+  async markReviewed(
+    id: string,
+    status: 'dismissed' | 'closed',
+    reviewerWallet: string,
+    note: string | null,
+    at: Date,
+  ): Promise<Report | null> {
+    const { data, error } = await supabase
+      .from('reports')
+      .update({
+        status,
+        reviewed_at: at.toISOString(),
+        reviewed_by_wallet: reviewerWallet.toLowerCase(),
+        review_note: note,
+      })
+      .eq('id', id)
+      .eq('status', 'open')
+      .select();
+    if (error) {
+      logger.error('Failed to review report', { id, error: error.message });
+      throw new Error('Failed to review report');
+    }
+    const rows = (data ?? []) as ReportRow[];
+    return rows.length > 0 ? this.toEntity(rows[0]) : null;
+  }
+
   private toRow(report: Report): Omit<ReportRow, 'created_at'> & { created_at: string } {
     const p = report.props;
     return {
@@ -144,5 +226,22 @@ export class SupabaseReportRepository implements IReportRepository {
       reviewNote: row.review_note,
     };
     return Report.reconstitute(props);
+  }
+}
+
+interface QueueCursor { s: number; c: string; id: string; }
+
+function encodeCursor(c: QueueCursor): string {
+  return Buffer.from(JSON.stringify(c)).toString('base64url');
+}
+
+function decodeCursor(raw: string): QueueCursor | null {
+  try {
+    const parsed = JSON.parse(Buffer.from(raw, 'base64url').toString());
+    return typeof parsed?.s === 'number' && typeof parsed?.c === 'string' && typeof parsed?.id === 'string'
+      ? parsed
+      : null;
+  } catch {
+    return null;
   }
 }

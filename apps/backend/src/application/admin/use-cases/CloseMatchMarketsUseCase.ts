@@ -1,7 +1,8 @@
 import { inject, injectable } from 'tsyringe';
 
 import { TOKENS } from '@chiliztv/domain/shared/tokens';
-import { ConflictError, NotFoundError } from '@chiliztv/domain/shared/errors';
+import { ConflictError } from '@chiliztv/domain/shared/errors/ConflictError';
+import { NotFoundError } from '@chiliztv/domain/shared/errors/NotFoundError';
 import type { IMatchRepository } from '@chiliztv/domain/matches/repositories/IMatchRepository';
 import type { CloseMarketsResult, IBlockchainService } from '@chiliztv/domain/shared/ports/IBlockchainService';
 import type { ICacheService } from '@chiliztv/domain/shared/ports/ICacheService';

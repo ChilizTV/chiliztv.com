@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { container, injectable } from 'tsyringe';
 
-import { ValidationError } from '@chiliztv/domain/shared/errors';
+import { ValidationError } from '@chiliztv/domain/shared/errors/ValidationError';
 
 import { DeployMatchContractUseCase } from '../../../application/admin/use-cases/DeployMatchContractUseCase';
 import { CloseMatchMarketsUseCase } from '../../../application/admin/use-cases/CloseMatchMarketsUseCase';

@@ -77,6 +77,34 @@ export class SupabaseReportActionRepository implements IReportActionRepository {
     return data ? this.toEntity(data as ReportActionRow) : null;
   }
 
+  async findById(id: string): Promise<ReportAction | null> {
+    const { data, error } = await supabase.from('report_actions').select('*').eq('id', id).maybeSingle();
+    if (error) {
+      logger.error('Failed to fetch report action', { id, error: error.message });
+      throw new Error('Failed to fetch report action');
+    }
+    return data ? this.toEntity(data as ReportActionRow) : null;
+  }
+
+  async reverse(id: string, reversedByWallet: string, note: string | null, at: Date): Promise<ReportAction | null> {
+    const { data, error } = await supabase
+      .from('report_actions')
+      .update({
+        reversed_at: at.toISOString(),
+        reversed_by_wallet: reversedByWallet.toLowerCase(),
+        reverse_note: note,
+      })
+      .eq('id', id)
+      .is('reversed_at', null)
+      .select();
+    if (error) {
+      logger.error('Failed to reverse action', { id, error: error.message });
+      throw new Error('Failed to reverse action');
+    }
+    const rows = (data ?? []) as ReportActionRow[];
+    return rows.length > 0 ? this.toEntity(rows[0]) : null;
+  }
+
   private toRow(action: ReportAction): Record<string, unknown> {
     const p = action.props;
     return {

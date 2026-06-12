@@ -4,6 +4,9 @@ export * from './types/ApiResponse';
 // WebSocket events
 export * from './events/SocketEvents';
 
+// DTOs — Admin
+export * from './dto/admin/AdminModerationDtos';
+
 // DTOs — Platform stats
 export * from './dto/stats/PlatformStatsDto';
 

@@ -1,7 +1,7 @@
 import { injectable } from 'tsyringe';
 
 import { Ban, type BanProps, type BanStatus } from '@chiliztv/domain/reporting/entities/Ban';
-import type { IBanRepository } from '@chiliztv/domain/reporting/repositories/IBanRepository';
+import type { AdminBanFilter, AdminBanPage, IBanRepository } from '@chiliztv/domain/reporting/repositories/IBanRepository';
 import type { QuorumSnapshot } from '@chiliztv/domain/reporting/value-objects/QuorumSnapshot';
 import { ConflictError } from '@chiliztv/domain/shared/errors/ConflictError';
 
@@ -127,6 +127,57 @@ export class SupabaseBanRepository implements IBanRepository {
     }
   }
 
+  async listForAdmin(filter: AdminBanFilter): Promise<AdminBanPage> {
+    let query = supabase
+      .from('bans')
+      .select('*')
+      .order('starts_at', { ascending: false })
+      .order('id', { ascending: false })
+      .limit(filter.limit + 1);
+    if (filter.status) query = query.eq('status', filter.status);
+    if (filter.walletAddress) query = query.eq('wallet_address', filter.walletAddress.toLowerCase());
+    if (filter.cursor) {
+      const c = decodeBanCursor(filter.cursor);
+      if (c) {
+        query = query.or(`starts_at.lt.${c.t},and(starts_at.eq.${c.t},id.lt.${c.id})`);
+      }
+    }
+    const { data, error } = await query;
+    if (error) {
+      logger.error('Failed to list bans for admin', { error: error.message });
+      throw new Error('Failed to list bans');
+    }
+    const rows = (data ?? []) as BanRow[];
+    const page = rows.slice(0, filter.limit);
+    const last = page[page.length - 1];
+    return {
+      bans: page.map((row) => this.toEntity(row)),
+      nextCursor: rows.length > filter.limit && last
+        ? encodeBanCursor({ t: last.starts_at, id: last.id })
+        : null,
+    };
+  }
+
+  async liftByAdmin(banId: string, liftedByWallet: string, note: string, at: Date): Promise<Ban | null> {
+    const { data, error } = await supabase
+      .from('bans')
+      .update({
+        status: 'lifted_by_admin',
+        ended_at: at.toISOString(),
+        lifted_by_wallet: liftedByWallet.toLowerCase(),
+        lift_note: note,
+      })
+      .eq('id', banId)
+      .eq('status', 'active')
+      .select();
+    if (error) {
+      logger.error('Failed to lift ban', { banId, error: error.message });
+      throw new Error('Failed to lift ban');
+    }
+    const rows = (data ?? []) as BanRow[];
+    return rows.length > 0 ? this.toEntity(rows[0]) : null;
+  }
+
   private toRow(ban: Ban): Record<string, unknown> {
     const p = ban.props;
     return {
@@ -161,5 +212,20 @@ export class SupabaseBanRepository implements IBanRepository {
       liftNote: row.lift_note,
     };
     return Ban.reconstitute(props);
+  }
+}
+
+interface BanCursor { t: string; id: string; }
+
+function encodeBanCursor(c: BanCursor): string {
+  return Buffer.from(JSON.stringify(c)).toString('base64url');
+}
+
+function decodeBanCursor(raw: string): BanCursor | null {
+  try {
+    const parsed = JSON.parse(Buffer.from(raw, 'base64url').toString());
+    return typeof parsed?.t === 'string' && typeof parsed?.id === 'string' ? parsed : null;
+  } catch {
+    return null;
   }
 }

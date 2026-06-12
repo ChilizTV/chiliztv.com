@@ -15,4 +15,8 @@ export interface IReportActionRepository {
         targetId: string,
         liveContextMatchId: number | null,
     ): Promise<ReportAction | null>;
+
+    findById(id: string): Promise<ReportAction | null>;
+    /** Marks an UNREVERSED action reversed. Null when already reversed (409). */
+    reverse(id: string, reversedByWallet: string, note: string | null, at: Date): Promise<ReportAction | null>;
 }

@@ -51,6 +51,26 @@ export class ReportConfigCache implements IReportConfigProvider {
     return loaded ?? DEFAULTS;
   }
 
+  async update(patch: Partial<ReportConfig>): Promise<ReportConfig> {
+    const row: Record<string, number> = {};
+    if (patch.quorumPct !== undefined) row.quorum_pct = patch.quorumPct;
+    if (patch.floorCount !== undefined) row.floor_count = patch.floorCount;
+    if (patch.minPresenceSec !== undefined) row.min_presence_sec = patch.minPresenceSec;
+    if (patch.banFirstHours !== undefined) row.ban_first_hours = patch.banFirstHours;
+    if (patch.banSecondHours !== undefined) row.ban_second_hours = patch.banSecondHours;
+    if (patch.bypassSeverityThreshold !== undefined) row.bypass_severity_threshold = patch.bypassSeverityThreshold;
+
+    const { error } = await supabase.from('report_config').update(row).eq('id', 1);
+    if (error) {
+      logger.error('Failed to update report_config', { error: error.message });
+      throw new Error('Failed to update report config');
+    }
+    // Hot reload: other instances re-read within the cache TTL (30s max).
+    await this.cache.delete(REPORT_CONFIG_CACHE_KEY);
+    const fresh = await this.load();
+    return fresh ?? DEFAULTS;
+  }
+
   private async load(): Promise<ReportConfig | null> {
     const { data, error } = await supabase
       .from('report_config')

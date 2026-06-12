@@ -14,17 +14,7 @@ import { UpdateReportConfigUseCase } from '../../../application/admin/use-cases/
 import type { IReportConfigProvider } from '@chiliztv/domain/reporting/ports/IReportConfigProvider';
 import { TOKENS } from '@chiliztv/domain/shared/tokens';
 import { container, inject } from 'tsyringe';
-import type { AuditContext } from '../../../application/admin/AuditContext';
-
-function auditCtx(req: Request): AuditContext {
-    return {
-        actorWallet: req.admin!.wallet,
-        actorRole: req.admin!.role,
-        ip: req.ip,
-        userAgent: req.header('user-agent') ?? undefined,
-        requestId: req.header('x-request-id') ?? undefined,
-    };
-}
+import { auditCtx } from './audit-context';
 
 function serializeReport(r: Report) {
     const p = r.props;

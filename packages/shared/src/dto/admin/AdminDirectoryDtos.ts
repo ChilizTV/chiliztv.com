@@ -10,6 +10,7 @@ export type AdminAggregatePageQuery = z.infer<typeof AdminAggregatePageQuerySche
 /** Raw USDC 6dp decimal strings — the UI formats them. */
 export const AdminPlayerDtoSchema = z.object({
     wallet: z.string(),
+    username: z.string().nullable(),
     betCount: z.number(),
     totalStaked: z.string(),
     totalPayout: z.string(),
@@ -33,7 +34,9 @@ export type AdminStreamerDto = z.infer<typeof AdminStreamerDtoSchema>;
 export const AdminMatchSummaryDtoSchema = z.object({
     id: z.number(),
     homeTeamName: z.string(),
+    homeTeamLogo: z.string().nullable(),
     awayTeamName: z.string(),
+    awayTeamLogo: z.string().nullable(),
     leagueName: z.string(),
     status: z.string(),
     matchDate: z.string(),

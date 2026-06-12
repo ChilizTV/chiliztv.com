@@ -11,6 +11,7 @@ import {
 import { AdminController } from '../controllers/admin.controller';
 import { AdminModerationController } from '../controllers/admin-moderation.controller';
 import { AdminDirectoryController } from '../controllers/admin-directory.controller';
+import { AdminMarketsController } from '../controllers/admin-markets.controller';
 import { requireAdmin } from '../middlewares/require-admin.middleware';
 import { validate } from '../middlewares/validation.middleware';
 
@@ -18,6 +19,7 @@ const router = Router();
 const controller = container.resolve(AdminController);
 const moderation = container.resolve(AdminModerationController);
 const directory = container.resolve(AdminDirectoryController);
+const markets = container.resolve(AdminMarketsController);
 
 // Any active role may probe its own session.
 router.get('/me', requireAdmin(), controller.me.bind(controller));
@@ -43,5 +45,9 @@ router.get('/players', requireAdmin('moderator'), directory.players.bind(directo
 router.get('/players/:wallet', requireAdmin('moderator'), directory.player.bind(directory));
 router.get('/streamers', requireAdmin('moderator'), directory.streamers.bind(directory));
 router.get('/matches', requireAdmin('admin'), directory.matches.bind(directory));
+
+// ── Markets — manual on-chain ops (admin+, audited) ────────────────────────
+router.post('/matches/:id/deploy', requireAdmin('admin'), markets.deploy.bind(markets));
+router.post('/matches/:id/close-markets', requireAdmin('admin'), markets.closeMarkets.bind(markets));
 
 export { router as adminRoutes };

@@ -8,11 +8,16 @@ import type { IAdminDirectoryRepository } from '@chiliztv/domain/admin/repositor
 const LISTING_TTL_SECONDS = 60;
 const MAX_MATCHES = 200;
 
+/** Shared with the deploy/close use-cases so mutations refresh the listing. */
+export const ADMIN_MATCHES_CACHE_KEY = 'admin:matches:summary';
+
 /** Cache-safe read model — dates are ISO strings so the Redis round-trip is lossless. */
 export interface AdminMatchSummary {
     readonly id: number;
     readonly homeTeamName: string;
+    readonly homeTeamLogo: string | null;
     readonly awayTeamName: string;
+    readonly awayTeamLogo: string | null;
     readonly leagueName: string;
     readonly status: string;
     readonly matchDate: string;
@@ -32,7 +37,7 @@ export class ListAdminMatchesUseCase {
 
     async execute(): Promise<AdminMatchSummary[]> {
         const summaries = await this.cache.getOrLoad<AdminMatchSummary[]>({
-            key: 'admin:matches:summary',
+            key: ADMIN_MATCHES_CACHE_KEY,
             ttlSeconds: LISTING_TTL_SECONDS,
             loader: () => this.load(),
         });
@@ -55,7 +60,9 @@ export class ListAdminMatchesUseCase {
                 return {
                     id: raw.id,
                     homeTeamName: raw.homeTeamName,
+                    homeTeamLogo: raw.homeTeamLogo ?? null,
                     awayTeamName: raw.awayTeamName,
+                    awayTeamLogo: raw.awayTeamLogo ?? null,
                     leagueName: raw.leagueName,
                     status: raw.status,
                     matchDate: raw.matchDate.toISOString(),

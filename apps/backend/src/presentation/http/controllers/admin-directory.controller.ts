@@ -2,13 +2,10 @@ import { Request, Response, NextFunction } from 'express';
 import { container, injectable } from 'tsyringe';
 
 import { AdminAggregatePageQuerySchema } from '@chiliztv/shared/dto/admin/AdminDirectoryDtos';
-import type {
-    PlayerAggregate,
-    StreamerAggregate,
-} from '@chiliztv/domain/admin/repositories/IAdminDirectoryRepository';
+import type { StreamerAggregate } from '@chiliztv/domain/admin/repositories/IAdminDirectoryRepository';
 import type { BetWithMatchInfo } from '@chiliztv/domain/blockchain-indexing/entities/BetWithMatchInfo';
 
-import { ListPlayersUseCase } from '../../../application/admin/use-cases/ListPlayersUseCase';
+import { ListPlayersUseCase, type PlayerDirectoryEntry } from '../../../application/admin/use-cases/ListPlayersUseCase';
 import { GetPlayerDetailUseCase } from '../../../application/admin/use-cases/GetPlayerDetailUseCase';
 import { ListStreamersUseCase } from '../../../application/admin/use-cases/ListStreamersUseCase';
 import { ListAdminMatchesUseCase } from '../../../application/admin/use-cases/ListAdminMatchesUseCase';
@@ -18,9 +15,10 @@ function toIso(value: Date | string | null): string | null {
     return value === null ? null : new Date(value).toISOString();
 }
 
-function serializePlayer(p: PlayerAggregate) {
+function serializePlayer(p: PlayerDirectoryEntry) {
     return {
         wallet: p.wallet,
+        username: p.username,
         betCount: p.betCount,
         totalStaked: p.totalStaked,
         totalPayout: p.totalPayout,

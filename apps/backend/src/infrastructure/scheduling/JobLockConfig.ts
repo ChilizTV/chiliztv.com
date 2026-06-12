@@ -28,7 +28,7 @@ export const JobLocks = {
   oldEndedStreams:      { key: baseKey('old-ended-streams'),     ttlSeconds: 300 } satisfies JobLockConfig,
   viewerReconcile:      { key: baseKey('viewer-reconcile'),      ttlSeconds: 300 } satisfies JobLockConfig,
   cloudflareReconcile:  { key: baseKey('cloudflare-reconcile'),  ttlSeconds: 300 } satisfies JobLockConfig,
-  closeMonthlyEpoch:    { key: baseKey('close-monthly-epoch'),   ttlSeconds: 300 } satisfies JobLockConfig,
+  advanceEpoch:         { key: baseKey('advance-epoch'),         ttlSeconds: 300 } satisfies JobLockConfig,
   liftExpiredBans:      { key: baseKey('lift-expired-bans'),     ttlSeconds: 60  } satisfies JobLockConfig,
 } as const;
 

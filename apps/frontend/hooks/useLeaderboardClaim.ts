@@ -16,7 +16,7 @@ import { describeError } from '@/lib/contracts/errors';
 export type ClaimDisabledReason =
     | 'expired'
     | 'already-claimed'
-    | 'invalid-proof'
+    | 'not-eligible'
     | 'simulating'
     | 'pending'
     | 'confirming'
@@ -25,8 +25,6 @@ export type ClaimDisabledReason =
 interface UseLeaderboardClaimArgs {
     readonly wallet: Address | undefined;
     readonly epochId: number;
-    readonly amount: bigint;
-    readonly proof: ReadonlyArray<Hex>;
     /** ISO timestamp of `claimExpiry` — checked client-side before simulation. */
     readonly claimExpiry: string;
     /** Server-known claim flag — short-circuits the on-chain simulate. */
@@ -44,16 +42,12 @@ export interface UseLeaderboardClaimResult {
 
 /**
  * Pre-flight via `useSimulateContract` so the bouton stays disabled when the
- * tx would revert (expired window, invalid proof, already claimed). Adds
+ * tx would revert (expired window, not eligible, already claimed). Adds
  * client-side expiry guard so a stale tab can't even submit, and an
  * anti-double-submit guard while `isPending` / `isConfirming`.
  */
 export function useLeaderboardClaim(args: UseLeaderboardClaimArgs): UseLeaderboardClaimResult {
     const { wallet, epochId, claimExpiry, alreadyClaimed } = args;
-    // `amount` and `proof` are kept on the args interface for backwards
-    // compatibility with call-sites that still pass them, but the on-chain
-    // `claim(epochId)` derives the amount itself from `_epochScores[epochId]`
-    // and doesn't take a Merkle proof — the pro-rata math is fully on-chain.
     const qc = useQueryClient();
 
     const now = Date.now();
@@ -105,7 +99,7 @@ export function useLeaderboardClaim(args: UseLeaderboardClaimArgs): UseLeaderboa
     else if (isPending) reason = 'pending';
     else if (isConfirming) reason = 'confirming';
     else if (simulation.isLoading) reason = 'simulating';
-    else if (simulation.error) reason = 'invalid-proof';
+    else if (simulation.error) reason = 'not-eligible';
 
     const canClaim = reason === null && !!simulation.data?.request;
 

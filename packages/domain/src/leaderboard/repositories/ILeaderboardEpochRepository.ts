@@ -30,10 +30,8 @@ export interface ILeaderboardEpochRepository {
     findByEpochId(epochId: bigint): Promise<LeaderboardEpoch | null>;
 
     /** Confirmed, claim-window-still-open epochs in which the user has a leaf. */
-    findClaimableForUser(
-        userAddress: string,
-        now: Date,
-    ): Promise<ReadonlyArray<LeaderboardEpoch>>;
+    /** Confirmed epochs whose claim window is still open — eligibility is read on-chain (V2). */
+    findOpenClaimWindows(now: Date): Promise<ReadonlyArray<LeaderboardEpoch>>;
 
     /**
      * `closed_at` of the most-recently confirmed epoch — the implicit start
@@ -41,4 +39,7 @@ export interface ILeaderboardEpochRepository {
      * staked this epoch"). Returns `null` when no epoch has closed yet.
      */
     findLatestConfirmedClosedAt(): Promise<Date | null>;
+
+    /** Confirmed epochs whose claim window expired — rollover sweep candidates. */
+    findExpiredConfirmed(now: Date): Promise<ReadonlyArray<LeaderboardEpoch>>;
 }

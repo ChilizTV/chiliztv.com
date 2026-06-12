@@ -9,7 +9,6 @@ import type { IBetRepository } from '@chiliztv/domain/blockchain-indexing/reposi
 import type { INetworkConfig } from '@chiliztv/domain/shared/ports/INetworkConfig';
 import type { ICacheService } from '@chiliztv/domain/shared/ports/ICacheService';
 import type { IClock } from '@chiliztv/domain/shared/ports/IClock';
-import { nextCycleEnd } from '@chiliztv/domain/leaderboard/policies/cycleSchedule';
 import { ResolveUserProfilesBatchUseCase } from '../../users/use-cases/ResolveUserProfilesBatchUseCase';
 
 const LEADERBOARD_ABI = [
@@ -27,6 +26,8 @@ const LEADERBOARD_ABI = [
         outputs: [{ type: 'uint256' }],
         stateMutability: 'view',
     },
+    { type: 'function', name: 'epochStartTime', inputs: [], outputs: [{ type: 'uint64' }], stateMutability: 'view' },
+    { type: 'function', name: 'epochDuration', inputs: [], outputs: [{ type: 'uint64' }], stateMutability: 'view' },
 ] as const;
 
 export interface LeaderboardEntryDto {
@@ -122,7 +123,7 @@ export class GetLeaderboardUseCase {
             currentEpochVolume: epochVolume.toString(),
             topN: Number(process.env.LEADERBOARD_TOP_N ?? DEFAULT_TOP_N),
             claimDurationDays: Number(process.env.LEADERBOARD_CLAIM_DURATION_DAYS ?? DEFAULT_CLAIM_DURATION_DAYS),
-            cycleEndsAt: nextCycleEnd(this.clock.now()).toISOString(),
+            cycleEndsAt: (await this.readCycleEnd()).toISOString(),
         };
         await this.cache.set(cacheKey, result, CACHE_TTL_SECONDS);
         return result;
@@ -146,6 +147,20 @@ export class GetLeaderboardUseCase {
             })) as bigint;
         } catch {
             return BigInt(0);
+        }
+    }
+
+    /** On-chain epoch boundary — V2 cycles are epochStartTime + epochDuration. */
+    private async readCycleEnd(): Promise<Date> {
+        try {
+            const [start, duration] = await Promise.all([
+                this.client.readContract({ address: this.leaderboardAddress, abi: LEADERBOARD_ABI, functionName: 'epochStartTime' }),
+                this.client.readContract({ address: this.leaderboardAddress, abi: LEADERBOARD_ABI, functionName: 'epochDuration' }),
+            ]);
+            return new Date((Number(start) + Number(duration)) * 1000);
+        } catch {
+            // 30-day default duration from an unknown anchor — degraded estimate.
+            return new Date(this.clock.now().getTime() + 30 * 24 * 60 * 60 * 1000);
         }
     }
 

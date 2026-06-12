@@ -11,7 +11,7 @@ const STALE_MS = 15_000;
 
 /**
  * Confirmed, claim-window-still-open epochs in which the wallet has a leaf,
- * each with the merkle proof reconstructed server-side. Empty when there's
+ * eligibility and amounts are read on-chain server-side. Empty when there's
  * nothing to claim.
  */
 export function useMyClaimableEpochs(wallet: string | undefined) {

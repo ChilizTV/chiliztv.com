@@ -1,6 +1,6 @@
 'use client';
 
-import { formatUnits, type Address, type Hex } from 'viem';
+import { formatUnits, type Address } from 'viem';
 import { Loader2 } from 'lucide-react';
 import { useMyClaimableEpochs } from '@/hooks/api';
 import { useLeaderboardClaim } from '@/hooks/useLeaderboardClaim';
@@ -52,7 +52,6 @@ export function ClaimBanner({ wallet }: ClaimBannerProps) {
                             wallet={wallet as Address}
                             epochId={entry.epochId}
                             amount={BigInt(entry.amount)}
-                            proof={entry.proof as Hex[]}
                             claimExpiry={entry.claimExpiry}
                             alreadyClaimed={entry.alreadyClaimed}
                         />
@@ -67,22 +66,18 @@ function ClaimRow({
     wallet,
     epochId,
     amount,
-    proof,
     claimExpiry,
     alreadyClaimed,
 }: {
     wallet: Address;
     epochId: number;
     amount: bigint;
-    proof: Hex[];
     claimExpiry: string;
     alreadyClaimed: boolean;
 }) {
     const { canClaim, reason, claim, isConfirming } = useLeaderboardClaim({
         wallet,
         epochId,
-        amount,
-        proof,
         claimExpiry,
         alreadyClaimed,
     });
@@ -91,7 +86,7 @@ function ClaimRow({
         if (isConfirming) return 'Confirming…';
         if (reason === 'expired') return 'Expired';
         if (reason === 'already-claimed') return 'Claimed';
-        if (reason === 'invalid-proof') return 'Proof invalid';
+        if (reason === 'not-eligible') return 'Not eligible';
         if (reason === 'simulating') return 'Checking…';
         if (reason === 'pending') return 'Submitting…';
         if (reason === 'no-wallet') return 'Connect wallet';

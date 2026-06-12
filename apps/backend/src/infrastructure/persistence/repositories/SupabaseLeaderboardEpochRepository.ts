@@ -110,10 +110,7 @@ export class SupabaseLeaderboardEpochRepository implements ILeaderboardEpochRepo
         return data ? toDomain(data as EpochRow) : null;
     }
 
-    async findClaimableForUser(
-        userAddress: string,
-        now: Date,
-    ): Promise<ReadonlyArray<LeaderboardEpoch>> {
+    async findOpenClaimWindows(now: Date): Promise<ReadonlyArray<LeaderboardEpoch>> {
         const { data, error } = await supabase
             .from('leaderboard_epochs')
             .select('*')
@@ -124,10 +121,21 @@ export class SupabaseLeaderboardEpochRepository implements ILeaderboardEpochRepo
             logger.error('Failed to fetch claimable epochs', { error: error.message });
             throw new Error('Failed to fetch claimable epochs');
         }
-        const addr = userAddress.toLowerCase();
-        return (data ?? [])
-            .map((row) => toDomain(row as EpochRow))
-            .filter((e) => e.leaves.some((l) => l.userAddress === addr));
+        return (data ?? []).map((row) => toDomain(row as EpochRow));
+    }
+
+    async findExpiredConfirmed(now: Date): Promise<ReadonlyArray<LeaderboardEpoch>> {
+        const { data, error } = await supabase
+            .from('leaderboard_epochs')
+            .select('*')
+            .eq('status', 'confirmed')
+            .lt('claim_expiry', now.toISOString())
+            .order('epoch_id', { ascending: true });
+        if (error) {
+            logger.error('Failed to fetch expired epochs', { error: error.message });
+            throw new Error('Failed to fetch expired epochs');
+        }
+        return (data ?? []).map((row) => toDomain(row as EpochRow));
     }
 
     async findLatestConfirmedClosedAt(): Promise<Date | null> {

@@ -19,8 +19,12 @@ export function GateScreen({ onPassed }: Readonly<{ onPassed: () => void }>) {
       const res = await adminApi.gate(code);
       setGateToken(res.data.gateToken);
       onPassed();
-    } catch {
-      setError("Invalid access code");
+    } catch (err) {
+      // Only a 403 means a wrong code — network/CORS/5xx must not masquerade as one.
+      const status = (err as { response?: { status?: number } }).response?.status;
+      if (status === 403) setError("Invalid access code");
+      else if (status === 429) setError("Too many attempts — wait a minute");
+      else setError("API unreachable — check the backend and its ALLOWED_ORIGINS");
       setCode("");
     } finally {
       setPending(false);

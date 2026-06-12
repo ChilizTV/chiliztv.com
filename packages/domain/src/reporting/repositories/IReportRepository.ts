@@ -22,6 +22,8 @@ export interface IReportRepository {
 
     /** Admin review queue — keyset on (severity DESC, created_at DESC, id DESC). */
     findForAdminQueue(filter: AdminReportFilter): Promise<AdminReportPage>;
+    /** Dashboard counters — open reports, split on severity >= 4. */
+    countOpen(): Promise<{ total: number; highSeverity: number }>;
     findById(id: string): Promise<Report | null>;
     /** Flips an OPEN report to dismissed/closed. Null when it wasn't open (409). */
     markReviewed(

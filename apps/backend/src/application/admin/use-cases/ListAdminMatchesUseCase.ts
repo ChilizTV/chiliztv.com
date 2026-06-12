@@ -21,6 +21,8 @@ export interface AdminMatchSummary {
     readonly leagueName: string;
     readonly status: string;
     readonly matchDate: string;
+    /** In-game minute from the latest API snapshot — null pre-kickoff. */
+    readonly elapsed: number | null;
     readonly score: { home: number; away: number } | null;
     readonly bettingContractAddress: string | null;
     readonly betCount: number;
@@ -66,6 +68,7 @@ export class ListAdminMatchesUseCase {
                     leagueName: raw.leagueName,
                     status: raw.status,
                     matchDate: raw.matchDate.toISOString(),
+                    elapsed: raw.elapsed ?? null,
                     score: raw.homeScore !== undefined && raw.awayScore !== undefined
                         ? { home: raw.homeScore, away: raw.awayScore }
                         : null,

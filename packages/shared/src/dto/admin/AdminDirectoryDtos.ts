@@ -40,6 +40,7 @@ export const AdminMatchSummaryDtoSchema = z.object({
     leagueName: z.string(),
     status: z.string(),
     matchDate: z.string(),
+    elapsed: z.number().nullable(),
     score: z.object({ home: z.number(), away: z.number() }).nullable(),
     bettingContractAddress: z.string().nullable(),
     betCount: z.number(),

@@ -104,6 +104,18 @@ export class SupabaseReportRepository implements IReportRepository {
     }
   }
 
+  async countOpen(): Promise<{ total: number; highSeverity: number }> {
+    const [all, high] = await Promise.all([
+      supabase.from('reports').select('id', { count: 'exact', head: true }).eq('status', 'open'),
+      supabase.from('reports').select('id', { count: 'exact', head: true }).eq('status', 'open').gte('severity', 4),
+    ]);
+    if (all.error || high.error) {
+      logger.error('Failed to count open reports', { error: (all.error ?? high.error)?.message });
+      throw new Error('Failed to count open reports');
+    }
+    return { total: all.count ?? 0, highSeverity: high.count ?? 0 };
+  }
+
   async findForAdminQueue(filter: AdminReportFilter): Promise<AdminReportPage> {
     let query = supabase
       .from('reports')

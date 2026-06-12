@@ -28,6 +28,8 @@ import type { IAdminDirectoryRepository } from '@chiliztv/domain/admin/repositor
 import { SupabaseAdminDirectoryRepository } from '../infrastructure/persistence/repositories/SupabaseAdminDirectoryRepository';
 import type { IModerationAlerts } from '@chiliztv/domain/reporting/ports/IModerationAlerts';
 import { DiscordModerationAlerts } from '../infrastructure/observability/DiscordModerationAlerts';
+import type { IAuditLogReader } from '@chiliztv/domain/admin/ports/IAuditLogReader';
+import { SupabaseAuditLogReader } from '../infrastructure/persistence/repositories/SupabaseAuditLogReader';
 import { SupabaseReportActionRepository } from '../infrastructure/persistence/repositories/SupabaseReportActionRepository';
 import { PresenceQueryService } from '../infrastructure/services/PresenceQueryService';
 import { BetHistoryService } from '../infrastructure/services/BetHistoryService';
@@ -309,6 +311,7 @@ export function setupDependencyInjection(): void {
   container.registerSingleton<IAdminAccessService>(TOKENS.IAdminAccessService, CachedAdminAccessService);
   container.registerSingleton<IAuditTrail>(TOKENS.IAuditTrail, SupabaseAuditTrail);
   container.registerSingleton<IAdminDirectoryRepository>(TOKENS.IAdminDirectoryRepository, SupabaseAdminDirectoryRepository);
+  container.registerSingleton<IAuditLogReader>(TOKENS.IAuditLogReader, SupabaseAuditLogReader);
   container.registerSingleton<IReportActionRepository>(TOKENS.IReportActionRepository, SupabaseReportActionRepository);
   container.registerSingleton<IPresenceService>(TOKENS.IPresenceService, PresenceQueryService);
   container.registerSingleton<IBetHistoryService>(TOKENS.IBetHistoryService, BetHistoryService);

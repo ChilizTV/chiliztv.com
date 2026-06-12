@@ -23,6 +23,7 @@ const markets = container.resolve(AdminMarketsController);
 
 // Any active role may probe its own session.
 router.get('/me', requireAdmin(), controller.me.bind(controller));
+router.get('/overview', requireAdmin(), controller.overview.bind(controller));
 
 // ── Moderation (moderator+) ────────────────────────────────────────────────
 router.get('/reports', requireAdmin('moderator'), moderation.reports.bind(moderation));

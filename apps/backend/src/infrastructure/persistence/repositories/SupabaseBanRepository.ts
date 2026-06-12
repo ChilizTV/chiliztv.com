@@ -81,6 +81,22 @@ export class SupabaseBanRepository implements IBanRepository {
     return count ?? 0;
   }
 
+  async countActive(now: Date): Promise<{ total: number; permanent: number }> {
+    const [all, perm] = await Promise.all([
+      supabase
+        .from('bans')
+        .select('id', { count: 'exact', head: true })
+        .eq('status', 'active')
+        .or(`expires_at.is.null,expires_at.gt.${now.toISOString()}`),
+      supabase.from('bans').select('id', { count: 'exact', head: true }).eq('status', 'active').is('expires_at', null),
+    ]);
+    if (all.error || perm.error) {
+      logger.error('Failed to count active bans', { error: (all.error ?? perm.error)?.message });
+      throw new Error('Failed to count active bans');
+    }
+    return { total: all.count ?? 0, permanent: perm.count ?? 0 };
+  }
+
   async findActiveWallets(wallets: string[], now: Date): Promise<string[]> {
     if (wallets.length === 0) return [];
     const { data, error } = await supabase

@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
-import { injectable } from 'tsyringe';
+import { container, injectable } from 'tsyringe';
 import { issueGateToken, verifyGateCode } from '../middlewares/admin-gate';
+import { GetAdminOverviewUseCase } from '../../../application/admin/use-cases/GetAdminOverviewUseCase';
 
 @injectable()
 export class AdminController {
@@ -27,6 +28,16 @@ export class AdminController {
     async me(req: Request, res: Response, next: NextFunction): Promise<void> {
         try {
             res.json({ success: true, data: req.admin });
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    /** Dashboard overview — counters stripped to the caller's role scope. */
+    async overview(req: Request, res: Response, next: NextFunction): Promise<void> {
+        try {
+            const data = await container.resolve(GetAdminOverviewUseCase).execute(req.admin!.role);
+            res.json({ success: true, data });
         } catch (error) {
             next(error);
         }

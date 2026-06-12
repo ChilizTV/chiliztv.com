@@ -24,6 +24,9 @@ export interface IBanRepository {
 
     markExpired(banIds: string[], now: Date): Promise<void>;
 
+    /** Dashboard counters — active unexpired bans at `now`, split on permanent. */
+    countActive(now: Date): Promise<{ total: number; permanent: number }>;
+
     /** Admin listing — keyset on (starts_at DESC, id DESC). */
     listForAdmin(filter: AdminBanFilter): Promise<AdminBanPage>;
     /** Lifts an ACTIVE ban. Null when no active row matched (409). */

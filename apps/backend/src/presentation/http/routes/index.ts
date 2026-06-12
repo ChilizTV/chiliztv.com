@@ -15,6 +15,7 @@ export { leaderboardRoutes } from './leaderboard.routes';
 export { statsRoutes } from './stats.routes';
 export { adminRoutes } from './admin.routes';
 export { adminGateRoutes } from './admin-gate.routes';
+export { adminAuthRoutes } from './admin-auth.routes';
 export { metricsRoutes } from './metrics.routes';
 export { reportingRoutes } from './reporting.routes';
 export { banRoutes } from './ban.routes';

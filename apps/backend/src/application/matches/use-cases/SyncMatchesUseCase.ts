@@ -15,6 +15,10 @@ import { logger } from '../../../infrastructure/logging/logger';
 // API-Football quota under control during WC peaks (200+ unique teams/sync).
 const FORM_FETCH_CONCURRENCY = 10;
 
+// Deploy retries per sync — capped to avoid nonce storms.
+const CONTRACT_REPAIR_CAP_PER_SYNC = 5;
+const NOT_STARTED_STATUSES: ReadonlySet<string> = new Set(['NS', 'TBD']);
+
 export interface SyncMatchesResult {
     matchesFetched: number;
     matchesStored: number;
@@ -86,9 +90,46 @@ export class SyncMatchesUseCase {
             }
         }
 
+        contractsDeployed += await this.repairContractlessMatches(changedMatchIds, changedLeagueIds);
+
         await this.invalidateCache(changedMatchIds, changedLeagueIds);
 
         return { matchesFetched: rawMatches.length, matchesStored, contractsDeployed };
+    }
+
+    /** Redeploys upcoming matches left contractless by a failed deploy. */
+    private async repairContractlessMatches(
+        changedMatchIds: number[],
+        changedLeagueIds: Set<number>,
+    ): Promise<number> {
+        const all = await this.matchRepository.findAll();
+        const now = this.clock.now().getTime();
+        const candidates = all
+            .filter((m) => {
+                const raw = m.toRaw();
+                const kickoff = raw.matchDate instanceof Date ? raw.matchDate : new Date(raw.matchDate);
+                return !raw.bettingContractAddress
+                    && NOT_STARTED_STATUSES.has(raw.status)
+                    && kickoff.getTime() > now;
+            })
+            .slice(0, CONTRACT_REPAIR_CAP_PER_SYNC);
+        if (candidates.length === 0) return 0;
+
+        let repaired = 0;
+        for (const match of candidates) {
+            const raw = match.toRaw();
+            const contractAddress = await this.deployAndSeedContract(match);
+            if (contractAddress) {
+                repaired++;
+                changedMatchIds.push(raw.apiFootballId);
+                changedLeagueIds.add(raw.leagueId);
+            }
+        }
+        logger.info('Contractless match repair pass', {
+            candidates: candidates.length,
+            repaired,
+        });
+        return repaired;
     }
 
     /**
@@ -301,36 +342,36 @@ export class SyncMatchesUseCase {
         });
 
         const saved = await this.matchRepository.save(newMatch);
+        return (await this.deployAndSeedContract(saved)) !== null;
+    }
 
+    /** Deploys + seeds the canonical lineup, persists the address. Null on failure (logged; repair pass retries). */
+    private async deployAndSeedContract(match: Match): Promise<string | null> {
+        // toRaw() is flat and symmetric with reconstitute (toJSON nests teams/league).
+        const raw = match.toRaw();
         try {
-            const matchName     = `${raw.homeTeamName} vs ${raw.awayTeamName}`;
-            const ownerAddress  = this.blockchainService.getAdminAddress();
+            const ownerAddress = this.blockchainService.getAdminAddress();
             const { contractAddress } = await this.blockchainService.deployBettingContract(
-                matchName,
+                `${raw.homeTeamName} vs ${raw.awayTeamName}`,
                 ownerAddress
             );
-
-            // Seed the canonical market lineup (8 base markets, +
-            // FULL_TIME_WINNER for knockout fixtures). No odds are pushed
-            // on-chain — parimutuel derives them from pools. The knockout
-            // flag was frozen above by isKnockoutMatch(raw) and decides the
-            // 8 vs 9 market lineup for the lifetime of this proxy.
-            await this.blockchainService.setupDefaultMarkets(contractAddress, { isKnockout });
-
-            // Use `toRaw()` — it returns flat MatchProps and is symmetric with
-            // `reconstitute`. `toJSON()` would nest teams/league and the spread
-            // would leave `homeTeamId` / `homeTeamName` / `homeTeamLogo` undefined,
-            // which the next `toRow` would persist as empty JSONB objects.
+            await this.blockchainService.setupDefaultMarkets(contractAddress, {
+                isKnockout: raw.isKnockout === true,
+            });
             const matchWithContract = Match.reconstitute({
-                ...saved.toRaw(),
+                ...raw,
                 bettingContractAddress: contractAddress,
                 updatedAt: this.clock.now(),
             });
             await this.matchRepository.update(matchWithContract);
-
-            return true;
-        } catch {
-            return false;
+            logger.info('Betting contract deployed', { matchId: raw.apiFootballId, contractAddress });
+            return contractAddress;
+        } catch (err) {
+            logger.error('Betting contract deployment failed', {
+                matchId: raw.apiFootballId,
+                error: err instanceof Error ? err.message : String(err),
+            });
+            return null;
         }
     }
 }

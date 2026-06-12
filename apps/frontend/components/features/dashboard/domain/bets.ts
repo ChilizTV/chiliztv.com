@@ -125,6 +125,8 @@ export function betOverlayKey(bet: Pick<MyBet, 'contractAddress' | 'marketId'>):
 
 export function isLocallyClaimed(bet: MyBet, overlay: ClaimOverlay | undefined): boolean {
     if (!overlay) return false;
+    // Overlay keys are (contract, marketId) — LOST rows share the key but were never claimed.
+    if (bet.status !== 'WON' && bet.status !== 'REFUNDED') return false;
     return overlay.has(betOverlayKey(bet));
 }
 

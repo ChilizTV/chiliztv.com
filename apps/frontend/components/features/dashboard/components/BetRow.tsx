@@ -124,12 +124,13 @@ export function BetRow({ bet }: BetRowProps) {
     // Visible status — overlay first (the user just acted), server second.
     // The indexer's authoritative `claimedAt` drives both pills (parimutuel
     // collapses claim/refund into a single timestamp).
+    // Status-gated: overlay keys are (contract, marketId), shared by LOST rows.
     const overlayEntry = lookup(bet);
     const showClaimedPill =
-        overlayEntry?.kind === 'claimed' ||
+        (overlayEntry?.kind === 'claimed' && bet.status === 'WON') ||
         (bet.status === 'WON' && bet.claimedAt !== null);
     const showRefundedPill =
-        overlayEntry?.kind === 'refunded' ||
+        (overlayEntry?.kind === 'refunded' && bet.status === 'REFUNDED') ||
         (bet.status === 'REFUNDED' && bet.claimedAt !== null);
 
     return (

@@ -1,0 +1,14 @@
+@import "tailwindcss";
+@source "../../../packages/ui/src";
+
+body {
+  background: #0a0a0a;
+  color: #ffffff;
+}
+
+.font-display {
+  font-family: var(--font-barlow-condensed), 'Barlow Condensed', sans-serif;
+}
+.font-mono-ctv {
+  font-family: var(--font-jetbrains-mono), 'JetBrains Mono', monospace;
+}

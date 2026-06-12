@@ -67,6 +67,7 @@ export const TOKENS = {
   IAdminWalletRepository:  Symbol.for('IAdminWalletRepository'),
   IAdminAccessService:     Symbol.for('IAdminAccessService'),
   IAuditTrail:             Symbol.for('IAuditTrail'),
+  IAdminDirectoryRepository: Symbol.for('IAdminDirectoryRepository'),
 } as const;
 
 export type TokenKey = keyof typeof TOKENS;

@@ -10,12 +10,14 @@ import {
 } from '@chiliztv/shared/dto/admin/AdminModerationDtos';
 import { AdminController } from '../controllers/admin.controller';
 import { AdminModerationController } from '../controllers/admin-moderation.controller';
+import { AdminDirectoryController } from '../controllers/admin-directory.controller';
 import { requireAdmin } from '../middlewares/require-admin.middleware';
 import { validate } from '../middlewares/validation.middleware';
 
 const router = Router();
 const controller = container.resolve(AdminController);
 const moderation = container.resolve(AdminModerationController);
+const directory = container.resolve(AdminDirectoryController);
 
 // Any active role may probe its own session.
 router.get('/me', requireAdmin(), controller.me.bind(controller));
@@ -33,5 +35,13 @@ router.post('/actions/:id/reverse', requireAdmin('moderator'), validate(z.object
 // Config policy is admin-scope, not moderator (PO matrix).
 router.get('/report-config', requireAdmin('moderator'), moderation.getConfig.bind(moderation));
 router.put('/report-config', requireAdmin('admin'), validate(z.object({ body: AdminUpdateReportConfigSchema })), moderation.putConfig.bind(moderation));
+
+// ── Directory — read-only aggregates (lot 3) ───────────────────────────────
+// Players/streamers are moderator-scope (report review needs them); markets
+// sit outside the moderator perimeter per the PO matrix.
+router.get('/players', requireAdmin('moderator'), directory.players.bind(directory));
+router.get('/players/:wallet', requireAdmin('moderator'), directory.player.bind(directory));
+router.get('/streamers', requireAdmin('moderator'), directory.streamers.bind(directory));
+router.get('/matches', requireAdmin('admin'), directory.matches.bind(directory));
 
 export { router as adminRoutes };

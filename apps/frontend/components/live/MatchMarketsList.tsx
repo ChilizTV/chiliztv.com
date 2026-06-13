@@ -302,58 +302,52 @@ function MarketRow({ contractAddress, snapshot, homeTeam, awayTeam, match, now, 
             const outcomePoolRaw = snapshot.outcomePools[outcomeIdx];
             const outcomePool = outcomePoolRaw ? BigInt(outcomePoolRaw) : BigInt(0);
             const probBps = snapshot.impliedProbBps[outcomeIdx] ?? 0;
-            const isLead = outcomeIdx === leadIdx;
-            const restBorder = isLead ? "#E8001D" : "#1E1E1E";
+            const isLead = poolHasLiquidity && outcomeIdx === leadIdx;
             return (
               <button
                 key={outcomeIdx}
                 type="button"
                 onClick={() => handleCellClick(outcomeIdx)}
                 disabled={!canBet}
-                className="group relative flex flex-col gap-1 rounded-md px-3 py-2.5 transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E8001D]"
-                style={{
-                  background: "#0d0d0d",
-                  border: `1px solid ${restBorder}`,
-                  color: canBet ? "#fff" : "#666",
-                  cursor: canBet ? "pointer" : "not-allowed",
-                  opacity: canBet ? 1 : 0.5,
-                }}
-                onMouseEnter={(e) => {
-                  if (!canBet) return;
-                  const el = e.currentTarget as HTMLButtonElement;
-                  el.style.background = "rgba(232,0,29,0.08)";
-                  el.style.borderColor = "#E8001D";
-                }}
-                onMouseLeave={(e) => {
-                  if (!canBet) return;
-                  const el = e.currentTarget as HTMLButtonElement;
-                  el.style.background = "#0d0d0d";
-                  el.style.borderColor = restBorder;
-                }}
+                className={[
+                  "group relative flex flex-col gap-1.5 overflow-hidden rounded-[10px] border bg-[#1A1A1A] px-3.5 pb-3 pt-3.5 text-left transition-all duration-150",
+                  "shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E8001D]",
+                  isLead ? "border-[#E8001D]" : "border-[#2A2A2A]",
+                  canBet
+                    ? "cursor-pointer hover:-translate-y-px hover:border-[#E8001D] hover:bg-[#211012]"
+                    : "cursor-not-allowed opacity-50",
+                ].join(" ")}
               >
                 {isLead && (
                   <span
-                    className="font-mono-ctv absolute right-1.5 top-1.5 rounded px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-[0.16em] text-[#E8001D] motion-safe:animate-pulse"
+                    className="font-mono-ctv absolute right-2.5 top-2.5 rounded px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-[0.16em] text-[#E8001D] motion-safe:animate-pulse"
                     style={{ border: "1px solid rgba(232,0,29,0.5)", background: "rgba(232,0,29,0.12)" }}
                   >
                     Top
                   </span>
                 )}
                 <span
-                  className={`font-display truncate text-[12px] font-extrabold uppercase tracking-tight ${isLead ? "pr-9" : ""}`}
+                  className={`font-display truncate text-[13px] font-extrabold uppercase leading-none tracking-tight text-white ${isLead ? "pr-10" : ""}`}
                 >
                   {o.label}
                 </span>
                 {poolHasLiquidity ? (
-                  <span className="font-mono-ctv flex items-center justify-between text-[10px] tabular-nums">
-                    <span style={{ color: "#E8001D" }}>{(probBps / 100).toFixed(1)}%</span>
-                    <span className="text-white/45">
-                      ${Number(formatUnits(outcomePool, assetDecimals)).toLocaleString()}
-                    </span>
+                  <span
+                    className={`font-display text-[30px] font-extrabold leading-[0.9] tracking-[-0.02em] ${isLead ? "text-[#E8001D]" : "text-white"}`}
+                  >
+                    {Math.round(probBps / 100)}%
                   </span>
                 ) : (
-                  <span className="font-mono-ctv text-[10px] tabular-nums text-white/45">
-                    Be the first to predict
+                  <span className="font-mono-ctv text-[13px] font-semibold text-white/45">—</span>
+                )}
+                <span className="font-mono-ctv text-[11px] font-semibold text-white/45">
+                  {poolHasLiquidity
+                    ? `$${Number(formatUnits(outcomePool, assetDecimals)).toLocaleString()}`
+                    : "Be the first to predict"}
+                </span>
+                {canBet && (
+                  <span className="font-mono-ctv flex translate-y-[3px] items-center gap-1.5 text-[9px] font-bold uppercase tracking-[0.18em] text-[#E8001D] opacity-0 transition-all duration-150 group-hover:translate-y-0 group-hover:opacity-100">
+                    Predict <span aria-hidden>→</span>
                   </span>
                 )}
               </button>

@@ -1,6 +1,6 @@
 import { formatUnits } from 'viem';
 
-import type { MyBet } from '@/components/features/dashboard/domain/bets';
+import { FINISHED_MATCH_STATUSES, type MyBet } from '@/components/features/dashboard/domain/bets';
 import { MARKET_TYPE_HASHES, fmtSelectionWithMarket } from '@/lib/contracts/markets';
 
 import type { WinCardBet, WinCardData } from './types';
@@ -18,9 +18,20 @@ function marketHash(marketType: string | null): string | undefined {
   return MARKET_TYPE_HASHES[marketType as keyof typeof MARKET_TYPE_HASHES] ?? undefined;
 }
 
-/** Only WON bets with a payout and resolved match contribute to a win card. */
+/**
+ * A bet earns a win card only when it genuinely won a *played, settled* match
+ * with a positive net: WON status + a payout strictly above the stake + the
+ * match finished on the pitch. The match-finished guard is what stops a card
+ * from ever showing for a fixture that hasn't happened yet.
+ */
 export function isWinCardEligible(bet: MyBet): boolean {
-  return bet.status === 'WON' && bet.payoutAmount != null && bet.match != null;
+  if (bet.status !== 'WON' || bet.payoutAmount == null || bet.match == null) return false;
+  if (!FINISHED_MATCH_STATUSES.has(bet.match.status ?? '')) return false;
+  try {
+    return BigInt(bet.payoutAmount) > BigInt(bet.stakeAmount);
+  } catch {
+    return false;
+  }
 }
 
 /**

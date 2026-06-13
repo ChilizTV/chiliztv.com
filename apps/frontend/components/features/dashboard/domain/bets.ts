@@ -68,7 +68,7 @@ export function isBetOnHiddenMarket(bet: Pick<MyBet, 'marketType'>): boolean {
 }
 
 /** Match is over on the pitch — pending bets are now "resolving", not open. */
-const FINISHED_MATCH_STATUSES: ReadonlySet<string> = new Set(['FT', 'AET', 'PEN']);
+export const FINISHED_MATCH_STATUSES: ReadonlySet<string> = new Set(['FT', 'AET', 'PEN']);
 
 /**
  * True when the match has finished but the market hasn't been resolved

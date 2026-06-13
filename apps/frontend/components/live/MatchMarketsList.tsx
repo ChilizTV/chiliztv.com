@@ -178,6 +178,20 @@ function MarketRow({ contractAddress, snapshot, homeTeam, awayTeam, match, now, 
   const outcomes = spec ? spec.getOutcomes(line, homeTeam, awayTeam) : [];
   const poolHasLiquidity = totalPool > BigInt(0);
 
+  // Crowd favourite — the highest-probability outcome once there's liquidity.
+  // Marked with a red outline + blinking "Top" badge (no fill) so it reads as
+  // the front-runner while staying a normal tappable cell.
+  const leadIdx =
+    poolHasLiquidity && outcomes.length > 0
+      ? outcomes.reduce(
+          (best, o) =>
+            (snapshot.impliedProbBps[o.selection] ?? 0) > (snapshot.impliedProbBps[best] ?? 0)
+              ? o.selection
+              : best,
+          outcomes[0].selection,
+        )
+      : -1;
+
   const handleCellClick = (selectionIdx: number) => {
     if (!canBet) return;
     onBet({
@@ -288,16 +302,18 @@ function MarketRow({ contractAddress, snapshot, homeTeam, awayTeam, match, now, 
             const outcomePoolRaw = snapshot.outcomePools[outcomeIdx];
             const outcomePool = outcomePoolRaw ? BigInt(outcomePoolRaw) : BigInt(0);
             const probBps = snapshot.impliedProbBps[outcomeIdx] ?? 0;
+            const isLead = outcomeIdx === leadIdx;
+            const restBorder = isLead ? "#E8001D" : "#1E1E1E";
             return (
               <button
                 key={outcomeIdx}
                 type="button"
                 onClick={() => handleCellClick(outcomeIdx)}
                 disabled={!canBet}
-                className="group flex flex-col gap-1 rounded-md px-3 py-2.5 transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E8001D]"
+                className="group relative flex flex-col gap-1 rounded-md px-3 py-2.5 transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E8001D]"
                 style={{
                   background: "#0d0d0d",
-                  border: "1px solid #1E1E1E",
+                  border: `1px solid ${restBorder}`,
                   color: canBet ? "#fff" : "#666",
                   cursor: canBet ? "pointer" : "not-allowed",
                   opacity: canBet ? 1 : 0.5,
@@ -312,10 +328,20 @@ function MarketRow({ contractAddress, snapshot, homeTeam, awayTeam, match, now, 
                   if (!canBet) return;
                   const el = e.currentTarget as HTMLButtonElement;
                   el.style.background = "#0d0d0d";
-                  el.style.borderColor = "#1E1E1E";
+                  el.style.borderColor = restBorder;
                 }}
               >
-                <span className="font-display truncate text-[12px] font-extrabold uppercase tracking-tight">
+                {isLead && (
+                  <span
+                    className="font-mono-ctv absolute right-1.5 top-1.5 rounded px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-[0.16em] text-[#E8001D] motion-safe:animate-pulse"
+                    style={{ border: "1px solid rgba(232,0,29,0.5)", background: "rgba(232,0,29,0.12)" }}
+                  >
+                    Top
+                  </span>
+                )}
+                <span
+                  className={`font-display truncate text-[12px] font-extrabold uppercase tracking-tight ${isLead ? "pr-9" : ""}`}
+                >
                   {o.label}
                 </span>
                 {poolHasLiquidity ? (

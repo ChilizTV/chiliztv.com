@@ -43,8 +43,13 @@ export interface MyBet {
         readonly apiFootballId: number;
         readonly homeTeamName: string;
         readonly awayTeamName: string;
+        readonly homeTeamLogo?: string | null;
+        readonly awayTeamLogo?: string | null;
         readonly leagueName: string | null;
         readonly matchDate: string;
+        /** Final 90' score — null until the match is settled. Drives the win card. */
+        readonly homeScore?: number | null;
+        readonly awayScore?: number | null;
         /** API-Football status code (NS, 1H, HT, 2H, FT…). Optional for
          *  cached payloads that predate the field. */
         readonly status?: string;

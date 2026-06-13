@@ -37,6 +37,8 @@ import {
 import { chilizConfig } from "@/config/chiliz.config";
 import { LiveStream } from "@/models/stream.model";
 import type { Match } from "@/types/api.types";
+import { WinCardModalProvider } from "@/components/features/win-card/components/WinCardModalProvider";
+import { WinCardAutoTrigger } from "@/components/features/win-card/components/WinCardAutoTrigger";
 
 interface LiveDetailsPageProps {
   readonly id: string;
@@ -270,7 +272,14 @@ export default function LiveDetailsPage({ id }: LiveDetailsPageProps) {
   }
 
   return (
+    <WinCardModalProvider>
     <div className="relative min-h-full bg-[#0A0A0A] text-white">
+      {matchData.contractAddress ? (
+        <WinCardAutoTrigger
+          wallet={walletAddress || undefined}
+          scope={{ kind: "match", contractAddress: matchData.contractAddress as string }}
+        />
+      ) : null}
       <LiveHero
         homeTeam={matchData.homeTeam}
         awayTeam={matchData.awayTeam}
@@ -519,6 +528,7 @@ export default function LiveDetailsPage({ id }: LiveDetailsPageProps) {
       </MobileChatBottomSheet>
 
     </div>
+    </WinCardModalProvider>
   );
 }
 

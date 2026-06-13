@@ -31,6 +31,7 @@ import {
 import { sortMarketsByManifest } from "@chiliztv/domain/markets/sortMarketsByManifest";
 import { MarketBetDialog } from "./MarketBetDialog";
 import { UnsupportedSportPanel } from "./UnsupportedSportPanel";
+import { FreshPoolHero } from "./FreshPoolHero";
 import { HalftimeDelayBadge } from "@/components/shared/HalftimeDelayBadge";
 
 const BETTING_CHAIN_ID = chilizConfig.chainId;
@@ -192,6 +193,12 @@ function MarketRow({ contractAddress, snapshot, homeTeam, awayTeam, match, now, 
         )
       : -1;
 
+  // Fresh = open market with no stake yet. Gold "Fresh" pill + dashed
+  // "set the opening line" cells instead of the green Open / live treatment.
+  const isFresh = isOpen && !poolHasLiquidity;
+  const pillLabel = isFresh ? "Fresh" : stateName;
+  const pillColor = isFresh ? "#F5C518" : stateColor;
+
   const handleCellClick = (selectionIdx: number) => {
     if (!canBet) return;
     onBet({
@@ -241,12 +248,12 @@ function MarketRow({ contractAddress, snapshot, homeTeam, awayTeam, match, now, 
           <span
             className="font-mono-ctv rounded-sm px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.14em]"
             style={{
-              background: `${stateColor}1a`,
-              color: stateColor,
-              border: `1px solid ${stateColor}33`,
+              background: `${pillColor}1a`,
+              color: pillColor,
+              border: `1px solid ${pillColor}33`,
             }}
           >
-            {stateName}
+            {pillLabel}
           </span>
           <span className="font-mono-ctv text-[10px] tabular-nums text-white/45">
             Pool {formatBetAmount(totalPool, assetDecimals)} {BET_TOKEN_SYMBOL}
@@ -310,11 +317,16 @@ function MarketRow({ contractAddress, snapshot, homeTeam, awayTeam, match, now, 
                 onClick={() => handleCellClick(outcomeIdx)}
                 disabled={!canBet}
                 className={[
-                  "group relative flex flex-col items-center gap-1.5 overflow-hidden rounded-[10px] border bg-[#1A1A1A] px-3.5 pb-3 pt-3.5 text-center transition-all duration-150",
+                  "group relative flex flex-col items-center gap-1.5 overflow-hidden rounded-[10px] border px-3.5 pb-3 pt-3.5 text-center transition-all duration-150",
                   "shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E8001D]",
-                  isLead ? "border-[#E8001D]" : "border-[#2A2A2A]",
+                  poolHasLiquidity ? "bg-[#1A1A1A]" : "bg-[#141414]",
+                  isLead
+                    ? "border-[#E8001D]"
+                    : poolHasLiquidity
+                      ? "border-[#2A2A2A]"
+                      : "border-dashed border-[#3A3A3A]",
                   canBet
-                    ? "cursor-pointer hover:-translate-y-px hover:border-[#E8001D] hover:bg-[#211012]"
+                    ? "cursor-pointer hover:-translate-y-px hover:border-solid hover:border-[#E8001D] hover:bg-[#211012]"
                     : "cursor-not-allowed opacity-50",
                 ].join(" ")}
               >
@@ -338,16 +350,18 @@ function MarketRow({ contractAddress, snapshot, homeTeam, awayTeam, match, now, 
                     {Math.round(probBps / 100)}%
                   </span>
                 ) : (
-                  <span className="font-mono-ctv text-[13px] font-semibold text-white/45">—</span>
+                  <span className="font-display text-[30px] font-extrabold leading-[0.9] tracking-[-0.02em] text-white/15 transition-colors group-hover:text-[#E8001D]">
+                    0%
+                  </span>
                 )}
                 <span className="font-mono-ctv text-[11px] font-semibold text-white/45">
                   {poolHasLiquidity
                     ? `$${Number(formatUnits(outcomePool, assetDecimals)).toLocaleString()}`
-                    : "Be the first to predict"}
+                    : "Set the opening line"}
                 </span>
                 {canBet && (
                   <span className="font-mono-ctv flex translate-y-[3px] items-center justify-center gap-1.5 text-[9px] font-bold uppercase tracking-[0.18em] text-[#E8001D] opacity-0 transition-all duration-150 group-hover:translate-y-0 group-hover:opacity-100">
-                    Predict <span aria-hidden>→</span>
+                    {poolHasLiquidity ? "Predict" : "Predict first"} <span aria-hidden>→</span>
                   </span>
                 )}
               </button>
@@ -463,9 +477,16 @@ export function MatchMarketsList({
   const nonDcMarkets = sortedMarkets.filter(m => m.marketType.toLowerCase() !== dcHash);
   const dcMarkets = sortedMarkets.filter(m => m.marketType.toLowerCase() === dcHash);
 
+  // Whole-match "fresh" state: no stake on any market yet → surface the
+  // opening-line hero above the list.
+  const totalStaked = sortedMarkets.reduce((sum, m) => sum + BigInt(m.totalPool), BigInt(0));
+  const marketsOpen = sortedMarkets.filter((m) => m.state === MarketState.Open).length;
+  const allFresh = totalStaked === BigInt(0) && marketsOpen > 0;
+
   return (
     <>
       <div>
+        {allFresh && <FreshPoolHero marketsOpen={marketsOpen} />}
         {nonDcMarkets.map((snapshot) => (
           <MarketRow
             key={snapshot.marketId}

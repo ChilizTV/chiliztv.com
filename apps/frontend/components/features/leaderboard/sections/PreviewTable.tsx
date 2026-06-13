@@ -7,7 +7,7 @@ import type { MedalKind } from '../domain/medals';
 import { PREVIEW_COLS, PreviewRow } from './PreviewRow';
 import type { PreviewRow as PreviewRowData } from '../domain/data';
 
-const COLUMNS = ['#', 'Predictor', 'Payouts', 'Rank', 'Vol', 'Tier'] as const;
+const COLUMNS = ['#', 'Predictor', 'Payouts', 'Tier'] as const;
 const USDC_DECIMALS = 6;
 
 function medalFor(rank: number): MedalKind | undefined {
@@ -36,8 +36,6 @@ export function PreviewTable() {
             username: e.username,
             avatarUrl: e.avatarUrl,
             pnl: payouts,
-            win: 0,
-            vol: 0,
             medal: medalFor(e.rank),
         };
     });

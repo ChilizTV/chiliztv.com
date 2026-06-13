@@ -7,14 +7,7 @@ interface PreviewRowProps {
     row: PreviewRowData;
 }
 
-const COLS = '44px minmax(0,1.4fr) minmax(0,1fr) 80px minmax(0,1fr) minmax(0,1.05fr)';
-
-function formatVolume(vol: number): string {
-    if (!vol || vol <= 0) return '—';
-    if (vol >= 1_000_000) return `$${(vol / 1_000_000).toFixed(1)}M`;
-    if (vol >= 1_000) return `$${(vol / 1_000).toFixed(0)}K`;
-    return `$${vol.toFixed(0)}`;
-}
+const COLS = '44px minmax(0,1.7fr) minmax(0,1fr) minmax(0,1.05fr)';
 
 /**
  * One row of the preview leaderboard table. Column widths match the
@@ -55,16 +48,6 @@ export function PreviewRow({ row }: PreviewRowProps) {
                 output (`12 480`) mismatches the browser (`12,480`). */}
             <div className="font-mono-ctv text-[14px] font-semibold tabular-nums text-[#2dd4a4]">
                 +${row.pnl.toLocaleString('en-US')}
-            </div>
-
-            {/* win */}
-            <div className="font-mono-ctv text-[13px] font-semibold tabular-nums text-white/85">
-                {row.win}%
-            </div>
-
-            {/* vol */}
-            <div className="font-mono-ctv text-[13px] font-semibold tabular-nums text-white/55">
-                {formatVolume(row.vol)}
             </div>
 
             {/* tier label — medal name only; the absolute share is pro-rata, not a fixed %. */}

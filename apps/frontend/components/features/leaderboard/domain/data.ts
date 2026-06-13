@@ -13,7 +13,5 @@ export interface PreviewRow {
     readonly username: string | null;
     readonly avatarUrl: string | null;
     readonly pnl: number;
-    readonly win: number;
-    readonly vol: number;
     readonly medal?: MedalKind;
 }

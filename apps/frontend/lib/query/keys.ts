@@ -37,6 +37,10 @@ export const queryKeys = {
     donorDonations: (donorAddress: string) => [...queryKeys.streamWallet.all, 'donor', donorAddress, 'donations'] as const,
     subscriberSubscriptions: (subscriberAddress: string) => [...queryKeys.streamWallet.all, 'subscriber', subscriberAddress, 'subscriptions'] as const,
   },
+  streams: {
+    all: ['streams'] as const,
+    active: (matchId: number) => [...queryKeys.streams.all, 'active', matchId] as const,
+  },
   waitlist: {
     all: ['waitlist'] as const,
   },

@@ -15,6 +15,7 @@ import {
   StreamShelf,
   StreamerStrip,
   AboutLiveTabs,
+  NoStreamPanel,
 } from "./sections";
 import { StreamSwitcherSheet, StartStreamSheet } from "./sheets";
 import { StreamInterruptedBanner } from "@/components/features/streaming/StreamInterruptedBanner";
@@ -26,6 +27,7 @@ import {
   useUnfollowMutation,
   useMatch,
   useMyBan,
+  useActiveStreams,
 } from "@/hooks/api";
 import { BannedBanner } from "@/components/features/moderation/BannedBanner";
 import type { Address } from "viem";
@@ -175,6 +177,16 @@ export default function LiveDetailsPage({ id }: LiveDetailsPageProps) {
 
   const isStreamer = !!myStream && !!user?.userId;
   const chatStreamId = myStream?.id ?? selectedStream?.id;
+
+  // No-stream UX: when nothing is playing, the main column collapses the
+  // player into a reveal badge. The badge label needs the live-stream count,
+  // so the poll only runs while no stream is on screen.
+  const hasLiveContent = isStreamer || !!selectedStream;
+  const matchIdNum = Number(id);
+  const { data: activeStreams } = useActiveStreams(
+    hasLiveContent || Number.isNaN(matchIdNum) ? undefined : matchIdNum,
+  );
+  const liveStreamCount = activeStreams?.count ?? 0;
 
   const isOwnSelectedStream =
     !!selectedStream &&
@@ -361,37 +373,47 @@ export default function LiveDetailsPage({ id }: LiveDetailsPageProps) {
         <div className="grid gap-4 lg:grid-cols-[1fr_360px] lg:gap-6 xl:grid-cols-[1fr_400px]">
           {/* Main column */}
           <div className="flex min-w-0 flex-col gap-3 lg:gap-5">
-            <div className="overflow-hidden rounded-xl border border-[#1E1E1E] bg-[#0d0d0d]">
-              {isStreamer ? (
-                <div
-                  ref={setStreamerPreviewEl}
-                  className="relative aspect-video w-full overflow-hidden bg-black"
-                />
-              ) : (
-                <VideoPlayer
-                  stream={selectedStream}
-                  autoplay={true}
-                  showControls={true}
-                  onStreamEnded={handleStreamEnded}
-                  onBrowseStreams={() => setShowSwitcherSheet(true)}
-                />
-              )}
-            </div>
+            {hasLiveContent ? (
+              <>
+                <div className="overflow-hidden rounded-xl border border-[#1E1E1E] bg-[#0d0d0d]">
+                  {isStreamer ? (
+                    <div
+                      ref={setStreamerPreviewEl}
+                      className="relative aspect-video w-full overflow-hidden bg-black"
+                    />
+                  ) : (
+                    <VideoPlayer
+                      stream={selectedStream}
+                      autoplay={true}
+                      showControls={true}
+                      onStreamEnded={handleStreamEnded}
+                      onBrowseStreams={() => setShowSwitcherSheet(true)}
+                    />
+                  )}
+                </div>
 
-            <StreamerStrip
-              stream={selectedStream}
-              isOwnStream={isOwnSelectedStream}
-              isFollowing={!!isFollowing}
-              followDisabled={!canFollow || isLoadingFollow}
-              followBusy={isMutatingFollow}
-              onFollow={handleFollowClick}
-              onTip={
-                streamForDonateSubscribe ? () => setShowDonationDialog(true) : undefined
-              }
-              onSubscribe={
-                streamForDonateSubscribe ? () => setShowSubscriptionDialog(true) : undefined
-              }
-            />
+                <StreamerStrip
+                  stream={selectedStream}
+                  isOwnStream={isOwnSelectedStream}
+                  isFollowing={!!isFollowing}
+                  followDisabled={!canFollow || isLoadingFollow}
+                  followBusy={isMutatingFollow}
+                  onFollow={handleFollowClick}
+                  onTip={
+                    streamForDonateSubscribe ? () => setShowDonationDialog(true) : undefined
+                  }
+                  onSubscribe={
+                    streamForDonateSubscribe ? () => setShowSubscriptionDialog(true) : undefined
+                  }
+                />
+              </>
+            ) : (
+              <NoStreamPanel
+                streamCount={liveStreamCount}
+                onGoLive={() => setShowStartSheet(true)}
+                onSwitchStreams={() => setShowSwitcherSheet(true)}
+              />
+            )}
 
             <AboutLiveTabs
               bettingContractAddress={matchData.contractAddress as Address | undefined}

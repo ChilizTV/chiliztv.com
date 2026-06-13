@@ -52,3 +52,4 @@ export { useMyClaimableEpochs } from './useMyClaimableEpochs';
 export { useMyBan, useSetMyBan } from './useMyBan';
 export { useCreateReport } from './useCreateReport';
 export { useReportConfig } from './useReportConfig';
+export { useActiveStreams } from './useActiveStreams';

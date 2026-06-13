@@ -24,6 +24,7 @@ import {
 import { useInvalidateMyBets } from '../hooks/useMyBets';
 import { useLocallyClaimed } from '../hooks/useLocallyClaimed';
 import { StatusPill } from './StatusPill';
+import { WinCardRowButton } from '@/components/features/win-card/components/WinCardRowButton';
 
 interface BetRowProps {
     readonly bet: MyBet;
@@ -183,6 +184,9 @@ export function BetRow({ bet }: BetRowProps) {
             </div>
 
             <div className="flex items-center justify-end gap-2">
+                {isWon ? (
+                    <WinCardRowButton walletAddress={bet.userAddress} contractAddress={bet.contractAddress} />
+                ) : null}
                 {claimable || refundable ? (
                     <button
                         type="button"

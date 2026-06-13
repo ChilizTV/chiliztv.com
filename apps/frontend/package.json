@@ -12,10 +12,10 @@
     "smoke:contracts": "node scripts/smoke-contracts.mjs"
   },
   "dependencies": {
-    "@chiliztv/ui": "workspace:*",
     "@chiliztv/blockchain": "workspace:*",
     "@chiliztv/domain": "workspace:*",
     "@chiliztv/shared": "workspace:*",
+    "@chiliztv/ui": "workspace:*",
     "@cloudflare/stream-react": "^1.9.3",
     "@dynamic-labs/ethereum": "4.73.2",
     "@dynamic-labs/sdk-react-core": "4.73.2",
@@ -42,6 +42,7 @@
     "ethers": "^6.15.0",
     "framer-motion": "^12.23.3",
     "hls.js": "^1.6.14",
+    "html-to-image": "^1.11.13",
     "lucide-react": "^0.525.0",
     "next": "16.2.6",
     "next-themes": "^0.4.6",

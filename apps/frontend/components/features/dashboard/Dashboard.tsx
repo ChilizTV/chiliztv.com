@@ -17,6 +17,8 @@ import { MyBetsSection } from './sections/MyBetsSection';
 import { MainTabs } from './sections/MainTabs';
 import { StreamerStudioSection } from './sections/streamer-studio';
 import type { TokenCardData } from './components/TokenCardDash';
+import { WinCardModalProvider } from '@/components/features/win-card/components/WinCardModalProvider';
+import { WinCardAutoTrigger } from '@/components/features/win-card/components/WinCardAutoTrigger';
 
 function scrollToId(id: string): void {
     if (typeof window === 'undefined') return;
@@ -75,7 +77,9 @@ export function Dashboard() {
     const goToDiscover = () => router.push('/browse');
 
     return (
+        <WinCardModalProvider>
         <main className="relative bg-[#0A0A0A]">
+            <WinCardAutoTrigger wallet={user.wallet} scope={{ kind: 'dashboard' }} />
             <BackgroundFX />
             <DashboardHero user={user} />
             <QuickActionsStrip isStreamer={isStreamer} onAction={handleQuickAction} />
@@ -98,5 +102,6 @@ export function Dashboard() {
                 <StreamerStudioSection wallet={user.wallet} />
             </div>
         </main>
+        </WinCardModalProvider>
     );
 }

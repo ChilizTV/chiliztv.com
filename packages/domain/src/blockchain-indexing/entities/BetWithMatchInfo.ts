@@ -13,8 +13,13 @@ export interface BetWithMatchInfo {
         readonly apiFootballId: number;
         readonly homeTeamName: string;
         readonly awayTeamName: string;
+        readonly homeTeamLogo: string | null;
+        readonly awayTeamLogo: string | null;
         readonly leagueName: string | null;
         readonly matchDate: Date;
+        /** Final 90' score — null until the match is settled. Drives the win card. */
+        readonly homeScore: number | null;
+        readonly awayScore: number | null;
         /** API-Football status code (NS, 1H, HT, 2H, FT…) — lets the UI tell
          *  "match over, resolve in flight" apart from a plain pending bet. */
         readonly status: string;

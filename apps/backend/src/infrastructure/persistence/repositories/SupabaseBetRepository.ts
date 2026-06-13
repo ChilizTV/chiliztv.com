@@ -290,14 +290,14 @@ export class SupabaseBetRepository implements IBetRepository {
 
         const { data, error } = await supabase
             .from('matches')
-            .select('api_football_id, home_team, away_team, league, match_date, status, betting_contract_address')
+            .select('api_football_id, home_team, away_team, league, match_date, status, home_score, away_score, betting_contract_address')
             .not('betting_contract_address', 'is', null);
         if (error) {
             logger.error('Failed to load match metadata for bets', { userAddress, error: error.message });
             return bets.map((bet) => ({ bet, match: null, marketContext: null }));
         }
 
-        type JsonBlob = { name?: string; id?: number } | string | null | undefined;
+        type JsonBlob = { name?: string; id?: number; logo?: string } | string | null | undefined;
         type MatchMetaRow = {
             api_football_id: number;
             home_team: JsonBlob;
@@ -305,10 +305,12 @@ export class SupabaseBetRepository implements IBetRepository {
             league: JsonBlob;
             match_date: string;
             status: string;
+            home_score: number | null;
+            away_score: number | null;
             betting_contract_address: string;
         };
 
-        const parseBlob = (raw: JsonBlob): { name?: string; id?: number } | null => {
+        const parseBlob = (raw: JsonBlob): { name?: string; id?: number; logo?: string } | null => {
             if (!raw) return null;
             if (typeof raw === 'string') {
                 try {
@@ -320,6 +322,7 @@ export class SupabaseBetRepository implements IBetRepository {
             return raw;
         };
         const teamName = (raw: JsonBlob): string => parseBlob(raw)?.name ?? 'Unknown';
+        const teamLogo = (raw: JsonBlob): string | null => parseBlob(raw)?.logo ?? null;
         const leagueName = (raw: JsonBlob): string | null => parseBlob(raw)?.name ?? null;
 
         const matchByContract = new Map<string, BetWithMatchInfo['match']>();
@@ -330,8 +333,12 @@ export class SupabaseBetRepository implements IBetRepository {
                 apiFootballId: row.api_football_id,
                 homeTeamName: teamName(row.home_team),
                 awayTeamName: teamName(row.away_team),
+                homeTeamLogo: teamLogo(row.home_team),
+                awayTeamLogo: teamLogo(row.away_team),
                 leagueName: leagueName(row.league),
                 matchDate: new Date(row.match_date),
+                homeScore: row.home_score,
+                awayScore: row.away_score,
                 status: row.status,
             });
         }
